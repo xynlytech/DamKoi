@@ -63,10 +63,11 @@
 
       <!-- Alert Setter -->
       <div class="alert-section">
-        <div class="alert-header">🔔 Alert me at</div>
+        <div class="alert-header">🔔 Alert me when price drops to</div>
+        <input type="email" id="alert-email" class="alert-email-input" placeholder="your@email.com" />
         <div class="alert-input-row">
           <span class="currency-prefix">৳</span>
-          <input type="number" id="alert-price" placeholder="Enter target price" />
+          <input type="number" id="alert-price" placeholder="Target price" />
           <button id="set-alert" class="btn-alert">Set Alert</button>
         </div>
         <div id="alert-status" class="alert-status"></div>
@@ -80,6 +81,6 @@
     </div>
   </div>
 
-  <script src="popup.js"></script>
+  <script type="module" src="popup.js"></script>
 </body>
 </html>

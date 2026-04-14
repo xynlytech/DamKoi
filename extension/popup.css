@@ -220,66 +220,95 @@ body {
 .alert-section {
   margin-top: 14px;
   padding-top: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .alert-header {
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: #a78bfa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.alert-email-input {
+  width: 100%;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #e4e4e7;
   font-size: 12px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: #a1a1aa;
+  outline: none;
+  margin-bottom: 10px;
+  transition: all 0.2s;
+}
+
+.alert-email-input:focus {
+  border-color: #a78bfa;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.1);
 }
 
 .alert-input-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .currency-prefix {
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 800;
   color: #a78bfa;
+  margin-right: -2px;
 }
 
 .alert-input-row input {
   flex: 1;
-  padding: 7px 10px;
-  background: rgba(255, 255, 255, 0.05);
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
+  border-radius: 8px;
   color: #e4e4e7;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 600;
   outline: none;
-  transition: border-color 0.2s;
+  transition: all 0.2s;
 }
 
 .alert-input-row input:focus {
   border-color: #a78bfa;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .alert-input-row input::placeholder {
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.2);
 }
 
 .btn-alert {
-  padding: 7px 12px;
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: #000;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+  color: #fff;
   border: none;
-  border-radius: 6px;
-  font-size: 11px;
+  border-radius: 8px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
 }
 
 .btn-alert:hover {
   opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.3);
 }
 
 .alert-status {
   font-size: 11px;
-  margin-top: 6px;
+  margin-top: 10px;
   min-height: 16px;
+  text-align: center;
+  font-weight: 500;
 }

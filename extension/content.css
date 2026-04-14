@@ -1,138 +1,265 @@
 /**
  * DamKoi — Content Script Styles
- * Floating widget that appears on Daraz product pages.
+ * Premium Sidebar Overlay for Daraz.com.bd
+ *
+ * Includes Glassmorphism, Tabbed Navigation, and SVG Visualization styles.
  */
 
-#damkoi-widget {
+:root {
+  --color-primary: #a78bfa;
+  --color-bg-dark: rgba(18, 18, 22, 0.98);
+  --color-text-main: #fff;
+  --color-text-secondary: rgba(255, 255, 255, 0.4);
+  --color-text-tertiary: rgba(255, 255, 255, 0.6);
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-border-light: rgba(255, 255, 255, 0.05);
+  --color-bg-card: rgba(255, 255, 255, 0.03);
+  --color-bg-input: rgba(255, 255, 255, 0.05);
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --z-sidebar: 2147483647;
+}
+
+#damkoi-sidebar {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 320px;
-  background: #1a1a2e;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color: #e4e4e7;
-  z-index: 999999;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  width: 440px;
+  height: auto;
+  max-height: 85vh;
+  background: var(--color-bg-dark);
+  backdrop-filter: blur(12px);
+  border-left: 1px solid var(--color-border);
+  border-radius: 24px 0 0 24px;
+  box-shadow: -15px 0 50px rgba(0, 0, 0, 0.6);
+  display: flex;
   overflow: hidden;
-  animation: damkoi-slide-in 0.3s ease-out;
+  z-index: var(--z-sidebar);
+  font-family: 'Inter', -apple-system, sans-serif;
+  color: var(--color-text-main);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+#damkoi-sidebar.collapsed {
+  transform: translate(375px, -50%); /* Hide the main area, keep nav bar visible */
 }
 
 @keyframes damkoi-slide-in {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translate(100px, -50%); }
+  to { opacity: 1; transform: translate(0, -50%); }
+}
+
+/* ── Navigation Sidebar ────────────────────────────── */
+
+.damkoi-nav {
+  width: 65px;
+  background: rgba(255, 255, 255, 0.04);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 0;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+.damkoi-nav-item {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  transition: all 0.2s;
+}
+
+.damkoi-nav-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-main);
+}
+
+.damkoi-nav-item.active {
+  background: var(--color-primary);
+  color: #000;
+  box-shadow: 0 0 15px rgba(167, 139, 250, 0.5);
+}
+
+/* ── Content Area ─────────────────────────────────── */
+
+.damkoi-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 24px;
 }
 
 .damkoi-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, #16213e, #0f3460);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  margin-bottom: 20px;
 }
 
 .damkoi-logo {
-  font-size: 14px;
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: 0.5px;
+  font-size: 18px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #fff, var(--color-primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .damkoi-close {
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 16px;
   cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 4px;
-  transition: all 0.2s;
+  opacity: 0.4;
+  transition: opacity 0.2s;
 }
 
-.damkoi-close:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+.damkoi-close:hover { opacity: 1; }
+
+/* ── Sections ────────────────────────────────────── */
+
+.damkoi-section {
+  display: none;
 }
 
-.damkoi-body {
-  padding: 16px;
-}
-
-.damkoi-verdict {
-  font-size: 16px;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
-.damkoi-score {
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 12px;
-}
-
-.damkoi-status {
-  font-size: 15px;
-  font-weight: 600;
-  color: #f59e0b;
-  margin-bottom: 4px;
-}
-
-.damkoi-prices {
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 10px;
-  padding: 10px 12px;
-  margin-bottom: 12px;
-}
-
-.damkoi-price-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-  padding: 3px 0;
-  color: #a1a1aa;
-}
-
-.damkoi-price-row span:last-child {
-  font-weight: 600;
-  color: #e4e4e7;
-}
-
-.damkoi-explanation {
-  font-size: 12px;
-  color: #a1a1aa;
-  line-height: 1.5;
-  margin: 0 0 12px 0;
-}
-
-.damkoi-text {
-  font-size: 12px;
-  color: #a1a1aa;
-  line-height: 1.5;
-  margin: 4px 0 0 0;
-}
-
-.damkoi-link {
+.damkoi-section.active {
   display: block;
-  text-align: center;
-  padding: 8px;
-  background: linear-gradient(135deg, #0f3460, #533483);
-  color: #fff;
-  border-radius: 8px;
-  text-decoration: none;
-  font-size: 13px;
-  font-weight: 600;
-  transition: all 0.2s;
+  animation: damkoi-fade-up 0.2s ease-out;
 }
 
-.damkoi-link:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
+@keyframes damkoi-fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Verdict Card ────────────────────────────────── */
+
+.damkoi-summary-row {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.damkoi-card {
+  background: var(--color-bg-card);
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid var(--color-border-light);
+}
+
+.damkoi-score-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ── Gauge Styles ────────────────────────────────── */
+
+.damkoi-gauge-container {
+  position: relative;
+  text-align: center;
+}
+
+.damkoi-gauge-fill {
+  transition: stroke-dashoffset 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: stroke-dashoffset;
+}
+
+.damkoi-gauge-value {
+  position: absolute;
+  top: 35px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.damkoi-gauge-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 1px;
+}
+
+/* ── Price Table ─────────────────────────────────── */
+
+.damkoi-price-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.damkoi-price-item {
+  background: rgba(255, 255, 255, 0.02);
+  padding: 10px;
+  border-radius: 12px;
+}
+
+.damkoi-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.damkoi-value {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* ── Chart Styles ────────────────────────────────── */
+
+.damkoi-chart-container {
+  margin: 10px 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.damkoi-chart-dot {
+  transition: opacity 0.2s;
+}
+
+/* ── Generic UI Elements ─────────────────────────── */
+
+.damkoi-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  color: var(--color-text-main);
+  margin-bottom: 15px;
+  outline: none;
+}
+
+.damkoi-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--color-primary);
+  color: #000;
+  border-radius: 12px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.damkoi-btn:hover { transform: translateY(-2px); }
+
+/* ── Mini Alert Status ───────────────────────────── */
+
+.damkoi-status-pill {
+  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: 100px;
+  margin-top: 10px;
+  text-align: center;
 }

@@ -17,7 +17,10 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://www.daraz.com.bd/products/*"],
+      "matches": [
+        "*://www.daraz.com.bd/products/*",
+        "*://www.daraz.com.bd/*-i*-s*.html"
+      ],
       "js": ["content.js"],
       "css": ["content.css"],
       "run_at": "document_idle"

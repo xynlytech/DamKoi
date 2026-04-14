@@ -7,9 +7,7 @@
  * - Periodic cache cleanup via alarms API
  */
 
-// ── Configuration ────────────────────────────────────────────
-
-const API_BASE = 'http://localhost:8000/v1'; // Change to production URL when deploying
+import { API_BASE } from './utils.js';
 
 // ── Message Handler ──────────────────────────────────────────
 

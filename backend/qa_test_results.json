@@ -1,0 +1,111 @@
+{
+  "timestamp": "2026-04-14T22:11:06.622003",
+  "total_tested": 8,
+  "results": [
+    {
+      "product_id": "cac9b5c1-f5fe-46f1-ae6a-87394bfd614f",
+      "title": "Apple iPhone 15 Pro Max 256GB",
+      "current_price": 16500000.0,
+      "avg_30d": null,
+      "all_time_low": null,
+      "verdict_label": "INSUFFICIENT_DATA",
+      "deal_score": 5,
+      "data_points": 1,
+      "data_points_30d": 1,
+      "confidence": 0.0,
+      "explanation": "We've only tracked this product 1 time(s). We need at least 5 price points over 14 days to give a reliable verdict."
+    },
+    {
+      "product_id": "e8a2a226-af45-4825-84de-9c0a16c2f145",
+      "title": "Sony PlayStation 5 Console",
+      "current_price": 5500000.0,
+      "avg_30d": null,
+      "all_time_low": null,
+      "verdict_label": "INSUFFICIENT_DATA",
+      "deal_score": 5,
+      "data_points": 1,
+      "data_points_30d": 1,
+      "confidence": 0.0,
+      "explanation": "We've only tracked this product 1 time(s). We need at least 5 price points over 14 days to give a reliable verdict."
+    },
+    {
+      "product_id": "dedb3343-917c-48b9-b715-0f6297093d96",
+      "title": "iPhone 15 Pro Max 256GB Black",
+      "current_price": 156750.0,
+      "avg_30d": 166031.25,
+      "all_time_low": 156750.0,
+      "verdict_label": "BEST_PRICE",
+      "deal_score": 10,
+      "data_points": 16,
+      "data_points_30d": 16,
+      "confidence": 0.5333333333333333,
+      "explanation": "This is the lowest price we've ever tracked! All-time low: \u09f3156,750."
+    },
+    {
+      "product_id": "f983dfb3-cded-4406-b3c4-45d7fa38b001",
+      "title": "Sony PlayStation 5 Digital Edition",
+      "current_price": 55100.0,
+      "avg_30d": 58362.5,
+      "all_time_low": 55100.0,
+      "verdict_label": "BEST_PRICE",
+      "deal_score": 10,
+      "data_points": 16,
+      "data_points_30d": 16,
+      "confidence": 0.5333333333333333,
+      "explanation": "This is the lowest price we've ever tracked! All-time low: \u09f355,100."
+    },
+    {
+      "product_id": "303dcfe2-62bf-48bf-9234-908bb6da4e11",
+      "title": "Samsung Galaxy S24 Ultra Titanium",
+      "current_price": 137750.0,
+      "avg_30d": 145906.25,
+      "all_time_low": 137750.0,
+      "verdict_label": "BEST_PRICE",
+      "deal_score": 10,
+      "data_points": 16,
+      "data_points_30d": 16,
+      "confidence": 0.5333333333333333,
+      "explanation": "This is the lowest price we've ever tracked! All-time low: \u09f3137,750."
+    },
+    {
+      "product_id": "158fc480-07ab-47d0-9b35-7366163aec6a",
+      "title": "Electronic Gadget 196",
+      "current_price": 1332.85,
+      "avg_30d": 3125.91,
+      "all_time_low": 1332.85,
+      "verdict_label": "BEST_PRICE",
+      "deal_score": 10,
+      "data_points": 16,
+      "data_points_30d": 16,
+      "confidence": 0.5333333333333333,
+      "explanation": "This is the lowest price we've ever tracked! All-time low: \u09f31,332.85."
+    },
+    {
+      "product_id": "d68b0904-37b6-4662-af6c-b51b6da6c1dc",
+      "title": "Electronic Gadget 987",
+      "current_price": 2270.5,
+      "avg_30d": 2648.45,
+      "all_time_low": 2270.5,
+      "verdict_label": "BEST_PRICE",
+      "deal_score": 10,
+      "data_points": 16,
+      "data_points_30d": 16,
+      "confidence": 0.5333333333333333,
+      "explanation": "This is the lowest price we've ever tracked! All-time low: \u09f32,270.50."
+    },
+    {
+      "product_id": "de158ca3-f56c-4854-ada4-d7d5fc817bce",
+      "title": "Electronic Gadget 313",
+      "current_price": 1820.2,
+      "avg_30d": 1453.52,
+      "all_time_low": 924.35,
+      "verdict_label": "FAKE_DISCOUNT",
+      "deal_score": 1,
+      "data_points": 16,
+      "data_points_30d": 16,
+      "confidence": 0.5333333333333333,
+      "explanation": "Price is \u09f3366.68 ABOVE the 30-day average (\u09f31,453.52). This is NOT a good time to buy."
+    }
+  ],
+  "insufficient_data_count": 2
+}

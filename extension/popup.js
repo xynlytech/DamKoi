@@ -8,7 +8,7 @@
  * - Handles alert creation
  */
 
-const API_BASE = 'http://localhost:8000/v1'; // Change to production URL
+import { API_BASE, getScoreColor, formatBDT, createAlertPayload, setStatusMessage, isValidEmail, isValidPrice, getCacheKey, getFromCache, saveToCache, ALERT_CHANNELS, DEFAULT_ALERT_CHANNEL } from './utils.js';
 
 // ── DOM Elements ─────────────────────────────────────────────
 
@@ -24,19 +24,6 @@ function showState(state) {
     (s) => (s.style.display = 'none')
   );
   state.style.display = 'block';
-}
-
-function formatBDT(paisa) {
-  if (!paisa) return '—';
-  const bdt = paisa / 100;
-  return `৳${bdt.toLocaleString('en-BD')}`;
-}
-
-function getScoreColor(score) {
-  if (score >= 8) return '#10b981';
-  if (score >= 6) return '#f59e0b';
-  if (score >= 4) return '#ef4444';
-  return '#dc2626';
 }
 
 // ── Main Logic ───────────────────────────────────────────────
@@ -58,26 +45,39 @@ async function init() {
     // It's a Daraz product page — fetch verdict
     showState(loadingState);
 
-    const resp = await fetch(
-      `${API_BASE}/products/lookup?url=${encodeURIComponent(tab.url)}`
-    );
+    // Check cache first
+    const cacheKey = getCacheKey('product', tab.url);
+    let data = getFromCache(cacheKey);
 
-    if (resp.status === 404) {
-      showState(verdictState);
-      document.getElementById('product-title').textContent =
-        'Product not yet tracked';
-      document.getElementById('verdict-badge').textContent =
-        '⏳ TRACKING STARTING';
-      document.getElementById('verdict-badge').style.color = '#f59e0b';
-      document.getElementById('deal-score').textContent = '';
-      document.getElementById('verdict-explanation').textContent =
-        'This product will be picked up in our next scrape cycle. Check back in an hour!';
-      return;
+    if (!data) {
+      // Not in cache, fetch from API
+      const resp = await fetch(
+        `${API_BASE}/products/lookup?url=${encodeURIComponent(tab.url)}`
+      );
+
+      if (resp.status === 404) {
+        showState(verdictState);
+        document.getElementById('product-title').textContent =
+          'Product not yet tracked';
+        document.getElementById('verdict-badge').textContent =
+          '⏳ TRACKING STARTING';
+        document.getElementById('verdict-badge').style.color = '#f59e0b';
+        document.getElementById('deal-score').textContent = '';
+        document.getElementById('verdict-explanation').textContent =
+          'This product will be picked up in our next scrape cycle. Check back in an hour!';
+
+        // Hide empty price grid
+        document.querySelector('.price-grid').style.display = 'none';
+        return;
+      }
+
+      if (!resp.ok) throw new Error(`API error: ${resp.status}`);
+
+      data = await resp.json();
+      // Cache the result
+      saveToCache(cacheKey, data);
     }
 
-    if (!resp.ok) throw new Error(`API error: ${resp.status}`);
-
-    const data = await resp.json();
     renderVerdict(data);
   } catch (error) {
     console.error('[DamKoi Popup]', error);
@@ -118,10 +118,7 @@ function renderVerdict(data) {
     verdict.explanation;
 
   // History link
-  document.getElementById('history-link').href = `${API_BASE.replace(
-    '/v1',
-    ''
-  )}/product/${product.id}`;
+  document.getElementById('history-link').href = 'http://localhost:3000/dashboard';
 
   // Alert setup
   setupAlertButton(product);
@@ -173,42 +170,43 @@ function setupUrlInput() {
 
 function setupAlertButton(product) {
   const btn = document.getElementById('set-alert');
-  const input = document.getElementById('alert-price');
+  const priceInput = document.getElementById('alert-price');
+  const emailInput = document.getElementById('alert-email');
   const status = document.getElementById('alert-status');
 
   btn?.addEventListener('click', async () => {
-    const targetPrice = parseInt(input?.value);
-    if (!targetPrice || targetPrice <= 0) {
-      status.textContent = '⚠️ Enter a valid price';
-      status.style.color = '#ef4444';
+    const email = emailInput?.value?.trim();
+    const targetPrice = priceInput?.value?.trim();
+
+    if (!isValidEmail(email)) {
+      setStatusMessage(status, 'error', 'Enter a valid email address');
       return;
     }
 
-    // Get or create anonymous ID
-    let anonId = (await chrome.storage.local.get('anon_id'))?.anon_id;
-    if (!anonId) {
-      anonId = 'anon_' + Math.random().toString(36).substr(2, 12);
-      await chrome.storage.local.set({ anon_id: anonId });
+    if (!isValidPrice(targetPrice)) {
+      setStatusMessage(status, 'error', 'Enter a valid price');
+      return;
     }
 
-    try {
-      // For MVP, just store locally + show confirmation
-      // Full alert API requires user auth (handled in Phase 2)
-      const alerts = (await chrome.storage.local.get('alerts'))?.alerts || [];
-      alerts.push({
-        product_id: product.id,
-        product_title: product.title,
-        target_price: targetPrice * 100, // to paisa
-        created_at: new Date().toISOString(),
-      });
-      await chrome.storage.local.set({ alerts });
+    setStatusMessage(status, 'info', 'Setting alert...');
 
-      status.textContent = `✅ Alert set for ৳${targetPrice.toLocaleString()}!`;
-      status.style.color = '#10b981';
-      input.value = '';
-    } catch {
-      status.textContent = '❌ Failed to set alert. Try again.';
-      status.style.color = '#ef4444';
+    try {
+      const payload = createAlertPayload(product.id, targetPrice, email);
+      const resp = await fetch(`${API_BASE}/alerts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.detail || `API error: ${resp.status}`);
+      }
+
+      setStatusMessage(status, 'success', `Alert set! We'll email ${email}`);
+      priceInput.value = '';
+    } catch (e) {
+      setStatusMessage(status, 'error', e.message);
     }
   });
 }

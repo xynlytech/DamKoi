@@ -293,7 +293,8 @@ async def get_price_history(
         raise HTTPException(status_code=404, detail="Product not found.")
 
     # Get price history
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    from datetime import timezone as tz
+    cutoff = datetime.now(tz.utc) - timedelta(days=days)
     prices_result = await db.execute(
         select(PriceSnapshot)
         .where(
@@ -346,7 +347,8 @@ async def get_product_verdict(
         raise HTTPException(status_code=404, detail="No price data for this product.")
 
     current_price = all_snapshots[0].price
-    cutoff_30d = datetime.utcnow() - timedelta(days=30)
+    from datetime import timezone
+    cutoff_30d = datetime.now(timezone.utc) - timedelta(days=30)
     prices_30d = [s.price for s in all_snapshots if s.scraped_at >= cutoff_30d]
     all_prices = [s.price for s in all_snapshots]
 
