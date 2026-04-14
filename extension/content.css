@@ -1,0 +1,138 @@
+/**
+ * DamKoi — Content Script Styles
+ * Floating widget that appears on Daraz product pages.
+ */
+
+#damkoi-widget {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 320px;
+  background: #1a1a2e;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #e4e4e7;
+  z-index: 999999;
+  overflow: hidden;
+  animation: damkoi-slide-in 0.3s ease-out;
+}
+
+@keyframes damkoi-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.damkoi-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #16213e, #0f3460);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.damkoi-logo {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+.damkoi-close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.damkoi-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.damkoi-body {
+  padding: 16px;
+}
+
+.damkoi-verdict {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.damkoi-score {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.damkoi-status {
+  font-size: 15px;
+  font-weight: 600;
+  color: #f59e0b;
+  margin-bottom: 4px;
+}
+
+.damkoi-prices {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.damkoi-price-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 3px 0;
+  color: #a1a1aa;
+}
+
+.damkoi-price-row span:last-child {
+  font-weight: 600;
+  color: #e4e4e7;
+}
+
+.damkoi-explanation {
+  font-size: 12px;
+  color: #a1a1aa;
+  line-height: 1.5;
+  margin: 0 0 12px 0;
+}
+
+.damkoi-text {
+  font-size: 12px;
+  color: #a1a1aa;
+  line-height: 1.5;
+  margin: 4px 0 0 0;
+}
+
+.damkoi-link {
+  display: block;
+  text-align: center;
+  padding: 8px;
+  background: linear-gradient(135deg, #0f3460, #533483);
+  color: #fff;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.damkoi-link:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}

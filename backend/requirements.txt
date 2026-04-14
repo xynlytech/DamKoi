@@ -1,0 +1,47 @@
+# DamKoi Backend — Python Dependencies
+# ======================================
+
+# Web Framework
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+
+# Database
+sqlalchemy==2.0.36
+asyncpg==0.30.0
+aiosqlite==0.20.0
+alembic==1.14.1
+
+# Data Validation
+pydantic==2.10.4
+pydantic-settings==2.7.1
+
+# Redis Cache
+redis==5.2.1
+
+# HTTP Client (for internal calls)
+httpx==0.28.1
+
+# Scraper
+playwright==1.49.1
+
+# Task Scheduling
+apscheduler==3.10.4
+
+# Rate Limiting
+slowapi==0.1.9
+
+# Email
+resend>=2.5.1
+
+# Error Monitoring
+sentry-sdk[fastapi]==2.19.2
+
+# Auth (Supabase)
+supabase==2.11.0
+
+# Telegram Bot (for internal alerts)
+python-telegram-bot==21.9
+
+# Utilities
+python-dotenv==1.0.1
+python-dateutil==2.9.0

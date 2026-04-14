@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DamKoi</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="popup-header">
+      <div class="popup-brand">
+        <span class="popup-icon">🛒</span>
+        <span class="popup-title">DamKoi</span>
+      </div>
+      <span class="popup-tagline">Shopping Intelligence</span>
+    </header>
+
+    <!-- Loading State -->
+    <div id="loading-state" class="popup-section">
+      <div class="loader"></div>
+      <p class="popup-text">Analyzing this product...</p>
+    </div>
+
+    <!-- Not on Daraz State -->
+    <div id="not-daraz-state" class="popup-section" style="display: none;">
+      <div class="popup-status">🔍</div>
+      <p class="popup-text">Open a Daraz product page to see the deal verdict.</p>
+      <div class="popup-url-input">
+        <input type="text" id="url-input" placeholder="Or paste a Daraz product URL..." />
+        <button id="url-submit" class="btn-primary">Check</button>
+      </div>
+    </div>
+
+    <!-- Verdict State -->
+    <div id="verdict-state" class="popup-section" style="display: none;">
+      <div id="product-title" class="popup-product-title"></div>
+
+      <div id="verdict-badge" class="verdict-badge"></div>
+      <div id="deal-score" class="deal-score"></div>
+
+      <div class="price-grid">
+        <div class="price-row">
+          <span>💰 Current</span>
+          <span id="current-price" class="price-value"></span>
+        </div>
+        <div class="price-row">
+          <span>📊 30-Day Avg</span>
+          <span id="avg-price" class="price-value"></span>
+        </div>
+        <div class="price-row">
+          <span>📉 Lowest Ever</span>
+          <span id="lowest-price" class="price-value"></span>
+        </div>
+      </div>
+
+      <p id="verdict-explanation" class="verdict-explanation"></p>
+
+      <a id="history-link" class="btn-secondary" target="_blank">
+        📉 See Full Price History
+      </a>
+
+      <!-- Alert Setter -->
+      <div class="alert-section">
+        <div class="alert-header">🔔 Alert me at</div>
+        <div class="alert-input-row">
+          <span class="currency-prefix">৳</span>
+          <input type="number" id="alert-price" placeholder="Enter target price" />
+          <button id="set-alert" class="btn-alert">Set Alert</button>
+        </div>
+        <div id="alert-status" class="alert-status"></div>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div id="error-state" class="popup-section" style="display: none;">
+      <div class="popup-status">⚠️</div>
+      <p id="error-message" class="popup-text"></p>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
