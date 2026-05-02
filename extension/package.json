@@ -1,0 +1,13 @@
+{
+  "name": "damkoi-extension",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DamKoi Chrome Extension build tooling",
+  "scripts": {
+    "build": "node build.js",
+    "watch": "node build.js --watch"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0"
+  }
+}

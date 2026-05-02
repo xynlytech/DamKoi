@@ -19,6 +19,8 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
       - key: RESEND_API_KEY
         sync: false
       - key: SENTRY_DSN
@@ -36,5 +38,11 @@ services:
       - key: FRONTEND_URL
         value: https://damkoi.com
       - key: CORS_ORIGINS
-        value: '["https://damkoi.com","https://www.damkoi.com"]'
+        value: '["https://damkoi.com","https://www.damkoi.com","https://damkoi.xynly.com","https://www.damkoi.xynly.com"]'
+      - key: ALLOWED_EXTENSION_ID
+        sync: false
+      - key: PRODUCTION_DOMAIN
+        value: https://api.damkoi.com
+      - key: EMAIL_FROM
+        value: alerts@damkoi.com
     healthCheckPath: /health

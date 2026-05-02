@@ -12,16 +12,31 @@ import { API_BASE } from './utils.js';
 // ── Message Handler ──────────────────────────────────────────
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === 'FETCH_VERDICT') {
-    fetchVerdictBackground(message.url)
-      .then((data) => sendResponse({ success: true, data }))
-      .catch((err) => sendResponse({ success: false, error: err.message }));
-    return true; // indicates async response
-  }
+  const handlers = {
+    'FETCH_VERDICT':      () => fetchApi(`/products/lookup?url=${encodeURIComponent(message.url)}`),
+    'FETCH_HISTORY':      () => fetchApi(`/products/${message.productId}/price-history?days=${message.days || 90}`),
+    'FETCH_ALTERNATIVES': () => fetchApi(`/products/${message.productId}/compare`),
+    'FETCH_COUPONS':      () => fetchApi(`/coupons`),
+    'CREATE_ALERT':       () => fetchApi(`/alerts`, {
+                               method: 'POST',
+                               headers: { 'Content-Type': 'application/json' },
+                               body: JSON.stringify(message.payload)
+                             }),
+    'UPDATE_BADGE':       () => { updateBadge(message.score, sender.tab?.id); return Promise.resolve({ success: true }); }
+  };
 
-  if (message.type === 'UPDATE_BADGE') {
-    updateBadge(message.score, sender.tab?.id);
-    sendResponse({ success: true });
+  if (handlers[message.type]) {
+    console.log(`[DamKoi] Handling ${message.type}:`, message);
+    handlers[message.type]()
+      .then((data) => {
+        console.log(`[DamKoi] ${message.type} success:`, data);
+        sendResponse({ success: true, data });
+      })
+      .catch((err) => {
+        console.error(`[DamKoi] ${message.type} error:`, err);
+        sendResponse({ success: false, error: err.message });
+      });
+    return true; // async
   }
 });
 
@@ -50,17 +65,14 @@ function updateBadge(score, tabId) {
   chrome.action.setBadgeText({ text, tabId });
 }
 
-// ── API Fetch ────────────────────────────────────────────────
+// ── API Fetch Proxy ──────────────────────────────────────────
 
-async function fetchVerdictBackground(url) {
-  const resp = await fetch(
-    `${API_BASE}/products/lookup?url=${encodeURIComponent(url)}`
-  );
-
+async function fetchApi(path, options = {}) {
+  const resp = await fetch(`${API_BASE}${path}`, options);
   if (!resp.ok) {
-    throw new Error(`API returned ${resp.status}`);
+    const errorData = await resp.json().catch(() => ({}));
+    throw new Error(errorData.detail || `API error ${resp.status}`);
   }
-
   return resp.json();
 }
 

@@ -8,7 +8,7 @@ MVP: Daraz only. Phase 2+: Rokomari, Chaldal, etc.
 import uuid
 from datetime import datetime
 from sqlalchemy import (
-    Column, String, Text, Boolean, DateTime, UniqueConstraint
+    Column, String, Text, Boolean, DateTime, UniqueConstraint, ForeignKey
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -31,8 +31,11 @@ class Product(Base):
     is_active = Column(Boolean, default=True)
     first_seen_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     last_scraped_at = Column(DateTime(timezone=True), nullable=True)
+    last_backfilled_at = Column(DateTime(timezone=True), nullable=True)
+    match_group_id = Column(UUID(as_uuid=True), ForeignKey("match_groups.id", ondelete="SET NULL"), nullable=True)
 
     # Relationships
+    match_group = relationship("MatchGroup", back_populates="products")
     price_snapshots = relationship("PriceSnapshot", back_populates="product", lazy="selectin")
     tracked_by = relationship("TrackedProduct", back_populates="product", lazy="selectin")
     alerts = relationship("Alert", back_populates="product", lazy="selectin")

@@ -12,7 +12,9 @@
 import {
   API_BASE,
   DASHBOARD_BASE,
+  safeFetch,
   getScoreColor,
+  getScoreClass,
   formatBDT,
   createAlertPayload,
   setStatusMessage,
@@ -49,9 +51,9 @@ function recordTiming(name) {
 
 function showState(state) {
   [loadingState, notDarazState, verdictState, errorState].forEach(
-    (s) => (s.style.display = 'none')
+    (s) => s.classList.add('hidden')
   );
-  state.style.display = 'block';
+  state.classList.remove('hidden');
 }
 
 // ── Main Logic ───────────────────────────────────
@@ -64,7 +66,16 @@ async function init() {
       currentWindow: true,
     });
 
-    if (!tab?.url?.includes('daraz.com.bd/products/')) {
+    // Detect all Daraz product URL formats:
+    //   /products/name-i{id}-s{id}.html
+    //   /i{id}-s{id}.html
+    //   /name-i{id}-s{id}.html
+    const isDarazProduct = tab?.url && (
+      tab.url.includes('daraz.com.bd/products/') ||
+      /daraz\.com\.bd\/.*i\d+-s\d+/i.test(tab.url)
+    );
+
+    if (!isDarazProduct) {
       showState(notDarazState);
       setupUrlInput();
       recordTiming('not-daraz');
@@ -83,50 +94,28 @@ async function init() {
       fromCache = true;
       console.log('[DamKoi Popup] Loaded from cache (< 50ms expected)');
     } else {
-      // Not in cache, fetch from API (with timeout for <1s requirement)
-      const fetchStart = Date.now();
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 1000);
-
+      // Not in cache, fetch from API
       try {
-        const resp = await fetch(
-          `${API_BASE}/products/lookup?url=${encodeURIComponent(tab.url)}`,
-          { signal: controller.signal }
-        );
-        clearTimeout(timeout);
-
+        const fetchStart = Date.now();
+        data = await safeFetch('FETCH_VERDICT', { url: tab.url });
+        
         const fetchDuration = Date.now() - fetchStart;
         console.log(`[DamKoi] API fetch: ${fetchDuration}ms`);
 
-        if (resp.status === 404) {
-          showState(verdictState);
-          document.getElementById('product-title').textContent =
-            'Product not yet tracked';
-          document.getElementById('verdict-badge').textContent =
-            '⏳ TRACKING STARTING';
-          document.getElementById('verdict-badge').style.color = '#f59e0b';
-          document.getElementById('deal-score').textContent = '';
-          document.getElementById('verdict-explanation').textContent =
-            'This product will be picked up in our next scrape cycle. Check back in an hour!';
-
-          // Hide empty price grid
-          document.querySelector('.price-grid').style.display = 'none';
-          recordTiming('fetch-not-found');
-          return;
-        }
-
-        if (!resp.ok) throw new Error(`API error: ${resp.status}`);
-
-        data = await resp.json();
         // Cache the result
         saveToCache(cacheKey, data);
       } catch (error) {
-        if (error.name === 'AbortError') {
-          showState(errorState);
-          document.getElementById('error-message').textContent =
-            'API timeout (>1s). Please try again.';
-          recordTiming('fetch-timeout');
-          return;
+        if (error.message.includes('404')) {
+           showState(verdictState);
+           document.getElementById('product-title').textContent = 'Product not yet tracked';
+           const badge = document.getElementById('verdict-badge');
+           badge.textContent = '⏳ TRACKING STARTING';
+           badge.classList.add('text-orange');
+           document.getElementById('deal-score').textContent = '';
+           document.getElementById('verdict-explanation').textContent = 'This product will be picked up in our next scrape cycle. Check back in an hour!';
+           document.querySelector('.price-grid').classList.add('hidden');
+           recordTiming('fetch-not-found');
+           return;
         }
         throw error;
       }
@@ -151,34 +140,40 @@ function renderVerdict(data, fromCache = false) {
   // Product title
   document.getElementById('product-title').textContent = product.title;
 
-  // Verdict badge
+  // ── Verdict badge (neumorphic class system) ──
+  const BADGE_CLASS = {
+    FAKE_DISCOUNT: 'fake',
+    BEST_PRICE:    'best',
+    GOOD_DEAL:     'good',
+    FAIR_PRICE:    'fair',
+    INSUFFICIENT_DATA: 'pending',
+  };
   const badge = document.getElementById('verdict-badge');
   badge.textContent = verdict.display;
+  badge.className = `verdict-badge ${BADGE_CLASS[verdict.label] || 'fair'}`;
 
-  // Deal score
-  const score = document.getElementById('deal-score');
-  score.textContent = `Deal Score: ${verdict.deal_score} / 10`;
-  score.style.color = getScoreColor(verdict.deal_score);
-
-  // Prices
-  document.getElementById('current-price').textContent = formatBDT(
-    product.current_price
-  );
+  // ── Prices ──
+  document.getElementById('current-price').textContent = formatBDT(product.current_price);
   document.getElementById('avg-price').textContent = formatBDT(verdict.avg_30d);
-  document.getElementById('lowest-price').textContent =
-    formatBDT(verdict.all_time_low) +
-    (verdict.all_time_low_date ? ` (${verdict.all_time_low_date})` : '');
+  document.getElementById('lowest-price').textContent = formatBDT(verdict.all_time_low);
 
-  // Explanation
-  document.getElementById('verdict-explanation').textContent =
-    verdict.explanation;
+  // ── Explanation ──
+  document.getElementById('verdict-explanation').textContent = verdict.explanation;
 
-  // History link with dynamic dashboard base
-  const productId = product.id;
-  document.getElementById('history-link').href =
-    `${DASHBOARD_BASE}/product/${productId}`;
+  // ── History link ──
+  document.getElementById('history-link').href = `${DASHBOARD_BASE}/product/${product.id}`;
 
-  // Add to recent verdicts
+  // ── Render deal gauge (visualizer) ──
+  import('./visualizer.js').then(({ default: Visualizer }) => {
+    Visualizer.renderDealGauge(verdict.deal_score, 'deal-gauge');
+  }).catch(() => {
+    // Fallback — plain text score
+    const gauge = document.getElementById('deal-gauge');
+    gauge.innerHTML = `<div class="gauge-plain">${verdict.deal_score}<span class="gauge-plain-sub">/10</span></div>`;
+    gauge.querySelector('.gauge-plain').classList.add(getScoreClass(verdict.deal_score));
+  });
+
+  // ── Track recent verdicts ──
   addToRecentVerdicts({
     product_id: product.id,
     title: product.title,
@@ -188,25 +183,67 @@ function renderVerdict(data, fromCache = false) {
     timestamp: Date.now()
   });
 
-  // Alert setup
+  // ── Alert setup ──
   setupAlertButton(product);
 
-  // Update extension badge
-  chrome.runtime.sendMessage({
-    type: 'UPDATE_BADGE',
-    score: verdict.deal_score,
-  });
+  // ── Extension badge ──
+  chrome.runtime.sendMessage({ type: 'UPDATE_BADGE', score: verdict.deal_score });
 
-  // Show cache indicator if loaded from cache
+  // ── Cache indicator ──
   if (fromCache) {
-    const indicator = document.createElement('small');
-    indicator.style.fontSize = '0.75rem';
-    indicator.style.color = '#6b7280';
-    indicator.style.marginTop = '8px';
-    indicator.textContent = '(Cached)';
-    verdictState.appendChild(indicator);
+    const pt = document.getElementById('product-title');
+    const badge = document.createElement('span');
+    badge.className = 'cache-badge';
+    badge.textContent = '⚡ cached';
+    pt.appendChild(badge);
+  }
+
+  // ── Async enrichment ────────────────────────────────────
+  loadPriceChart(product.id);
+  loadAlternatives(product.id);
+}
+
+async function loadPriceChart(productId) {
+  try {
+    const data = await safeFetch('FETCH_HISTORY', { productId, days: 30 });
+    if (!data.prices || data.prices.length < 2) return;
+
+    // Dynamically import the visualizer
+    const { default: Visualizer } = await import('./visualizer.js');
+    const container = document.getElementById('price-chart-container');
+    container.classList.remove('hidden');
+    Visualizer.renderPriceChart(data.prices, 'price-chart-container');
+  } catch (e) {
+    console.warn('[DamKoi] Chart load failed:', e);
   }
 }
+
+async function loadAlternatives(productId) {
+  try {
+    const alternatives = await safeFetch('FETCH_ALTERNATIVES', { productId });
+    if (!alternatives || alternatives.length === 0) return;
+
+    const section = document.getElementById('alternatives-section');
+    const list = document.getElementById('alternatives-list');
+    section.classList.remove('hidden');
+
+    list.innerHTML = alternatives.map(alt => `
+      <a href="${alt.url}" target="_blank" class="alternative-item">
+        ${alt.image_url ? `<img src="${alt.image_url}" alt="" class="alt-image" />` : '<img src="icons/dk_logo.svg" alt="" class="alt-image alt-image-logo" />'}
+        <div class="alt-info">
+          <div class="alt-title">${alt.title.slice(0, 50)}${alt.title.length > 50 ? '…' : ''}</div>
+          <div class="alt-price">${formatBDT(alt.current_price)}
+            <span class="alt-savings">Save ${formatBDT(alt.savings)}</span>
+          </div>
+        </div>
+        <div class="alt-score-val ${getScoreClass(alt.deal_score)}">${alt.deal_score}/10</div>
+      </a>
+    `).join('');
+  } catch (e) {
+    console.warn('[DamKoi] Alternatives load failed:', e);
+  }
+}
+
 
 // ── URL Input (when not on Daraz) ────────────────
 
@@ -217,20 +254,14 @@ function setupUrlInput() {
   btn?.addEventListener('click', async () => {
     const url = input?.value?.trim();
     if (!url || !url.includes('daraz.com.bd')) {
-      input.style.borderColor = '#ef4444';
+      input.classList.add('border-danger');
       return;
     }
 
     showState(loadingState);
 
     try {
-      const resp = await fetch(
-        `${API_BASE}/products/lookup?url=${encodeURIComponent(url)}`
-      );
-
-      if (!resp.ok) throw new Error(`API error: ${resp.status}`);
-
-      const data = await resp.json();
+      const data = await safeFetch('FETCH_VERDICT', { url });
       renderVerdict(data);
     } catch {
       showState(errorState);
@@ -270,16 +301,7 @@ function setupAlertButton(product) {
 
     try {
       const payload = createAlertPayload(product.id, targetPrice, email);
-      const resp = await fetch(`${API_BASE}/alerts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        throw new Error(err.detail || `API error: ${resp.status}`);
-      }
+      await safeFetch('CREATE_ALERT', { payload });
 
       setStatusMessage(status, 'success', `Alert set! We'll email ${email}`);
       priceInput.value = '';

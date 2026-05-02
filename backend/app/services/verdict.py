@@ -47,6 +47,14 @@ VERDICT_DISPLAY = {
     VerdictLabel.INSUFFICIENT_DATA: "⏳ TRACKING — NOT ENOUGH DATA YET",
 }
 
+VERDICT_DISPLAY_BN = {
+    VerdictLabel.FAKE_DISCOUNT: "❌ ভুয়া ছাড়",
+    VerdictLabel.BEST_PRICE: "✅ সর্বনিম্ন দাম",
+    VerdictLabel.GOOD_DEAL: "🔥 ভাল ডিল",
+    VerdictLabel.FAIR_PRICE: "🟡 স্বাভাবিক দাম",
+    VerdictLabel.INSUFFICIENT_DATA: "⏳ তথ্য সংগ্রহ হচ্ছে",
+}
+
 
 def _format_price_bdt(paisa: int) -> str:
     """Format paisa amount as BDT string with commas."""
@@ -61,6 +69,7 @@ def get_verdict(
     prices_last_30_days: List[int],
     all_prices_ever: List[int],
     all_time_low_date: Optional[str] = None,
+    lang: str = "en",
 ) -> Verdict:
     """
     Determine whether the current price represents a real deal.
@@ -70,22 +79,31 @@ def get_verdict(
         prices_last_30_days: List of prices (paisa) observed in last 30 days
         all_prices_ever: List of all prices (paisa) ever recorded
         all_time_low_date: ISO date string of when all-time low was seen
+        lang: Language code ("en" or "bn")
 
     Returns:
         Verdict object with label, score, and explanation
     """
+    display_map = VERDICT_DISPLAY_BN if lang == "bn" else VERDICT_DISPLAY
     data_points = len(all_prices_ever)
 
     # ── Insufficient data check ───────────────────────────────
     if len(prices_last_30_days) < 5:
+        if lang == "bn":
+            insufficient_explanation = (
+                f"আমরা এই পণ্যটি মাত্র {data_points} বার ট্র্যাক করেছি। "
+                "নির্ভরযোগ্য বিশ্লেষণের জন্য ১৪ দিনে কমপক্ষে ৫টি মূল্য পয়েন্ট প্রয়োজন।"
+            )
+        else:
+            insufficient_explanation = (
+                f"We've only tracked this product {data_points} time(s). "
+                "We need at least 5 price points over 14 days to give a reliable verdict."
+            )
         return Verdict(
             label=VerdictLabel.INSUFFICIENT_DATA,
             deal_score=5,  # neutral score when we can't judge
-            display=VERDICT_DISPLAY[VerdictLabel.INSUFFICIENT_DATA],
-            explanation=(
-                f"We've only tracked this product {data_points} time(s). "
-                "We need at least 5 price points over 14 days to give a reliable verdict."
-            ),
+            display=display_map[VerdictLabel.INSUFFICIENT_DATA],
+            explanation=insufficient_explanation,
             current_price=current_price,
             avg_30d=None,
             all_time_low=None,
@@ -101,43 +119,68 @@ def get_verdict(
     discount_from_avg = (avg_30d - current_price) / avg_30d if avg_30d > 0 else 0.0
 
     if current_price > avg_30d * 1.05:
-        # Price is HIGHER than normal — fake discount
         label = VerdictLabel.FAKE_DISCOUNT
         overpay = current_price - avg_30d
-        explanation = (
-            f"Price is {_format_price_bdt(overpay)} ABOVE the 30-day average "
-            f"({_format_price_bdt(avg_30d)}). This is NOT a good time to buy."
-        )
+        if lang == "bn":
+            explanation = (
+                f"দামটি ৩০ দিনের গড়ের ({_format_price_bdt(avg_30d)}) চেয়ে "
+                f"{_format_price_bdt(overpay)} বেশি। এখন কেনার সঠিক সময় নয়।"
+            )
+        else:
+            explanation = (
+                f"Price is {_format_price_bdt(overpay)} ABOVE the 30-day average "
+                f"({_format_price_bdt(avg_30d)}). This is NOT a good time to buy."
+            )
     elif current_price <= all_time_low * 1.02:
-        # At or near all-time low — best price
         label = VerdictLabel.BEST_PRICE
-        explanation = (
-            f"This is the lowest price we've ever tracked! "
-            f"All-time low: {_format_price_bdt(all_time_low)}."
-        )
+        if lang == "bn":
+            explanation = (
+                f"এটি আমাদের ট্র্যাক করা সর্বনিম্ন দাম! "
+                f"সর্বকালীন সর্বনিম্ন: {_format_price_bdt(all_time_low)}।"
+            )
+        else:
+            explanation = (
+                f"This is the lowest price we've ever tracked! "
+                f"All-time low: {_format_price_bdt(all_time_low)}."
+            )
     elif discount_from_avg >= 0.10:
-        # Genuinely 10%+ below average — good deal
         label = VerdictLabel.GOOD_DEAL
         pct = int(discount_from_avg * 100)
-        explanation = (
-            f"Price is {pct}% below the 30-day average ({_format_price_bdt(avg_30d)}). "
-            f"One of the better prices we've seen."
-        )
+        if lang == "bn":
+            explanation = (
+                f"দামটি ৩০ দিনের গড় ({_format_price_bdt(avg_30d)}) এর চেয়ে {pct}% কম। "
+                f"এটি একটি ভালো সুযোগ।"
+            )
+        else:
+            explanation = (
+                f"Price is {pct}% below the 30-day average ({_format_price_bdt(avg_30d)}). "
+                f"One of the better prices we've seen."
+            )
     elif discount_from_avg >= 0.00:
-        # At or near normal price — fair
         label = VerdictLabel.FAIR_PRICE
-        explanation = (
-            f"Price is normal. No special deal right now. "
-            f"30-day average: {_format_price_bdt(avg_30d)}."
-        )
+        if lang == "bn":
+            explanation = (
+                f"দামটি স্বাভাবিক, এখন কোনো বিশেষ ছাড় নেই। "
+                f"৩০ দিনের গড়: {_format_price_bdt(avg_30d)}।"
+            )
+        else:
+            explanation = (
+                f"Price is normal. No special deal right now. "
+                f"30-day average: {_format_price_bdt(avg_30d)}."
+            )
     else:
-        # Below average but not by much — still fake direction
         label = VerdictLabel.FAKE_DISCOUNT
         overpay = current_price - avg_30d
-        explanation = (
-            f"Price is {_format_price_bdt(abs(overpay))} above the 30-day average "
-            f"({_format_price_bdt(avg_30d)}). The displayed discount is misleading."
-        )
+        if lang == "bn":
+            explanation = (
+                f"দামটি ৩০ দিনের গড় ({_format_price_bdt(avg_30d)}) এর চেয়ে "
+                f"{_format_price_bdt(abs(overpay))} বেশি। দেখানো ছাড়টি বিভ্রান্তিকর।"
+            )
+        else:
+            explanation = (
+                f"Price is {_format_price_bdt(abs(overpay))} above the 30-day average "
+                f"({_format_price_bdt(avg_30d)}). The displayed discount is misleading."
+            )
 
     # ── Calculate deal score (1–10) ───────────────────────────
     deal_score = _calculate_deal_score(current_price, avg_30d, all_time_low, discount_from_avg)
@@ -148,7 +191,7 @@ def get_verdict(
     return Verdict(
         label=label,
         deal_score=deal_score,
-        display=VERDICT_DISPLAY[label],
+        display=display_map[label],
         explanation=explanation,
         current_price=current_price,
         avg_30d=avg_30d,

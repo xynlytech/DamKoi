@@ -7,7 +7,7 @@ Auth handled by Supabase (free: 50K MAU).
 
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime
+from sqlalchemy import Column, String, DateTime, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -21,6 +21,8 @@ class User(Base):
     phone = Column(String(20), nullable=True)
     anon_id = Column(String(255), unique=True, nullable=True)  # browser fingerprint
     auth_provider = Column(String(50), nullable=True)  # 'email', 'google', 'facebook'
+    is_premium = Column(Boolean, default=False)
+    premium_expires_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
 
     # Relationships

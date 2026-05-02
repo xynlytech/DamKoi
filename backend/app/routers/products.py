@@ -5,20 +5,26 @@ Handles product lookup, price history, verdict, and alternatives.
 Most endpoints are public (no auth required) for zero-friction UX.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from app.limiter import limiter
+from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks, Request
 from pydantic import BaseModel
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import get_db, async_session_factory
 from app.models.product import Product
 from app.models.price_snapshot import PriceSnapshot
 from app.services.verdict import get_verdict, Verdict
 from app.services.alternatives import find_alternatives, Alternative
+from app.services.coupons import get_coupons_for_product
+from app.services.memory import memory_service
+from app.scraper.daraz_scraper import DarazScraper, _normalize_title
+# Removed top-level import to avoid circular dependency
+from app.scraper.utils import extract_daraz_product_id, detect_platform_and_id, is_supported_url
 
 router = APIRouter(prefix="/products", tags=["Products"])
 
@@ -95,6 +101,20 @@ class PriceHistoryResponse(BaseModel):
     current_price: Optional[int] = None
 
 
+class CouponResponse(BaseModel):
+    id: UUID
+    code: str
+    source: Optional[str] = None
+    discount_pct: Optional[int] = None
+    discount_flat: Optional[int] = None
+    min_spend: Optional[int] = None
+    expires_at: Optional[datetime] = None
+    display_discount: str
+
+    class Config:
+        from_attributes = True
+
+
 @router.get("/", response_model=list[ProductResponse])
 async def list_products(
     limit: int = Query(10, ge=1, le=100),
@@ -112,7 +132,6 @@ async def list_products(
 
     response = []
     for product in products:
-        # Get latest price for each
         price_result = await db.execute(
             select(PriceSnapshot)
             .where(PriceSnapshot.product_id == product.id)
@@ -120,82 +139,298 @@ async def list_products(
             .limit(1)
         )
         latest = price_result.scalar_one_or_none()
+        response.append(_build_product_response(product, latest))
+    return response
 
-        response.append(
-            ProductResponse(
-                id=product.id,
-                platform=product.platform,
-                external_id=product.external_id,
-                url=product.url,
-                title=product.title,
-                category=product.category,
-                brand=product.brand,
-                image_url=product.image_url,
-                current_price=latest.price if latest else None,
-                original_price=latest.original_price if latest else None,
-                platform_discount_pct=latest.discount_pct if latest else None,
-                in_stock=latest.in_stock if latest else None,
-                last_updated=latest.scraped_at if latest else None,
+
+@router.get("/search", response_model=list[ProductResponse])
+@limiter.limit("60/minute")
+async def search_products(
+    request: Request,
+    q: str = Query(..., min_length=2, description="Search query (title, brand, category)"),
+    platform: str = Query("daraz", description="Platform filter"),
+    limit: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Full-text search over tracked products by title / brand / category.
+    Uses PostgreSQL ILIKE for simple substring matching (no index needed at MVP scale).
+    """
+    from sqlalchemy import or_
+
+    like = f"%{q}%"
+    result = await db.execute(
+        select(Product)
+        .where(
+            and_(
+                Product.platform == platform,
+                Product.is_active == True,
+                or_(
+                    Product.title.ilike(like),
+                    Product.brand.ilike(like),
+                    Product.category.ilike(like),
+                )
             )
         )
+        .order_by(Product.first_seen_at.desc())
+        .limit(limit)
+    )
+    products = result.scalars().all()
+
+    # Record search intent for market intelligence
+    memory_service.record_event("search", {"query": q, "platform": platform, "results_count": len(products)})
+
+    response = []
+    for product in products:
+        price_result = await db.execute(
+            select(PriceSnapshot)
+            .where(PriceSnapshot.product_id == product.id)
+            .order_by(PriceSnapshot.scraped_at.desc())
+            .limit(1)
+        )
+        latest = price_result.scalar_one_or_none()
+        response.append(_build_product_response(product, latest))
     return response
+
+
+class DealItem(BaseModel):
+    """A product with its embedded deal score for the deals feed."""
+    product: ProductResponse
+    deal_score: int
+    label: str
+    explanation: str
+    avg_30d: Optional[int] = None
+
+
+@router.get("/deals", response_model=list[DealItem])
+async def get_deals(
+    category: Optional[str] = Query(None, description="Filter by category"),
+    min_score: int = Query(8, ge=1, le=10, description="Minimum deal score"),
+    limit: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Deals feed — returns products where deal_score >= min_score.
+    Used for the Telegram auto-post channel and web deals page.
+    Filters to products with >= 5 data points (statistically significant only).
+    """
+    from sqlalchemy import func as sqlfunc
+
+    # Get products that have enough data points
+    subq = (
+        select(
+            PriceSnapshot.product_id,
+            sqlfunc.count(PriceSnapshot.id).label("snap_count"),
+        )
+        .group_by(PriceSnapshot.product_id)
+        .having(sqlfunc.count(PriceSnapshot.id) >= 5)
+        .subquery()
+    )
+
+    filters = [Product.is_active == True, subq.c.product_id == Product.id]
+    if category:
+        filters.append(Product.category.ilike(f"%{category}%"))
+
+    result = await db.execute(
+        select(Product)
+        .join(subq, subq.c.product_id == Product.id)
+        .where(and_(*filters))
+        .limit(limit * 3)  # fetch extra to filter by score after calculation
+    )
+    products = result.scalars().all()
+
+    deals: list[DealItem] = []
+
+    for product in products:
+        # Get all snapshots for verdict calculation
+        snaps_result = await db.execute(
+            select(PriceSnapshot)
+            .where(PriceSnapshot.product_id == product.id)
+            .order_by(PriceSnapshot.scraped_at.desc())
+        )
+        all_snapshots = snaps_result.scalars().all()
+        if not all_snapshots:
+            continue
+
+        current_price = all_snapshots[0].price
+        cutoff_30d = datetime.now(timezone.utc) - timedelta(days=30)
+        prices_30d = [s.price for s in all_snapshots if s.scraped_at >= cutoff_30d]
+        all_prices = [s.price for s in all_snapshots]
+
+        atl_snapshot = min(all_snapshots, key=lambda s: s.price)
+        atl_date = atl_snapshot.scraped_at.strftime("%Y-%m-%d") if atl_snapshot else None
+        verdict = get_verdict(current_price, prices_30d, all_prices, atl_date)
+
+        if verdict.deal_score >= min_score:
+            deals.append(
+                DealItem(
+                    product=_build_product_response(product, all_snapshots[0]),
+                    deal_score=verdict.deal_score,
+                    label=verdict.label.value,
+                    explanation=verdict.explanation,
+                    avg_30d=verdict.avg_30d,
+                )
+            )
+        if len(deals) >= limit:
+            break
+
+    # Sort by deal score descending
+    deals.sort(key=lambda d: d.deal_score, reverse=True)
+    return deals
+
+
+def _build_product_response(product: Product, latest: Optional[PriceSnapshot]) -> ProductResponse:
+    """Helper to build a ProductResponse from a product and its latest snapshot."""
+    return ProductResponse(
+        id=product.id,
+        platform=product.platform,
+        external_id=product.external_id,
+        url=product.url,
+        title=product.title,
+        category=product.category,
+        brand=product.brand,
+        image_url=product.image_url,
+        current_price=latest.price if latest else None,
+        original_price=latest.original_price if latest else None,
+        platform_discount_pct=latest.discount_pct if latest else None,
+        in_stock=latest.in_stock if latest else None,
+        last_updated=latest.scraped_at if latest else None,
+    )
 
 
 # ── Endpoints ─────────────────────────────────────────────────
 
 
+def _resolve_lang(request: Request, lang: Optional[str]) -> str:
+    """Resolve lang from query param or Accept-Language header."""
+    if lang and lang in ("en", "bn"):
+        return lang
+    accept = request.headers.get("Accept-Language", "")
+    if accept.startswith("bn"):
+        return "bn"
+    return "en"
+
+
 @router.get("/lookup", response_model=ProductLookupResponse)
+@limiter.limit("10/minute")
 async def lookup_product(
+    request: Request,
     url: str = Query(..., description="Daraz product URL"),
+    lang: Optional[str] = Query(None, description="Language code: 'en' or 'bn'"),
+    background_tasks: BackgroundTasks = None, # type: ignore
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Look up a product by its Daraz URL.
+    Look up a product by its URL (any supported BD platform).
     Returns current price, verdict, and deal score.
-    If product is not tracked yet, creates a tracking entry.
+    If product is not tracked yet, triggers Just-In-Time (JIT) scraping
+    and backfills history in the background.
     """
-    # Extract external_id from URL
-    external_id = _extract_daraz_product_id(url)
-    if not external_id:
+    # Detect platform and extract external_id from URL
+    platform_name, external_id = detect_platform_and_id(url)
+    if not platform_name or not external_id:
+        if not is_supported_url(url):
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Unsupported platform URL. Supported platforms: "
+                    "Daraz, Cartup, Rokomari, Pickaboo, Chaldal."
+                )
+            )
         raise HTTPException(
             status_code=400,
-            detail="Invalid Daraz product URL. Expected format: https://www.daraz.com.bd/products/..."
+            detail="Could not extract product ID from this URL. Please paste the product detail page URL."
         )
 
-    # Find product in database
+    # Check if platform is enabled
+    from app.services.flags import is_platform_enabled
+    if not is_platform_enabled(platform_name):
+        raise HTTPException(
+            status_code=503,
+            detail=f"{platform_name.capitalize()} support is coming soon!"
+        )
+    # ── Cache Lookup ───────────────────────────────────────────
+    from app.services.cache import cache
+    cache_key = f"product_lookup:{external_id}"
+    cached_data = await cache.get(cache_key)
+    if cached_data:
+        return ProductLookupResponse(**cached_data)
+    # ───────────────────────────────────────────────────────────
+
+    # Find product in database (multi-platform)
     result = await db.execute(
         select(Product).where(
             and_(
-                Product.platform == "daraz",
+                Product.platform == platform_name,
                 Product.external_id == external_id,
             )
         )
     )
     product = result.scalar_one_or_none()
 
+    # ── JIT Scraping for New Products ──────────────────────────
     if not product:
-        raise HTTPException(
-            status_code=404,
-            detail="Product not yet tracked. It will be picked up in the next scrape cycle."
-        )
+        try:
+            async with DarazScraper(headless=True) as scraper:
+                scraped = await scraper.scrape_product(url)
+            
+            if not scraped:
+                raise HTTPException(status_code=404, detail="Product could not be scraped from Daraz.")
 
-    # Get price history
-    prices_result = await db.execute(
-        select(PriceSnapshot)
-        .where(PriceSnapshot.product_id == product.id)
-        .order_by(PriceSnapshot.scraped_at.desc())
-    )
-    all_snapshots = prices_result.scalars().all()
+            # Create product record
+            product = Product(
+                platform="daraz",
+                external_id=scraped.external_id,
+                url=scraped.url,
+                title=scraped.title,
+                normalized_title=_normalize_title(scraped.title),
+                category=scraped.category,
+                brand=scraped.brand,
+                image_url=scraped.image_url,
+                first_seen_at=datetime.utcnow()
+            )
+            db.add(product)
+            await db.flush() # Get ID
+
+            # Add initial snapshot
+            snapshot = PriceSnapshot(
+                product_id=product.id,
+                price=scraped.price,
+                original_price=scraped.original_price,
+                discount_pct=scraped.discount_pct,
+                in_stock=scraped.in_stock,
+            )
+            db.add(snapshot)
+            await db.commit()
+
+            # Trigger background backfill from Wayback
+            if background_tasks:
+                from app.scraper.tasks import backfill_product_history
+                background_tasks.add_task(backfill_product_history, product.id)
+
+            # Re-fetch with fresh session state if needed, but 'product' is already in memory
+            all_snapshots = [snapshot]
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f"JIT Scrape Failed: {e}")
+            raise HTTPException(status_code=500, detail="Failed to initialize tracking for this product.")
+    else:
+        # Get price history for existing product
+        prices_result = await db.execute(
+            select(PriceSnapshot)
+            .where(PriceSnapshot.product_id == product.id)
+            .order_by(PriceSnapshot.scraped_at.desc())
+        )
+        all_snapshots = prices_result.scalars().all()
 
     if not all_snapshots:
-        raise HTTPException(
-            status_code=404,
-            detail="No price data available yet for this product."
-        )
+        # Should not happen with JIT, but for safety:
+        raise HTTPException(status_code=404, detail="No price data available yet.")
 
     # Build verdict
     current_price = all_snapshots[0].price
-    cutoff_30d = datetime.utcnow() - timedelta(days=30)
+    cutoff_30d = datetime.now(timezone.utc) - timedelta(days=30)
     prices_30d = [s.price for s in all_snapshots if s.scraped_at >= cutoff_30d]
     all_prices = [s.price for s in all_snapshots]
 
@@ -203,9 +438,10 @@ async def lookup_product(
     atl_snapshot = min(all_snapshots, key=lambda s: s.price)
     atl_date = atl_snapshot.scraped_at.strftime("%Y-%m-%d") if atl_snapshot else None
 
-    verdict = get_verdict(current_price, prices_30d, all_prices, atl_date)
+    resolved_lang = _resolve_lang(request, lang)
+    verdict = get_verdict(current_price, prices_30d, all_prices, atl_date, lang=resolved_lang)
 
-    return ProductLookupResponse(
+    response = ProductLookupResponse(
         product=ProductResponse(
             id=product.id,
             platform=product.platform,
@@ -236,6 +472,14 @@ async def lookup_product(
         data_points=len(all_snapshots),
     )
 
+    # ── Save to Cache ──────────────────────────────────────────
+    # Cache for 1 hour, or shorter if we want fresher data
+    await cache.set(cache_key, response.model_dump(mode="json"), expire_seconds=3600)
+    # ───────────────────────────────────────────────────────────
+
+    return response
+
+
 
 @router.get("/{product_id}", response_model=ProductResponse)
 async def get_product(
@@ -250,6 +494,9 @@ async def get_product(
 
     if not product:
         raise HTTPException(status_code=404, detail="Product not found.")
+
+    # Record view event
+    memory_service.record_event("view", {"id": str(product.id), "title": product.title, "url": product.url})
 
     # Get latest price
     price_result = await db.execute(
@@ -331,7 +578,9 @@ async def get_price_history(
 
 @router.get("/{product_id}/verdict", response_model=VerdictResponse)
 async def get_product_verdict(
+    request: Request,
     product_id: UUID,
+    lang: Optional[str] = Query(None, description="Language code: 'en' or 'bn'"),
     db: AsyncSession = Depends(get_db),
 ):
     """Get the fake discount verdict for a product."""
@@ -347,7 +596,6 @@ async def get_product_verdict(
         raise HTTPException(status_code=404, detail="No price data for this product.")
 
     current_price = all_snapshots[0].price
-    from datetime import timezone
     cutoff_30d = datetime.now(timezone.utc) - timedelta(days=30)
     prices_30d = [s.price for s in all_snapshots if s.scraped_at >= cutoff_30d]
     all_prices = [s.price for s in all_snapshots]
@@ -355,7 +603,8 @@ async def get_product_verdict(
     atl_snapshot = min(all_snapshots, key=lambda s: s.price)
     atl_date = atl_snapshot.scraped_at.strftime("%Y-%m-%d") if atl_snapshot else None
 
-    verdict = get_verdict(current_price, prices_30d, all_prices, atl_date)
+    resolved_lang = _resolve_lang(request, lang)
+    verdict = get_verdict(current_price, prices_30d, all_prices, atl_date, lang=resolved_lang)
 
     return VerdictResponse(
         deal_score=verdict.deal_score,
@@ -422,29 +671,41 @@ async def get_alternatives(
 # ── Helpers ───────────────────────────────────────────────────
 
 
-def _extract_daraz_product_id(url: str) -> Optional[str]:
+
+
+# ── Coupons Endpoint ──────────────────────────────────────────
+
+@router.get("/{product_id}/coupons", response_model=list[CouponResponse], tags=["Products"])
+async def get_product_coupons(
+    product_id: UUID,
+    db: AsyncSession = Depends(get_db),
+):
     """
-    Extract product ID from a Daraz BD URL.
-
-    Daraz URLs look like:
-    https://www.daraz.com.bd/products/samsung-galaxy-a55-5g-i123456789-s987654321.html
-    The product ID is the number after 'i' and before '-s'.
+    Return all active coupon codes applicable to a product.
+    Includes product-specific coupons and platform-wide vouchers.
+    Coupons are refreshed every 2 hours by the background scheduler.
     """
-    import re
+    # Verify product exists
+    result = await db.execute(select(Product).where(Product.id == product_id))
+    product = result.scalar_one_or_none()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
 
-    # Pattern 1: Standard product URL with -i{id}-s{sku}.html
-    match = re.search(r"-i(\d+)-s\d+\.html", url)
-    if match:
-        return match.group(1)
+    coupons = await get_coupons_for_product(product_id, db, include_platform=True)
 
-    # Pattern 2: Short URL or other variants
-    match = re.search(r"/products/.*-i(\d+)", url)
-    if match:
-        return match.group(1)
+    # Serialize — include computed display_discount
+    return [
+        CouponResponse(
+            id=c.id,
+            code=c.code,
+            source=c.source,
+            discount_pct=c.discount_pct,
+            discount_flat=c.discount_flat,
+            min_spend=c.min_spend,
+            expires_at=c.expires_at,
+            display_discount=c.display_discount,
+        )
+        for c in coupons
+    ]
 
-    # Pattern 3: Direct product ID in URL params
-    match = re.search(r"[?&]itemId=(\d+)", url)
-    if match:
-        return match.group(1)
 
-    return None

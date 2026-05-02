@@ -5,7 +5,7 @@
  * No external dependencies.
  */
 
-import { getScoreColor, formatBDT } from './utils.js';
+import { getScoreColor, getScoreClass, formatBDT } from './utils.js';
 
 const Visualizer = {
   /**
@@ -44,7 +44,7 @@ const Visualizer = {
             stroke-dashoffset="${offset}"
             class="damkoi-gauge-fill" />
         </svg>
-        <div class="damkoi-gauge-value" style="color: ${color}">${score}</div>
+        <div class="damkoi-gauge-value ${getScoreClass(score)}">${score}</div>
         <div class="damkoi-gauge-label">Deal Score</div>
       </div>
     `;
@@ -93,8 +93,8 @@ const Visualizer = {
         <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
           <defs>
             <linearGradient id="chart-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" style="stop-color:rgba(167, 139, 250, 0.4);stop-opacity:1" />
-              <stop offset="100%" style="stop-color:rgba(167, 139, 250, 0);stop-opacity:1" />
+              <stop offset="0%" stop-color="rgba(167, 139, 250, 0.4)" stop-opacity="1" />
+              <stop offset="100%" stop-color="rgba(167, 139, 250, 0)" stop-opacity="1" />
             </linearGradient>
           </defs>
           <path d="${areaD}" fill="url(#chart-grad)" />
@@ -102,7 +102,7 @@ const Visualizer = {
 
           <!-- Tooltip dots for each point (hidden by default) -->
           ${coords.map((c, i) => `
-            <circle cx="${c.x}" cy="${c.y}" r="3" fill="#fff" class="damkoi-chart-dot" style="opacity: ${i === coords.length-1 ? 1 : 0}">
+            <circle cx="${c.x}" cy="${c.y}" r="3" fill="#fff" class="damkoi-chart-dot" opacity="${i === coords.length-1 ? 1 : 0}">
               <title>${new Date(points[i].scraped_at).toLocaleDateString()}: ${formatBDT(points[i].price)}</title>
             </circle>
           `).join('')}

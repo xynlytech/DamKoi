@@ -11,13 +11,12 @@ import sentry_sdk
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from app.limiter import limiter
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
-
+from slowapi.middleware import SlowAPIMiddleware
 from app.config import settings
-from app.routers import products, alerts, tracking
-
+from app.routers import products, alerts, tracking, auth, compare, admin, coupons, payments, ai
 
 # ── Sentry Error Monitoring (Free: 5K events/month) ──────────
 
@@ -29,23 +28,36 @@ if settings.SENTRY_DSN:
     )
 
 
-# ── Rate Limiter (in-app, no external dependency) ────────────
-
-limiter = Limiter(key_func=get_remote_address)
-
-
 # ── App Lifecycle ─────────────────────────────────────────────
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
     # Startup
-    print("🚀 DamKoi API starting...")
+    print("DamKoi API starting...")
     print(f"   Environment: {settings.APP_ENV}")
     print(f"   Debug: {settings.APP_DEBUG}")
+
+    # Log enabled platforms + set Sentry tag
+    from app.services.flags import get_enabled_platform_names
+    enabled = sorted(get_enabled_platform_names())
+    print(f"   Enabled platforms: {', '.join(enabled)}")
+    if settings.SENTRY_DSN:
+        sentry_sdk.set_tag("enabled_platforms", ",".join(enabled))
+
+    # Start the scraper/alert/coupon/deals scheduler
+    from app.scraper.tasks import setup_scheduler, scheduler
+    setup_scheduler()
+    print("   Scheduler: all jobs registered and running.")
+
     yield
+
     # Shutdown
-    print("👋 DamKoi API shutting down...")
+    print("DamKoi API shutting down...")
+    scheduler.shutdown(wait=False)
+    print("   Scheduler stopped.")
+
+
 
 
 # ── FastAPI App ───────────────────────────────────────────────
@@ -64,23 +76,34 @@ app = FastAPI(
 
 # Rate limiter
 app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS — allow extension and frontend origins
+# Origins are configured via CORS_ORIGINS env var (JSON list).
+# ALLOWED_EXTENSION_ID auto-adds the chrome-extension:// origin.
+# In development: only localhost. In production: your domain + extension.
+_allow_creds = not settings.is_production or bool(settings.ALLOWED_EXTENSION_ID)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_credentials=_allow_creds,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Extension-ID", "X-Request-ID"],
 )
 
 
 # ── Routes ────────────────────────────────────────────────────
 
 app.include_router(products.router, prefix="/v1")
+app.include_router(ai.router, prefix="/v1/products")
 app.include_router(alerts.router, prefix="/v1")
 app.include_router(tracking.router, prefix="/v1")
+app.include_router(auth.router, prefix="/v1")
+app.include_router(compare.router, prefix="/v1")
+app.include_router(coupons.router, prefix="/v1/coupons")
+app.include_router(payments.router, prefix="/v1/payments")
+app.include_router(admin.router, prefix="/admin", tags=["Admin"])
 
 
 # ── Health Check ──────────────────────────────────────────────

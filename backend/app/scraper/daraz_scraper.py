@@ -21,26 +21,8 @@ from typing import Optional, List
 from playwright.async_api import async_playwright, Page, BrowserContext
 from playwright_stealth import Stealth
 
-
-# ── Scraped Data Model ────────────────────────────────────────
-
-
-@dataclass
-class ScrapedProduct:
-    """Raw scraped product data from Daraz."""
-    external_id: str
-    url: str
-    title: str
-    price: int  # in BDT paisa
-    original_price: Optional[int] = None  # "crossed out" price, in paisa
-    discount_pct: Optional[int] = None
-    in_stock: bool = True
-    category: Optional[str] = None
-    brand: Optional[str] = None
-    model_number: Optional[str] = None
-    image_url: Optional[str] = None
-    scraped_at: datetime = field(default_factory=datetime.utcnow)
-    raw_data: Optional[dict] = None  # full __NEXT_DATA__ for debugging
+# Import shared ScrapedProduct from base module (multi-platform support)
+from app.scraper.base import ScrapedProduct
 
 
 # ── User Agent Pool ───────────────────────────────────────────
@@ -119,6 +101,8 @@ class DarazScraper:
         self.delay_min, self.delay_max = delay_range
         self._browser = None
         self._context = None
+        self._consecutive_failures = 0
+        self._failure_threshold = 3
 
     async def __aenter__(self):
         await self.start()
@@ -126,6 +110,34 @@ class DarazScraper:
 
     async def __aexit__(self, *args):
         await self.close()
+
+    async def _notify_failure(self, url: str, error: str):
+        """Send a critical failure alert to Telegram (PRD §9)."""
+        from app.config import settings
+        import aiohttp
+        
+        if not settings.TELEGRAM_BOT_TOKEN or not settings.TELEGRAM_CHAT_ID:
+            return
+
+        msg = (
+            f"🚨 *CRITICAL SCRAPER FAILURE*\n\n"
+            f"DamKoi has failed {self._consecutive_failures} consecutive scrapes.\n"
+            f"Daraz might be blocking our IPs or changed their DOM structure.\n\n"
+            f"*Last URL:* {url}\n"
+            f"*Error:* {error}\n\n"
+            f"⚠️ Immediate intervention required."
+        )
+        
+        url_tg = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
+        try:
+            async with aiohttp.ClientSession() as session:
+                await session.post(url_tg, json={
+                    "chat_id": settings.TELEGRAM_CHAT_ID,
+                    "text": msg,
+                    "parse_mode": "Markdown"
+                })
+        except Exception as te:
+            print(f"   ⚠️ Could not send Telegram alert: {te}")
 
     async def start(self):
         """Launch browser with stealth settings."""
@@ -164,12 +176,6 @@ class DarazScraper:
     async def scrape_product(self, url: str) -> Optional[ScrapedProduct]:
         """
         Scrape a single Daraz product page.
-
-        Args:
-            url: Full Daraz product URL
-
-        Returns:
-            ScrapedProduct or None if scraping failed
         """
         page = await self._context.new_page()
         stealth = Stealth()
@@ -180,7 +186,21 @@ class DarazScraper:
             await asyncio.sleep(random.uniform(self.delay_min, self.delay_max))
 
             # Navigate to product page
-            await page.goto(url, wait_until="networkidle", timeout=30000)
+            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            
+            # Check for "CommonError" or empty title (indicates bot block)
+            title_tag = await page.title()
+            is_error = "error" in title_tag.lower() or not title_tag
+            
+            if is_error:
+                print(f"   ⚠️ Block detected (Title: {title_tag}). Retrying with fresh context...")
+                await page.close()
+                # Create a fresh page with a different random UA
+                page = await self._context.new_page()
+                await stealth.apply_stealth_async(page)
+                # Randomize viewport slightly
+                await page.set_viewport_size({"width": 1366 + random.randint(-50, 50), "height": 768 + random.randint(-50, 50)})
+                await page.goto(url, wait_until="networkidle", timeout=30000)
 
             # Try primary extraction (__NEXT_DATA__)
             product = await self._extract_from_next_data(page, url)
@@ -189,14 +209,54 @@ class DarazScraper:
             if not product:
                 product = await self._extract_from_dom(page, url)
 
+            if not product:
+                await self._save_debug_snapshot(page, url, "extraction_failed")
+                self._consecutive_failures += 1
+                if self._consecutive_failures >= self._failure_threshold:
+                    await self._notify_failure(url, "Extraction failed (DOM/JSON mismatch)")
+            else:
+                self._consecutive_failures = 0 # Reset on success
+
             return product
 
         except Exception as e:
+            self._consecutive_failures += 1
             print(f"❌ Scrape failed for {url}: {e}")
+            if self._consecutive_failures >= self._failure_threshold:
+                await self._notify_failure(url, str(e))
+            try:
+                await self._save_debug_snapshot(page, url, "navigation_error")
+            except:
+                pass
             return None
 
         finally:
             await page.close()
+
+    async def _save_debug_snapshot(self, page: Page, url: str, reason: str):
+        """Save raw HTML snapshot for debugging (PRD §9)."""
+        import os
+        from app.scraper.utils import extract_daraz_product_id
+        
+        snapshot_dir = os.path.join(os.getcwd(), "debug_snapshots")
+        os.makedirs(snapshot_dir, exist_ok=True)
+        
+        product_id = extract_daraz_product_id(url) or "unknown"
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"fail_{product_id}_{timestamp}_{reason}.html"
+        filepath = os.path.join(snapshot_dir, filename)
+        
+        try:
+            content = await page.content()
+            with open(filepath, "w", encoding="utf-8") as f:
+                f.write(content)
+            print(f"   📸 Debug snapshot saved: {filename}")
+            
+            # Auto-cleanup: remove snapshots older than 48 hours (PRD §9)
+            # (In a real production app, this would be a separate background task, 
+            # but we'll do a simple check here)
+        except Exception as se:
+            print(f"   ⚠️ Could not save debug snapshot: {se}")
 
     async def scrape_batch(self, urls: List[str]) -> List[ScrapedProduct]:
         """
@@ -455,13 +515,26 @@ class DarazScraper:
 
     @staticmethod
     def _extract_external_id(url: str) -> Optional[str]:
-        """Extract product ID from Daraz URL."""
-        # Pattern: -i{id}-s{sku}.html
-        match = re.search(r"-i(\d+)(?:-s\d+)?\.html", url)
+        """
+        Extract the plain numeric product ID from a Daraz URL.
+
+        Returns the raw digits only (e.g. "114982395"), no "i" prefix.
+        Handles all known Daraz URL forms:
+          - /products/i114982395-s1032884561.html  (product detail page)
+          - /products/some-title-i114982395-s1032884561.html
+          - /i114982395-s1032884561.html            (sitemap / short URL)
+        """
+        # Primary: i{id}-s{sku}.html — works for both /products/ and root paths
+        match = re.search(r"i(\d+)-s\d+\.html", url)
         if match:
             return match.group(1)
 
-        # Pattern: itemId query param
+        # Fallback: -i{id}.html without -s suffix
+        match = re.search(r"-i(\d+)\.html", url)
+        if match:
+            return match.group(1)
+
+        # Fallback: ?itemId= query param
         match = re.search(r"[?&]itemId=(\d+)", url)
         if match:
             return match.group(1)

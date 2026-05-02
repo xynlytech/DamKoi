@@ -36,9 +36,10 @@ async def find_alternatives(
     V1 Logic (from PRD Section 6.5):
     1. Get products in same category
     2. Filter: price < 90% of current product price
-    3. Filter: deal_score >= 6 (genuinely good deals)
-    4. Sort by deal_score descending
-    5. Return top 3
+    3. Calculate real deal_score for each
+    4. Filter: deal_score >= 6 (genuinely good deals)
+    5. Sort by deal_score descending
+    6. Return top 3
 
     Args:
         product_id: UUID of the product to find alternatives for
@@ -50,8 +51,11 @@ async def find_alternatives(
         List of up to 3 Alternative objects
     """
     from sqlalchemy import select, func, and_
+    from datetime import datetime, timezone
+    from statistics import mean
     from app.models.product import Product
     from app.models.price_snapshot import PriceSnapshot
+    from app.services.verdict import _calculate_deal_score
 
     # Maximum price for alternatives (90% of current)
     max_price = int(current_price * 0.90)
@@ -96,22 +100,78 @@ async def find_alternatives(
     result = await db_session.execute(query)
     candidates = result.all()
 
-    # Build alternatives list
+    # Build alternatives list with real deal scores
     alternatives = []
     for product, price in candidates:
         savings = current_price - price
-        alternatives.append(
-            Alternative(
-                product_id=product.id,
-                title=product.title,
-                current_price=price,
-                deal_score=5,  # TODO: calculate real deal score
-                image_url=product.image_url,
-                url=product.url,
-                savings=savings,
-            )
-        )
 
-    # Sort by savings (most savings first) and return top 3
-    alternatives.sort(key=lambda a: a.savings, reverse=True)
+        # Calculate real deal score for this alternative
+        deal_score = await _get_deal_score_for_product(product.id, db_session)
+
+        # Only include if it's a good deal (score >= 6)
+        if deal_score >= 6:
+            alternatives.append(
+                Alternative(
+                    product_id=product.id,
+                    title=product.title,
+                    current_price=price,
+                    deal_score=deal_score,
+                    image_url=product.image_url,
+                    url=product.url,
+                    savings=savings,
+                )
+            )
+
+    # Sort by deal score (highest first) and return top 3
+    alternatives.sort(key=lambda a: a.deal_score, reverse=True)
     return alternatives[:3]
+
+
+async def _get_deal_score_for_product(product_id: UUID, db_session) -> int:
+    """
+    Get the deal score for a specific product.
+
+    Returns score between 1-10, or 5 if insufficient data.
+    """
+    from sqlalchemy import select
+    from datetime import datetime, timezone, timedelta
+    from statistics import mean
+    from app.models.price_snapshot import PriceSnapshot
+    from app.services.verdict import _calculate_deal_score
+
+    try:
+        # Get all price snapshots for this product
+        query = select(PriceSnapshot).where(
+            PriceSnapshot.product_id == product_id
+        ).order_by(PriceSnapshot.scraped_at.desc())
+
+        result = await db_session.execute(query)
+        snapshots = result.scalars().all()
+
+        if not snapshots:
+            return 5  # No data
+
+        # Get prices from last 30 days
+        now = datetime.now(timezone.utc)
+        thirty_days_ago = now - timedelta(days=30)
+
+        prices_30d = [s.price for s in snapshots if s.scraped_at >= thirty_days_ago]
+        all_prices = [s.price for s in snapshots]
+
+        # Need at least 5 data points to calculate a score
+        if len(prices_30d) < 5:
+            return 5  # Insufficient data
+
+        current_price = snapshots[0].price
+        avg_30d = int(mean(prices_30d))
+        all_time_low = min(all_prices)
+
+        # Calculate discount from average
+        discount_from_avg = (avg_30d - current_price) / avg_30d if avg_30d > 0 else 0.0
+
+        # Get deal score using the same logic as verdict
+        deal_score = _calculate_deal_score(current_price, avg_30d, all_time_low, discount_from_avg)
+
+        return deal_score
+    except Exception:
+        return 5  # Default to neutral score on error

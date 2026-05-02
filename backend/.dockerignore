@@ -1,0 +1,53 @@
+# ── Python ───────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# ── Environment ──────────────────────────
+.env
+.env.local
+*.env
+
+# ── Virtual Environment ──────────────────
+venv/
+.venv/
+env/
+
+# ── Dev & Test Files ─────────────────────
+tests/
+*.test.py
+qa_test_results.json
+qa_week4_results.json
+seed_run.log
+damkoi_local.db
+daraz_dump.html
+
+# ── Scratch / Debug Scripts ───────────────
+check_*.py
+debug_*.py
+find_*.py
+test_*.py
+run_*.py
+run_mock_data.py
+run_real_scrape.py
+run_test_scrape.py
+delete_mock_data.py
+
+# ── IDE / OS ─────────────────────────────
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ── Alembic (keep versions, skip env caches) ──
+alembic/__pycache__/
+
+# ── Docs ─────────────────────────────────
+*.md
+!README.md

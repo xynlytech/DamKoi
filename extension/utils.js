@@ -3,9 +3,34 @@
  * Common functions used across popup and content scripts
  */
 
-// Configuration
-export const API_BASE = 'http://localhost:8000/v1';
-export const DASHBOARD_BASE = 'http://localhost:3000';
+// ── API Configuration ─────────────────────────────────────────
+//
+// These values are injected at build time by esbuild (see build.js).
+// In development:   http://localhost:8000/v1
+// In production:    https://api.damkoi.com/v1  (or your Render URL)
+//
+// To build for production: NODE_ENV=production node build.js
+//
+export const API_BASE       = typeof __API_BASE__       !== 'undefined' ? __API_BASE__       : 'http://localhost:8000/v1';
+export const DASHBOARD_BASE = typeof __DASHBOARD_BASE__ !== 'undefined' ? __DASHBOARD_BASE__ : 'http://localhost:3000';
+
+/**
+ * Proxies API requests through the background script to bypass CORS
+ * and Mixed Content (HTTP vs HTTPS) restrictions.
+ */
+export async function safeFetch(type, payload = {}) {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage({ type, ...payload }, (response) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+      } else if (response && response.success) {
+        resolve(response.data);
+      } else {
+        reject(new Error(response?.error || 'Unknown error'));
+      }
+    });
+  });
+}
 
 // Alert notification channels
 export const ALERT_CHANNELS = {
@@ -144,6 +169,12 @@ export function getScoreColor(score) {
   return '#dc2626';                   // Dark Red
 }
 
+export function getScoreClass(score) {
+  if (score >= 8) return 'score-green';
+  if (score >= 6) return 'score-amber';
+  return 'score-red';
+}
+
 // ── Format price in BDT with locale awareness ──
 
 export function formatBDT(paisa) {
@@ -172,15 +203,16 @@ export function setStatusMessage(element, type, message) {
 
   element.textContent = `${isSuccess ? '✅' : isInfo ? 'ℹ️' : '❌'} ${message}`;
 
+  // Reset classes
+  element.classList.remove('dk-status-success', 'dk-status-error', 'dk-status-info');
+
+  // Add appropriate class
   if (isSuccess) {
-    element.style.color = '#10b981';
-    element.style.background = 'rgba(16, 185, 129, 0.1)';
+    element.classList.add('dk-status-success');
   } else if (isInfo) {
-    element.style.color = '#3b82f6';
-    element.style.background = 'rgba(59, 130, 246, 0.1)';
+    element.classList.add('dk-status-info');
   } else {
-    element.style.color = '#ef4444';
-    element.style.background = 'rgba(239, 68, 68, 0.1)';
+    element.classList.add('dk-status-error');
   }
 }
 
@@ -200,6 +232,18 @@ export function isValidPrice(price) {
 // ── Extract product ID from Daraz URL ──────────
 
 export function extractProductIdFromUrl(url) {
-  const match = url.match(/-i(\d+)-s\d+/);
-  return match ? match[1] : null;
+  if (!url) return null;
+  // Pattern 1: i{id} followed by -s{sku} or .html
+  let match = url.match(/i(\d+)(?:-s\d+)?\.html/);
+  if (match) return match[1];
+
+  // Pattern 2: ?itemId= query parameter
+  match = url.match(/[?&]itemId=(\d+)/);
+  if (match) return match[1];
+
+  // Pattern 3: Fallback — i{id} anywhere in path preceded by - or /
+  match = url.match(/[-/]i(\d+)(?:[^\d]|$)/);
+  if (match) return match[1];
+
+  return null;
 }

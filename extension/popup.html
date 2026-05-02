@@ -8,79 +8,129 @@
 </head>
 <body>
   <div id="app">
-    <!-- Header -->
+
+    <!-- ── Header ──────────────────────────────────────── -->
     <header class="popup-header">
       <div class="popup-brand">
-        <span class="popup-icon">🛒</span>
+        <img src="icons/dk_logo.svg" height="24" class="popup-icon" />
         <span class="popup-title">DamKoi</span>
       </div>
-      <span class="popup-tagline">Shopping Intelligence</span>
+      <div class="flex-col-end">
+        <span class="live-dot">Live</span>
+        <span class="popup-tagline">BD Shopping Intel</span>
+      </div>
     </header>
 
-    <!-- Loading State -->
+    <!-- ── Loading State (Skeleton) ──────────────────────── -->
     <div id="loading-state" class="popup-section">
-      <div class="loader"></div>
-      <p class="popup-text">Analyzing this product...</p>
-    </div>
+      <div class="skel-wrap">
+        <!-- Product title skeleton -->
+        <div class="skel skel-title"></div>
 
-    <!-- Not on Daraz State -->
-    <div id="not-daraz-state" class="popup-section" style="display: none;">
-      <div class="popup-status">🔍</div>
-      <p class="popup-text">Open a Daraz product page to see the deal verdict.</p>
-      <div class="popup-url-input">
-        <input type="text" id="url-input" placeholder="Or paste a Daraz product URL..." />
-        <button id="url-submit" class="btn-primary">Check</button>
+        <!-- Verdict hero skeleton -->
+        <div class="skel-hero">
+          <div class="skel skel-gauge"></div>
+          <div class="skel-hero-info">
+            <div class="skel skel-badge"></div>
+            <div class="skel skel-line w-90 mt-6"></div>
+            <div class="skel skel-line w-70 mt-5"></div>
+          </div>
+        </div>
+
+        <!-- Price tiles skeleton -->
+        <div class="skel-grid">
+          <div class="skel skel-tile"></div>
+          <div class="skel skel-tile"></div>
+          <div class="skel skel-tile"></div>
+        </div>
+
+        <!-- Chart skeleton -->
+        <div class="skel skel-chart"></div>
       </div>
     </div>
 
-    <!-- Verdict State -->
-    <div id="verdict-state" class="popup-section" style="display: none;">
+
+    <!-- ── Not on Daraz ────────────────────────────────── -->
+    <div id="not-daraz-state" class="popup-section hidden">
+      <div class="not-daraz-icon">🔍</div>
+      <p class="popup-text">Open a Daraz product page to see<br>the real deal verdict instantly.</p>
+      <div class="popup-url-input">
+        <input type="text" id="url-input" placeholder="Or paste a Daraz product URL…" />
+        <button id="url-submit" class="btn-primary btn-submit-fix">Check</button>
+      </div>
+    </div>
+
+    <!-- ── Verdict State ────────────────────────────────── -->
+    <div id="verdict-state" class="popup-section hidden">
+        
+      <!-- Product title -->
       <div id="product-title" class="popup-product-title"></div>
 
-      <div id="verdict-badge" class="verdict-badge"></div>
-      <div id="deal-score" class="deal-score"></div>
-
-      <div class="price-grid">
-        <div class="price-row">
-          <span>💰 Current</span>
-          <span id="current-price" class="price-value"></span>
-        </div>
-        <div class="price-row">
-          <span>📊 30-Day Avg</span>
-          <span id="avg-price" class="price-value"></span>
-        </div>
-        <div class="price-row">
-          <span>📉 Lowest Ever</span>
-          <span id="lowest-price" class="price-value"></span>
+      <!-- Verdict hero: gauge + badge + explanation -->
+      <div class="verdict-hero">
+        <div class="verdict-gauge-wrap" id="deal-gauge"></div>
+        <div class="verdict-info">
+          <div id="verdict-badge" class="verdict-badge"></div>
+          <p id="verdict-explanation" class="verdict-explanation"></p>
         </div>
       </div>
 
-      <p id="verdict-explanation" class="verdict-explanation"></p>
+      <!-- Price tiles -->
+      <div class="price-grid">
+        <div class="price-tile">
+          <div class="price-tile-label">Current</div>
+          <div id="current-price" class="price-tile-value highlight"></div>
+        </div>
+        <div class="price-tile">
+          <div class="price-tile-label">30d Avg</div>
+          <div id="avg-price" class="price-tile-value"></div>
+        </div>
+        <div class="price-tile">
+          <div class="price-tile-label">All-Time Low</div>
+          <div id="lowest-price" class="price-tile-value green"></div>
+        </div>
+      </div>
 
-      <a id="history-link" class="btn-secondary" target="_blank">
-        📉 See Full Price History
+      <!-- Price chart (wired to visualizer.js after load) -->
+      <div id="price-chart-container" class="price-chart-wrapper hidden"></div>
+
+      <!-- Alternatives -->
+      <div id="alternatives-section" class="hidden">
+        <div class="divider"></div>
+        <div class="alternatives-label">💡 Better alternatives</div>
+        <div id="alternatives-list" class="alternatives-list"></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Full history link -->
+      <a id="history-link" class="btn-secondary" target="_blank" rel="noopener noreferrer">
+        📉 Full Price History &amp; Chart
       </a>
 
-      <!-- Alert Setter -->
+      <!-- Alert setter -->
       <div class="alert-section">
-        <div class="alert-header">🔔 Alert me when price drops to</div>
-        <input type="email" id="alert-email" class="alert-email-input" placeholder="your@email.com" />
+        <div class="alert-section-label">🔔 Alert me when drops to</div>
+        <input type="email" id="alert-email" class="alert-email-input" placeholder="your@email.com" autocomplete="email" />
         <div class="alert-input-row">
           <span class="currency-prefix">৳</span>
-          <input type="number" id="alert-price" placeholder="Target price" />
+          <input type="number" id="alert-price" placeholder="Target price" min="1" />
           <button id="set-alert" class="btn-alert">Set Alert</button>
         </div>
         <div id="alert-status" class="alert-status"></div>
       </div>
+
     </div>
 
-    <!-- Error State -->
-    <div id="error-state" class="popup-section" style="display: none;">
-      <div class="popup-status">⚠️</div>
-      <p id="error-message" class="popup-text"></p>
+    <!-- ── Error State ──────────────────────────────────── -->
+    <div id="error-state" class="popup-section hidden">
+      <div class="error-wrap">
+        <div class="error-icon">⚠️</div>
+        <p id="error-message" class="error-msg"></p>
+      </div>
     </div>
+
   </div>
-
-  <script type="module" src="popup.js"></script>
+  <script src="popup.bundle.js"></script>
 </body>
 </html>

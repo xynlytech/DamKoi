@@ -1,265 +1,366 @@
 /**
- * DamKoi — Content Script Styles
- * Premium Sidebar Overlay for Daraz.com.bd
+ * DamKoi — Content Script Sidebar Styles
  *
- * Includes Glassmorphism, Tabbed Navigation, and SVG Visualization styles.
+ * Design: Liquid Glass × High-Fidelity Intelligence
+ * Injected into Daraz product pages.
+ * All selectors namespaced with #damkoi-sidebar to avoid conflicts.
  */
 
-:root {
-  --color-primary: #a78bfa;
-  --color-bg-dark: rgba(18, 18, 22, 0.98);
-  --color-text-main: #fff;
-  --color-text-secondary: rgba(255, 255, 255, 0.4);
-  --color-text-tertiary: rgba(255, 255, 255, 0.6);
-  --color-border: rgba(255, 255, 255, 0.1);
-  --color-border-light: rgba(255, 255, 255, 0.05);
-  --color-bg-card: rgba(255, 255, 255, 0.03);
-  --color-bg-input: rgba(255, 255, 255, 0.05);
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
-  --z-sidebar: 2147483647;
-}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+/* ── Sidebar Shell ───────────────────────────────────────── */
 
 #damkoi-sidebar {
+  --dk-bg:        rgba(15, 23, 42, 0.75);
+  --dk-surface:   rgba(255, 255, 255, 0.04);
+  --dk-border:    rgba(255, 255, 255, 0.1);
+  --dk-accent:    #6366F1;
+  --dk-accentD:   rgba(99, 102, 241, 0.15);
+  --dk-success:   #10B981;
+  --dk-danger:    #EF4444;
+  --dk-warning:   #F59E0B;
+  --dk-text:      #F1F5F9;
+  --dk-muted:     #94A3B8;
+  --dk-dim:       #64748B;
+  --dk-r:         24px;
+  --dk-rsm:       12px;
+  --dk-t:         250ms cubic-bezier(0.4, 0, 0.2, 1);
+
   position: fixed;
-  top: 50%;
+  top: 0;
   right: 0;
-  transform: translateY(-50%);
-  width: 440px;
-  height: auto;
-  max-height: 85vh;
-  background: var(--color-bg-dark);
-  backdrop-filter: blur(12px);
-  border-left: 1px solid var(--color-border);
-  border-radius: 24px 0 0 24px;
-  box-shadow: -15px 0 50px rgba(0, 0, 0, 0.6);
+  width: 320px;
+  height: 100vh;
+  z-index: 2147483647;
   display: flex;
-  overflow: hidden;
-  z-index: var(--z-sidebar);
-  font-family: 'Inter', -apple-system, sans-serif;
-  color: var(--color-text-main);
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform;
+  flex-direction: row;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  pointer-events: auto;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.3s ease;
+  color: var(--dk-text);
 }
 
 #damkoi-sidebar.collapsed {
-  transform: translate(375px, -50%); /* Hide the main area, keep nav bar visible */
+  transform: translateX(calc(100% - 60px));
 }
 
-@keyframes damkoi-slide-in {
-  from { opacity: 0; transform: translate(100px, -50%); }
-  to { opacity: 1; transform: translate(0, -50%); }
-}
+/* ── Vertical Nav ────────────────────────────────────────── */
 
-/* ── Navigation Sidebar ────────────────────────────── */
-
-.damkoi-nav {
-  width: 65px;
-  background: rgba(255, 255, 255, 0.04);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+#damkoi-sidebar .damkoi-nav {
+  width: 60px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 24px 0;
-  gap: 20px;
+  padding: 20px 0;
+  gap: 12px;
+  border-left: 1px solid var(--dk-border);
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+#damkoi-sidebar .damkoi-nav-logo {
+  font-size: 24px;
+  margin-bottom: 20px;
+  filter: drop-shadow(0 0 8px rgba(99,102,241,0.5));
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+#damkoi-sidebar .damkoi-nav-logo:hover {
+  transform: scale(1.15) rotate(5deg);
+}
+
+#damkoi-sidebar .damkoi-nav-item {
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 12px;
+  cursor: pointer;
+  color: var(--dk-dim);
+  background: var(--dk-surface);
+  border: 1px solid var(--dk-border);
+  transition: all var(--dk-t);
+  position: relative;
+}
+
+#damkoi-sidebar .damkoi-nav-item svg {
+  width: 18px; height: 18px;
+}
+
+#damkoi-sidebar .damkoi-nav-item:hover {
+  color: var(--dk-text);
+  border-color: var(--dk-accent);
+  background: var(--dk-accentD);
+  transform: translateY(-2px);
+}
+
+#damkoi-sidebar .damkoi-nav-item:active {
+  transform: scale(0.9);
+}
+
+#damkoi-sidebar .damkoi-nav-item.active {
+  color: #fff;
+  background: var(--dk-accent);
+  border-color: var(--dk-accent);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+
+/* ── Main Panel ──────────────────────────────────────────── */
+
+#damkoi-sidebar .damkoi-main {
+  flex: 1;
+  background: var(--dk-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: -20px 0 50px rgba(0,0,0,0.3);
+  border-left: 1px solid var(--dk-border);
+}
+
+/* ── Header ──────────────────────────────────────────────── */
+
+#damkoi-sidebar .damkoi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 20px 16px;
   flex-shrink: 0;
 }
 
-.damkoi-nav-item {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: var(--color-text-secondary);
-  transition: all 0.2s;
-}
-
-.damkoi-nav-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--color-text-main);
-}
-
-.damkoi-nav-item.active {
-  background: var(--color-primary);
-  color: #000;
-  box-shadow: 0 0 15px rgba(167, 139, 250, 0.5);
-}
-
-/* ── Content Area ─────────────────────────────────── */
-
-.damkoi-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  padding: 24px;
-}
-
-.damkoi-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.damkoi-logo {
+#damkoi-sidebar .damkoi-logo {
   font-size: 18px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #fff, var(--color-primary));
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #fff 0%, var(--dk-accent) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-.damkoi-close {
+#damkoi-sidebar .damkoi-close {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px;
   cursor: pointer;
-  opacity: 0.4;
-  transition: opacity 0.2s;
+  color: var(--dk-muted);
+  background: var(--dk-surface);
+  border: 1px solid var(--dk-border);
+  transition: all var(--dk-t);
 }
 
-.damkoi-close:hover { opacity: 1; }
-
-/* ── Sections ────────────────────────────────────── */
-
-.damkoi-section {
-  display: none;
+#damkoi-sidebar .damkoi-close:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.2);
 }
 
-.damkoi-section.active {
-  display: block;
-  animation: damkoi-fade-up 0.2s ease-out;
-}
+/* ── Content Area ────────────────────────────────────────── */
 
-@keyframes damkoi-fade-up {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* ── Verdict Card ────────────────────────────────── */
-
-.damkoi-summary-row {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 20px;
-}
-
-.damkoi-card {
-  background: var(--color-bg-card);
-  border-radius: 16px;
-  padding: 16px;
-  border: 1px solid var(--color-border-light);
-}
-
-.damkoi-score-card {
+#damkoi-sidebar #damkoi-content {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  overflow-y: auto;
+  padding: 0 20px 24px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
 }
 
-/* ── Gauge Styles ────────────────────────────────── */
-
-.damkoi-gauge-container {
-  position: relative;
-  text-align: center;
+#damkoi-sidebar #damkoi-content::-webkit-scrollbar { width: 3px; }
+#damkoi-sidebar #damkoi-content::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 10px;
 }
 
-.damkoi-gauge-fill {
-  transition: stroke-dashoffset 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-  will-change: stroke-dashoffset;
+#damkoi-sidebar .damkoi-section {
+  animation: dkSlideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
-.damkoi-gauge-value {
-  position: absolute;
-  top: 35px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 24px;
+@keyframes dkSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Typography ──────────────────────────────────────────── */
+
+#damkoi-sidebar h3 {
+  font-size: 15px;
   font-weight: 800;
+  color: #fff;
+  margin-bottom: 8px;
+  letter-spacing: -0.2px;
 }
 
-.damkoi-gauge-label {
-  font-size: 10px;
+#damkoi-sidebar h4 {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--dk-muted);
+  margin-bottom: 6px;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.4);
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 
-/* ── Price Table ─────────────────────────────────── */
+/* ── Cards ───────────────────────────────────────────────── */
 
-.damkoi-price-grid {
+#damkoi-sidebar .damkoi-card {
+  background: var(--dk-surface);
+  border-radius: var(--dk-rsm);
+  border: 1px solid var(--dk-border);
+  padding: 16px;
+  margin-bottom: 16px;
+  transition: all var(--dk-t);
+}
+
+#damkoi-sidebar .damkoi-card:hover {
+  border-color: var(--dk-accent);
+  background: rgba(255,255,255,0.06);
+}
+
+/* ── Verdict Badge ───────────────────────────────────────── */
+
+#damkoi-sidebar .verdict-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 900;
+  padding: 4px 12px;
+  border-radius: 30px;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid transparent;
+}
+
+#damkoi-sidebar .verdict-fake { color: #fff; background: var(--dk-danger); box-shadow: 0 4px 12px rgba(239,68,68,0.3); }
+#damkoi-sidebar .verdict-best { color: #fff; background: var(--dk-success); box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
+#damkoi-sidebar .verdict-good { color: #fff; background: var(--dk-warning); box-shadow: 0 4px 12px rgba(245,158,11,0.3); }
+#damkoi-sidebar .verdict-fair,
+#damkoi-sidebar .verdict-pending { color: var(--dk-muted); background: var(--dk-surface); border-color: var(--dk-border); }
+
+/* ── Price Grid ──────────────────────────────────────────── */
+
+#damkoi-sidebar .damkoi-price-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  margin-top: 15px;
+  margin-top: 16px;
 }
 
-.damkoi-price-item {
-  background: rgba(255, 255, 255, 0.02);
-  padding: 10px;
+#damkoi-sidebar .damkoi-price-item {
+  background: rgba(0,0,0,0.2);
   border-radius: 12px;
+  padding: 12px;
+  border: 1px solid var(--dk-border);
 }
 
-.damkoi-label {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.4);
+#damkoi-sidebar .damkoi-label {
+  font-size: 9px;
+  color: var(--dk-dim);
   text-transform: uppercase;
-  margin-bottom: 4px;
-}
-
-.damkoi-value {
-  font-size: 14px;
+  letter-spacing: 1px;
   font-weight: 700;
+  margin-bottom: 6px;
 }
 
-/* ── Chart Styles ────────────────────────────────── */
-
-.damkoi-chart-container {
-  margin: 10px 0;
-  border-radius: 12px;
-  overflow: hidden;
+#damkoi-sidebar .damkoi-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  font-family: 'JetBrains Mono', monospace;
 }
 
-.damkoi-chart-dot {
-  transition: opacity 0.2s;
-}
+#damkoi-sidebar .damkoi-value.accent { color: var(--dk-accent); }
+#damkoi-sidebar .damkoi-value.success { color: var(--dk-success); }
 
-/* ── Generic UI Elements ─────────────────────────── */
+/* ── Inputs ──────────────────────────────────────────────── */
 
-.damkoi-input {
+#damkoi-sidebar .damkoi-input {
   width: 100%;
   padding: 12px 16px;
-  background: var(--color-bg-input);
-  border: 1px solid var(--color-border);
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--dk-border);
   border-radius: 12px;
-  color: var(--color-text-main);
-  margin-bottom: 15px;
+  color: #fff;
+  font-size: 13px;
+  font-family: inherit;
   outline: none;
+  margin-bottom: 12px;
+  transition: all var(--dk-t);
 }
 
-.damkoi-btn {
+#damkoi-sidebar .damkoi-input:focus {
+  border-color: var(--dk-accent);
+  background: rgba(0,0,0,0.5);
+  box-shadow: 0 0 0 4px var(--dk-accentD);
+}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+
+#damkoi-sidebar .damkoi-btn {
   width: 100%;
-  padding: 14px;
-  background: var(--color-primary);
-  color: #000;
-  border-radius: 12px;
-  font-weight: 700;
+  padding: 12px 20px;
+  background: var(--dk-accent);
+  color: #fff;
   border: none;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 800;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: all var(--dk-t);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
-.damkoi-btn:hover { transform: translateY(-2px); }
-
-/* ── Mini Alert Status ───────────────────────────── */
-
-.damkoi-status-pill {
-  font-size: 12px;
-  padding: 4px 12px;
-  border-radius: 100px;
-  margin-top: 10px;
-  text-align: center;
+#damkoi-sidebar .damkoi-btn:hover {
+  background: #4f46e5;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
 }
+
+#damkoi-sidebar .damkoi-btn:active {
+  transform: scale(0.98);
+}
+
+/* ── Charts & Gauges ─────────────────────────────────────── */
+
+#damkoi-sidebar .damkoi-chart-container {
+  background: rgba(0,0,0,0.2);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid var(--dk-border);
+}
+
+#damkoi-sidebar .damkoi-gauge-value {
+  font-size: 32px;
+  font-weight: 900;
+  color: #fff;
+}
+
+/* ── Skeleton ────────────────────────────────────────────── */
+
+@keyframes dk-shimmer {
+  0%   { opacity: 0.5; }
+  50%  { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+#damkoi-sidebar .dk-sidebar-skel {
+  background: rgba(255,255,255,0.05);
+  animation: dk-shimmer 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+#damkoi-sidebar .dk-status-success { color: var(--dk-success); background: rgba(16, 185, 129, 0.1); }
+#damkoi-sidebar .dk-status-error { color: var(--dk-danger); background: rgba(239, 68, 68, 0.1); }
+#damkoi-sidebar .dk-status-info { color: var(--dk-accent); background: rgba(99, 102, 241, 0.1); }
+
+#damkoi-sidebar .score-green { color: var(--dk-success); }
+#damkoi-sidebar .score-amber { color: var(--dk-warning); }
+#damkoi-sidebar .score-red { color: var(--dk-danger); }
+
+

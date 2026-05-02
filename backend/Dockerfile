@@ -1,28 +1,43 @@
-# DamKoi Backend — Dockerfile for Render Free Tier
-# Optimized for small image size and fast cold starts
+# ── Stage 1: Build dependencies ──────────────────────────────
+FROM python:3.12-slim AS builder
 
-FROM python:3.12-slim
+WORKDIR /build
 
-# Install system dependencies for Playwright
+# Install system dependencies (build tools only)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget \
+    gcc \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Set work directory
+# Install Python deps into a prefix we can copy
+COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+
+# ── Stage 2: Production image ─────────────────────────────────
+FROM python:3.12-slim AS production
+
+# Security: run as non-root
+RUN addgroup --system damkoi && adduser --system --ingroup damkoi damkoi
+
 WORKDIR /app
 
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Install Playwright browsers (Chromium only to save space)
-RUN playwright install chromium --with-deps
+# Copy only the installed packages from builder (no build tools)
+COPY --from=builder /install /usr/local
 
 # Copy application code
-COPY . .
+COPY --chown=damkoi:damkoi . .
+
+# Install Playwright Chromium (scraper requirement)
+RUN pip install --no-cache-dir playwright && \
+    playwright install chromium --with-deps
+
+# Switch to non-root user
+USER damkoi
 
 # Expose port
 EXPOSE 8000
 
-# Run the API
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Startup: run Alembic migrations then start API
+# This ensures the DB schema is always up-to-date on deploy
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2"]

@@ -1,194 +1,309 @@
 """
-DamKoi — Sitemap Scraper / Product Seeder
+DamKoi — Database Seeder (HTTP-only, no Playwright)
 
-Extracts product URLs from Daraz's sitemap.xml files to seed the database.
-Useful for bootstrapping the platform with thousands of URLs.
+Two phases:
+  1. Discover product URLs from Daraz sitemaps via plain HTTP + gzip
+  2. Bulk scrape each URL through DarazScraper and write to DB
+
+Usage:
+  python3 -m app.scraper.seed               # Discover + print URLs only
+  python3 -m app.scraper.seed --scrape      # Discover + actually scrape into DB
+  python3 -m app.scraper.seed --urls 500    # Limit to 500 URLs
+  python3 -m app.scraper.seed --workers 5   # Concurrency (default 3)
+  python3 -m app.scraper.seed --resume      # Skip URLs already in DB
 """
 
+import argparse
 import asyncio
 import gzip
-import io
+import logging
 import re
-from typing import List, Set
+import sys
+import time
+from typing import Optional, Set
 
 import httpx
-from app.scraper.daraz_scraper import DarazScraper
 
-# Daraz BD sitemap index
-SITEMAP_INDEX_URL = "https://www.daraz.com.bd/sitemap.xml"
+log = logging.getLogger("damkoi.seed")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%H:%M:%S",
+)
+
+# ── Constants ─────────────────────────────────────────────────
+
+# Daraz BD sitemap index — publicly accessible without JS
+SITEMAP_INDEX = "https://www.daraz.com.bd/sitemap-product-all.xml"
+
+HTTP_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Accept-Language": "en-US,en;q=0.9",
+}
+
+PRODUCT_URL_RE = re.compile(r"i(\d+)(?:-s\d+)?\.html")
+
+def url_to_ext_id(url: str) -> Optional[str]:
+    m = PRODUCT_URL_RE.search(url)
+    return m.group(1) if m else None
 
 
-async def fetch_content(url: str, client: httpx.AsyncClient) -> bytes:
-    """Fetch content, handling GZIP decompression automatically if needed."""
+# ── HTTP helpers ──────────────────────────────────────────────
+
+async def fetch_bytes(url: str, client: httpx.AsyncClient) -> bytes:
+    """Fetch URL, transparently decompress gzip."""
     try:
-        response = await client.get(url, timeout=30.0, follow_redirects=True)
-        response.raise_for_status()
-        
-        content = response.content
-        print(f"   📊 [{url[-30:]}] Size: {len(content)} bytes | Status: {response.status_code} | CT: {response.headers.get('Content-Type')}")
-        
-        # Check if it looks like gzip 
-        if content.startswith(b"\x1f\x8b"):
-            print(f"   📦 Detected GZIP magic bytes. Decompressing...")
-            try:
-                return gzip.decompress(content)
-            except Exception as e:
-                print(f"   ⚠️ Decompression failed: {e}")
-        
+        r = await client.get(url, headers=HTTP_HEADERS, timeout=30.0, follow_redirects=True)
+        r.raise_for_status()
+        content = r.content
+        if content[:2] == b"\x1f\x8b":
+            content = gzip.decompress(content)
+        log.debug("  GET %s → %d bytes", url[-60:], len(content))
         return content
     except Exception as e:
-        print(f"❌ Failed to fetch: {url} - {e}")
+        log.warning("  ⚠️  fetch failed: %s — %s", url[-60:], e)
         return b""
 
 
-def extract_urls(content: bytes) -> List[str]:
-    """Extract <loc> values from bytes using a more permissive regex."""
-    text = content.decode("utf-8", errors="ignore")
-    # Handle possible spaces, newlines or namespaces in the <loc> tag
-    loc_pattern = re.compile(r"<loc>\s*(.*?)\s*</loc>", re.IGNORECASE | re.DOTALL)
-    urls = loc_pattern.findall(text)
-    if not urls:
-        # Fallback for even more complex tags
-        loc_pattern = re.compile(r"<[a-z0-9:]*loc>\s*(.*?)\s*</[a-z0-9:]*loc>", re.IGNORECASE | re.DOTALL)
-        urls = loc_pattern.findall(text)
-    
-    print(f"   🔎 Found {len(urls)} raw <loc> tags in XML.")
-    if urls:
-        print(f"   🔍 Sample: {urls[0]}")
-    return [u.strip() for u in urls]
+def extract_locs(xml_bytes: bytes) -> list[str]:
+    text = xml_bytes.decode("utf-8", errors="ignore")
+    return re.findall(r"<loc>\s*(https?://[^\s<]+)\s*</loc>", text, re.IGNORECASE)
 
 
-async def discover_all_product_sitemaps(client: httpx.AsyncClient) -> List[str]:
-    """Recursively find all .xml and .xml.gz sitemaps that likely contain products."""
-    to_visit = [SITEMAP_INDEX_URL]
-    visited = set()
-    product_sitemaps = []
+# ── Phase 1: URL Discovery ────────────────────────────────────
 
-    print(f"🔍 Crawling sitemap index recursively...")
+async def discover_product_urls(max_urls: int = 1000) -> Set[str]:
+    """
+    Crawl Daraz sitemap tree → collect product URLs.
 
-    while to_visit:
-        url = to_visit.pop(0)
-        if url in visited:
-            continue
-        visited.add(url)
+    Flow:
+      sitemap-product-all.xml
+        └─ sitemap-product-all-N.xml (or .xml.gz)
+             └─ https://www.daraz.com.bd/iXXXXXX-sYYYYY.html
+    """
+    product_urls: Set[str] = set()
 
-        print(f"   📑 Checking: {url}")
-        content = await fetch_content(url, client)
-        if not content:
-            continue
+    async with httpx.AsyncClient(http2=True) as client:
+        log.info("📡 Fetching sitemap index: %s", SITEMAP_INDEX)
+        index_bytes = await fetch_bytes(SITEMAP_INDEX, client)
+        leaf_sitemaps = [
+            u for u in extract_locs(index_bytes)
+            if ".xml" in u and "product" in u.lower()
+        ]
+        log.info("🗺  Found %d leaf sitemaps", len(leaf_sitemaps))
 
-        found_urls = extract_urls(content)
-        for found in found_urls:
-            # If it's a sitemap index/sub-index
-            if ".xml" in found and found not in visited:
-                if "product" in found.lower():
-                    # If it ends in .gz or contains product-all-n, it's likely a leaf
-                    if found.endswith(".gz") or re.search(r"product-all-\d+", found):
-                        product_sitemaps.append(found)
-                    else:
-                        to_visit.append(found)
-                elif "sitemap.xml" in found: # The main index might point to other branch indexes
-                    to_visit.append(found)
-                    
-    print(f"✅ Discovered {len(product_sitemaps)} leaf product sitemaps.")
-    return product_sitemaps
-
-
-async def extract_product_urls_from_sitemaps(sitemap_urls: List[str], max_urls: int = 2000) -> Set[str]:
-    """Extract individual product URLs from a list of sitemap URLs."""
-    product_urls = set()
-    
-    async with httpx.AsyncClient(
-        headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-    ) as client:
-        for sitemap_url in sitemap_urls:
+        for sitemap_url in leaf_sitemaps:
             if len(product_urls) >= max_urls:
                 break
-                
-            print(f"📥 Processing sitemap: {sitemap_url}")
-            content = await fetch_content(sitemap_url, client)
-            urls = extract_urls(content)
-            
-            initial_count = len(product_urls)
-            for url in urls:
-                # Daraz products in sitemaps often look like:
-                # https://www.daraz.com.bd/i114982395-s1032884561.html
-                # They consistently use i{product_id}-s{sku_id}.html
-                if re.search(r"i\d+-s\d+", url) and ".html" in url:
+
+            log.info("  📥 %s  (collected so far: %d)", sitemap_url[-70:], len(product_urls))
+            content = await fetch_bytes(sitemap_url, client)
+            locs = extract_locs(content)
+
+            added = 0
+            for url in locs:
+                if len(product_urls) >= max_urls:
+                    break
+                if PRODUCT_URL_RE.search(url):
                     product_urls.add(url)
-                    if len(product_urls) >= max_urls:
-                        break
-            
-            print(f"   Collected {len(product_urls) - initial_count} new products. Total: {len(product_urls)}")
-            
-            # Rate limiting
-            await asyncio.sleep(0.5)
-            
+                    added += 1
+
+            log.info("     +%d new URLs from this sitemap", added)
+            await asyncio.sleep(0.3)  # be polite
+
+    log.info("✅ Discovered %d product URLs total", len(product_urls))
     return product_urls
 
 
-async def fetch_content_via_browser(url: str, scraper: DarazScraper) -> bytes:
-    """Fetch content using a real browser to pass JS challenges."""
-    page = await scraper._context.new_page()
-    from playwright_stealth import Stealth
-    await Stealth().apply_stealth_async(page)
-    
-    try:
-        print(f"   📑 Browser fetching: {url}")
-        # Use longer timeout and wait for network idle to ensure JS challenges pass
-        await page.goto(url, wait_until="networkidle", timeout=60000)
-        content = await page.content()
-        return content.encode("utf-8")
-    except Exception as e:
-        print(f"❌ Browser fetch failed: {url} - {e}")
-        return b""
-    finally:
-        await page.close()
+# ── Phase 2: Bulk Scrape ──────────────────────────────────────
 
-
-async def seed_database(max_urls: int = 500):
-    """Main seeder entry using browser-level discovery."""
+async def bulk_scrape(
+    urls: Set[str],
+    max_workers: int = 3,
+    resume: bool = True,
+    args = None
+) -> tuple:
+    """
+    Scrape each URL through DarazScraper and write to DB.
+    Returns (success_count, fail_count).
+    """
     from app.scraper.daraz_scraper import DarazScraper
-    print(f"🌱 Starting Browser-Based Seed Process (Target: {max_urls} URLs)")
-    
-    async with DarazScraper(headless=True) as scraper:
-        # Step 1: Discover sitemaps
-        # For efficiency, we'll start directly with the product sitemap index
-        # which we know from research
-        target_index = "https://www.daraz.com.bd/sitemap-product-all.xml"
-        content = await fetch_content_via_browser(target_index, scraper)
-        if not content:
-            return
+    from app.database import async_session_factory
+    from app.models.product import Product
+    from sqlalchemy import select
 
-        leaf_sitemaps = extract_urls(content)
-        leaf_sitemaps = [u for u in leaf_sitemaps if ".xml" in u and "product" in u.lower()]
-        
-        print(f"✅ Discovered {len(leaf_sitemaps)} potential leaf sitemaps.")
-        
-        product_urls = set()
-        for smap in leaf_sitemaps[:5]: # Just check first few leaves
-            if len(product_urls) >= max_urls:
-                break
-            
-            leaf_content = await fetch_content_via_browser(smap, scraper)
-            urls = extract_urls(leaf_content)
-            
-            for url in urls:
-                if re.search(r"i\d+-s\d+", url) and ".html" in url:
-                    product_urls.add(url)
-                    if len(product_urls) >= max_urls:
-                        break
+    # If resume=True, skip URLs already in DB
+    existing_ids: Set[str] = set()
+    if resume:
+        log.info("🔎 Checking DB for existing product IDs…")
+        async with async_session_factory() as db:
+            result = await db.execute(select(Product.external_id))
+            existing_ids = {row[0] for row in result.fetchall()}
+        log.info("   Skipping %d already-tracked products", len(existing_ids))
+
+    pending = [u for u in urls if url_to_ext_id(u) not in existing_ids]
+    log.info("🚀 Scraping %d URLs (workers=%d)", len(pending), max_workers)
+
+    success = 0
+    fail = 0
+    sem = asyncio.Semaphore(max_workers)
+    start = time.monotonic()
+
+    async with DarazScraper(headless=True) as scraper:
+        async def scrape_one(url: str) -> bool:
+            async with sem:
+                try:
+                    scraped = await scraper.scrape_product(url)
+                    if not scraped:
+                        return False
+
+                    # ── Save to DB (same upsert pattern as tasks.py) ──
+                    from app.models.product import Product
+                    from app.models.price_snapshot import PriceSnapshot
+                    from app.scraper.daraz_scraper import _normalize_title
+                    from sqlalchemy import select, and_
+                    from datetime import datetime
+
+                    async with async_session_factory() as db:
+                        result = await db.execute(
+                            select(Product).where(
+                                and_(
+                                    Product.platform == "daraz",
+                                    Product.external_id == scraped.external_id,
+                                )
+                            )
+                        )
+                        product = result.scalar_one_or_none()
+
+                        if not product:
+                            product = Product(
+                                platform="daraz",
+                                external_id=scraped.external_id,
+                                url=scraped.url,
+                                title=scraped.title,
+                                normalized_title=_normalize_title(scraped.title),
+                                category=scraped.category,
+                                brand=scraped.brand,
+                                model_number=getattr(scraped, 'model_number', None),
+                                image_url=scraped.image_url,
+                            )
+                            db.add(product)
+                            await db.flush()
+
+                        product.last_scraped_at = datetime.utcnow()
+
+                        # ── Price Snapshots ──
+                        if getattr(args, 'history', False):
+                            # Generate 90 days of synthetic history
+                            from datetime import timedelta
+                            import random
+                            base_price = scraped.price
+                            snapshots_to_add = []
+                            for days_back in range(90, 0, -1):
+                                # Random fluctuation +/- 5%
+                                factor = random.uniform(0.95, 1.05)
+                                if days_back == 30: factor = 1.1 # Simulate a past hike
+                                if days_back == 7:  factor = 0.9 # Simulate a recent drop
+                                
+                                hist_price = int(base_price * factor)
+                                ts = datetime.utcnow() - timedelta(days=days_back)
+                                snapshots_to_add.append(PriceSnapshot(
+                                    product_id=product.id,
+                                    price=hist_price,
+                                    original_price=scraped.original_price,
+                                    scraped_at=ts
+                                ))
+                            db.add_all(snapshots_to_add)
                         
-            print(f"   Collected {len(product_urls)} products so far...")
-    
-    print(f"\n🎉 Successfully discovered {len(product_urls)} product URLs!")
-    
-    with open("seeded_urls.txt", "w") as f:
-        for url in product_urls:
-            f.write(f"{url}\n")
-    
-    print(f"📝 Saved to seeded_urls.txt")
+                        # Current snapshot
+                        snapshot = PriceSnapshot(
+                            product_id=product.id,
+                            price=scraped.price,
+                            original_price=scraped.original_price,
+                            discount_pct=scraped.discount_pct,
+                            in_stock=scraped.in_stock,
+                        )
+                        db.add(snapshot)
+                        await db.commit()
+
+                    return True
+
+                except Exception as e:
+                    log.warning("  ❌ %s — %s", url[-60:], e)
+                    return False
+
+        tasks = [asyncio.create_task(scrape_one(u)) for u in pending]
+
+        for i, coro in enumerate(asyncio.as_completed(tasks), 1):
+            ok = await coro
+            if ok:
+                success += 1
+            else:
+                fail += 1
+
+            # Progress every 10 items
+            if i % 10 == 0 or i == len(pending):
+                elapsed = time.monotonic() - start
+                rate = i / elapsed if elapsed > 0 else 0
+                eta = (len(pending) - i) / rate if rate > 0 else 0
+                log.info(
+                    "  [%d/%d] ✅%d ❌%d  %.1f/min  ETA: %dm",
+                    i, len(pending), success, fail, rate * 60, eta / 60,
+                )
+
+    return success, fail
+
+
+# ── CLI entry point ───────────────────────────────────────────
+
+async def main() -> None:
+    parser = argparse.ArgumentParser(description="DamKoi Database Seeder")
+    parser.add_argument("--urls",    type=int,  default=500,  help="Max URLs to collect (default 500)")
+    parser.add_argument("--workers", type=int,  default=3,    help="Concurrent scrapers (default 3)")
+    parser.add_argument("--scrape",  action="store_true",     help="Scrape products into DB after discovery")
+    parser.add_argument("--resume",  action="store_true",     help="Skip products already in DB")
+    parser.add_argument("--save",    type=str,  default="",   help="Save discovered URLs to file")
+    parser.add_argument("--history", action="store_true",     help="Generate 90 days of synthetic price history")
+    args = parser.parse_args()
+
+    log.info("=" * 60)
+    log.info("DamKoi Seeder  |  target=%d  scrape=%s", args.urls, args.scrape)
+    log.info("=" * 60)
+
+    # Phase 1
+    product_urls = await discover_product_urls(max_urls=args.urls)
+
+    if args.save:
+        with open(args.save, "w") as f:
+            f.writelines(u + "\n" for u in product_urls)
+        log.info("💾 Saved %d URLs to %s", len(product_urls), args.save)
+
+    if not args.scrape:
+        log.info("ℹ️  Pass --scrape to insert into DB. Exiting.")
+        log.info("   Sample URLs:")
+        for url in list(product_urls)[:5]:
+            log.info("   %s", url)
+        return
+
+    # Phase 2
+    success, fail = await bulk_scrape(
+        product_urls,
+        max_workers=args.workers,
+        resume=args.resume,
+        args=args
+    )
+
+    log.info("=" * 60)
+    log.info("🎉 Seeder complete: %d scraped  %d failed  (%.0f%% success)",
+             success, fail, 100 * success / max(1, success + fail))
+    log.info("=" * 60)
 
 
 if __name__ == "__main__":
-    asyncio.run(seed_database())
+    asyncio.run(main())
