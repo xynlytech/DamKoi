@@ -1,4 +1,4 @@
-# DamKoi — Bangladesh Shopping Intelligence Platform
+# DamKoi — Bangladesh Shopping Intelligence Platform 
 
 > *"DamKoi tells you if a Daraz discount is real — or a scam."*
 
