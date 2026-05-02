@@ -40,3 +40,22 @@ htmlcov/
 # Playwright
 playwright-report/
 test-results/
+
+# Claude Code internals
+.claude/
+
+# Runtime / local artifacts
+backend/damkoi_local.db
+backend/qa_test_results.json
+backend/qa_week4_results.json
+backend/sent_deals.json
+backend/seeded_urls.txt
+backend/homepage_sample.html
+qa_results.txt
+debug_snapshots/
+scratch/
+
+# Extension build artifacts
+extension/background.bundle.js
+extension/content.bundle.js
+extension/popup.bundle.js
