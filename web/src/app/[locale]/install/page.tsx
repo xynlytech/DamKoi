@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Download, Chrome, Star, Shield, Zap, Bell, BarChart3, Search, ArrowRight, CheckCircle } from "lucide-react";
+import { Download, Globe, Star, Shield, Zap, Bell, BarChart3, Search, ArrowRight, CheckCircle } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Install DamKoi — Free Chrome Extension for BD Shoppers",
@@ -37,7 +37,7 @@ export default function InstallPage() {
       {/* Hero */}
       <section className="text-center py-20">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 text-sm font-semibold mb-8">
-          <Chrome size={16} /> Chrome Extension &bull; Free Forever
+          <Globe size={16} /> Chrome Extension &bull; Free Forever
         </div>
 
         <h1 className="text-5xl md:text-6xl font-black font-outfit tracking-tight mb-6 leading-[1.05]">
