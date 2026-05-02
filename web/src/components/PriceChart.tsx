@@ -119,7 +119,7 @@ export function PriceChart({ productId, data, currentPrice, originalPrice, produ
                 }}
                 itemStyle={{ color: "#fff" }}
                 labelStyle={{ color: "rgba(255,255,255,0.6)", marginBottom: "4px" }}
-                formatter={(value: number | string) => [`৳${Number(value).toLocaleString("en-IN")}`, "Price"]}
+                formatter={(value) => [`৳${Number(value ?? 0).toLocaleString("en-IN")}`, "Price"]}
               />
               <Line
                 type="monotone"
