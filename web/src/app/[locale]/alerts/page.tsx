@@ -1,0 +1,409 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import {
+  Bell, Mail, Trash2, PauseCircle, PlayCircle,
+  Plus, ArrowUpRight, AlertCircle, Loader2, CheckCircle2,
+} from "lucide-react";
+
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
+const FREE_LIMIT = 3;
+const EMAIL_KEY = "damkoi_alert_email";
+
+type Alert = {
+  id: string;
+  product_id: string;
+  product_title: string | null;
+  product_image: string | null;
+  current_price: number | null;
+  target_price: number;
+  is_active: boolean;
+  last_triggered: string | null;
+  created_at: string;
+};
+
+function fmt(p: number | null) {
+  if (!p) return "—";
+  return `৳${(p / 100).toLocaleString("en-BD")}`;
+}
+
+function savings(current: number | null, target: number) {
+  if (!current || current <= target) return null;
+  return current - target;
+}
+
+// ── Email Gate ────────────────────────────────────────────────
+
+function EmailGate({ onSubmit }: { onSubmit: (email: string) => void }) {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed.includes("@")) {
+      setError("Enter a valid email address.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    // Just save email and fetch — no password needed
+    localStorage.setItem(EMAIL_KEY, trimmed);
+    onSubmit(trimmed);
+  };
+
+  return (
+    <div className="glass-card rounded-2xl p-8 text-center max-w-sm mx-auto">
+      <div className="text-5xl mb-5">📭</div>
+      <h2 className="text-xl font-black font-outfit mb-2">Find your alerts</h2>
+      <p className="text-white/40 text-sm mb-7 leading-relaxed">
+        Enter the email you used when setting up alerts. No password needed.
+      </p>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => { setEmail(e.target.value); setError(""); }}
+          placeholder="you@example.com"
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-500/50 transition-all"
+          autoFocus
+        />
+        {error && <p className="text-red-400 text-xs text-left">{error}</p>}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+        >
+          {loading ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Find My Alerts"}
+        </button>
+      </form>
+      <p className="text-white/20 text-xs mt-5 leading-relaxed">
+        No account required. Alerts created from any product page are linked to your email.
+      </p>
+    </div>
+  );
+}
+
+// ── Alert Card ────────────────────────────────────────────────
+
+function AlertCard({
+  alert,
+  email,
+  onUpdate,
+  onDelete,
+}: {
+  alert: Alert;
+  email: string;
+  onUpdate: (id: string, patch: Partial<Alert>) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  const toggle = async () => {
+    setBusy(true);
+    try {
+      const res = await fetch(`${API}/alerts/${alert.id}/by-email`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, is_active: !alert.is_active }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        onUpdate(alert.id, { is_active: updated.is_active });
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async () => {
+    if (!confirm("Delete this alert?")) return;
+    setBusy(true);
+    try {
+      const res = await fetch(
+        `${API}/alerts/${alert.id}/by-email?email=${encodeURIComponent(email)}`,
+        { method: "DELETE" }
+      );
+      if (res.ok || res.status === 204) onDelete(alert.id);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const saving = savings(alert.current_price, alert.target_price);
+
+  return (
+    <div className={`glass-card rounded-2xl p-5 flex gap-4 transition-opacity ${!alert.is_active ? "opacity-50" : ""}`}>
+      {/* Product image */}
+      <div className="w-14 h-14 rounded-xl bg-white/5 flex-shrink-0 overflow-hidden">
+        {alert.product_image
+          ? <img src={alert.product_image} alt="" className="w-full h-full object-contain p-1" />
+          : <div className="w-full h-full flex items-center justify-center text-2xl">🛒</div>
+        }
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-white/80 line-clamp-2 leading-snug mb-1">
+          {alert.product_title ?? "Unknown product"}
+        </p>
+
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+          <span className="text-white/40">
+            Target: <span className="text-white font-bold">{fmt(alert.target_price)}</span>
+          </span>
+          {alert.current_price && (
+            <span className="text-white/40">
+              Now: <span className={alert.current_price <= alert.target_price ? "text-emerald-400 font-bold" : "text-white/60"}>
+                {fmt(alert.current_price)}
+              </span>
+            </span>
+          )}
+          {saving && saving > 0 && (
+            <span className="text-amber-400 font-bold">{fmt(saving)} to go</span>
+          )}
+          {alert.current_price && alert.current_price <= alert.target_price && (
+            <span className="flex items-center gap-1 text-emerald-400 font-bold">
+              <CheckCircle2 size={12} /> Price hit!
+            </span>
+          )}
+        </div>
+
+        {alert.last_triggered && (
+          <p className="text-[10px] text-indigo-400 mt-1">
+            Last triggered: {new Date(alert.last_triggered).toLocaleDateString("en-BD")}
+          </p>
+        )}
+      </div>
+
+      {/* Actions */}
+      <div className="flex flex-col gap-2 items-center justify-center shrink-0">
+        <Link
+          href={`/product/${alert.product_id}`}
+          className="p-1.5 rounded-lg hover:bg-white/10 text-white/30 hover:text-indigo-400 transition-colors"
+          title="View product"
+        >
+          <ArrowUpRight size={14} />
+        </Link>
+        <button
+          onClick={toggle}
+          disabled={busy}
+          className="p-1.5 rounded-lg hover:bg-white/10 text-white/30 hover:text-amber-400 transition-colors disabled:opacity-40"
+          title={alert.is_active ? "Pause alert" : "Resume alert"}
+        >
+          {busy ? <Loader2 size={14} className="animate-spin" /> : alert.is_active ? <PauseCircle size={14} /> : <PlayCircle size={14} />}
+        </button>
+        <button
+          onClick={remove}
+          disabled={busy}
+          className="p-1.5 rounded-lg hover:bg-white/10 text-white/30 hover:text-red-400 transition-colors disabled:opacity-40"
+          title="Delete alert"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────
+
+export default function AlertsPage() {
+  const [email, setEmail] = useState<string | null>(null);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState("");
+
+  // Rehydrate email from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem(EMAIL_KEY);
+    if (stored) {
+      setEmail(stored);
+    }
+  }, []);
+
+  const fetchAlerts = useCallback(async (e: string) => {
+    setLoading(true);
+    setFetchError("");
+    try {
+      const res = await fetch(`${API}/alerts/by-email?email=${encodeURIComponent(e)}`);
+      if (!res.ok) throw new Error("Failed to load alerts");
+      setAlerts(await res.json());
+    } catch {
+      setFetchError("Could not load alerts. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Fetch when email becomes available
+  useEffect(() => {
+    if (email) fetchAlerts(email);
+  }, [email, fetchAlerts]);
+
+  const handleEmailSubmit = (e: string) => {
+    setEmail(e);
+  };
+
+  const handleUpdate = (id: string, patch: Partial<Alert>) => {
+    setAlerts((prev) => prev.map((a) => (a.id === id ? { ...a, ...patch } : a)));
+  };
+
+  const handleDelete = (id: string) => {
+    setAlerts((prev) => prev.filter((a) => a.id !== id));
+  };
+
+  const handleSignOut = () => {
+    localStorage.removeItem(EMAIL_KEY);
+    setEmail(null);
+    setAlerts([]);
+  };
+
+  const activeCount = alerts.filter((a) => a.is_active).length;
+  const atLimit = activeCount >= FREE_LIMIT;
+
+  return (
+    <div className="container mx-auto px-4 max-w-3xl">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-8">
+        <div>
+          <h1 className="text-4xl font-black font-outfit mb-1 flex items-center gap-3">
+            <Bell size={32} className="text-indigo-400" />
+            My Alerts
+          </h1>
+          <p className="text-white/40 text-sm">
+            Get an email the instant any tracked product hits your target price.
+          </p>
+        </div>
+        {email && (
+          <div className="text-right">
+            <p className="text-xs text-white/40 flex items-center gap-1 justify-end">
+              <Mail size={11} /> {email}
+            </p>
+            <button
+              onClick={handleSignOut}
+              className="text-[10px] text-white/20 hover:text-red-400 transition-colors mt-1"
+            >
+              Use different email
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Email gate */}
+      {!email && <EmailGate onSubmit={handleEmailSubmit} />}
+
+      {/* Loading */}
+      {email && loading && (
+        <div className="flex justify-center py-16">
+          <Loader2 size={28} className="animate-spin text-indigo-400" />
+        </div>
+      )}
+
+      {/* Error */}
+      {email && fetchError && (
+        <div className="glass-card rounded-2xl p-5 flex items-center gap-3 text-red-400 text-sm">
+          <AlertCircle size={18} />
+          {fetchError}
+          <button
+            onClick={() => fetchAlerts(email)}
+            className="ml-auto text-xs underline"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Loaded */}
+      {email && !loading && !fetchError && (
+        <>
+          {/* Stats bar */}
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-white/60">
+                <span className="font-bold text-white">{activeCount}</span>
+                <span className="text-white/30"> / {FREE_LIMIT} active alerts used</span>
+              </span>
+              {atLimit && (
+                <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                  Limit reached
+                </span>
+              )}
+            </div>
+            <Link
+              href="/"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-[10px] uppercase tracking-widest transition-all hover:scale-105"
+            >
+              <Plus size={12} /> New alert
+            </Link>
+          </div>
+
+          {/* Free tier limit banner */}
+          {atLimit && (
+            <div className="mb-5 glass-card rounded-2xl p-4 border border-amber-500/20 flex items-center justify-between gap-4">
+              <p className="text-sm text-amber-300/80">
+                Free tier: {FREE_LIMIT} active alerts maximum.
+              </p>
+              <Link
+                href="/premium"
+                className="shrink-0 text-xs font-black text-amber-400 hover:text-amber-300 underline transition-colors"
+              >
+                Go Premium →
+              </Link>
+            </div>
+          )}
+
+          {/* Alert list */}
+          {alerts.length === 0 ? (
+            <div className="text-center py-20">
+              <p className="text-5xl mb-5">🔕</p>
+              <h2 className="text-xl font-black font-outfit mb-3">No alerts yet</h2>
+              <p className="text-white/40 text-sm mb-7">
+                Go to any product page and set a target price to get started.
+              </p>
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white font-black text-xs uppercase tracking-widest transition-all"
+              >
+                Browse products
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {alerts.map((a) => (
+                <AlertCard
+                  key={a.id}
+                  alert={a}
+                  email={email}
+                  onUpdate={handleUpdate}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* How it works */}
+          <div className="mt-8 glass-card rounded-2xl p-6 border border-white/5">
+            <h3 className="font-black font-outfit text-xs uppercase tracking-widest text-indigo-400 mb-4">
+              How alerts work
+            </h3>
+            <div className="space-y-2.5">
+              {[
+                { icon: "1️⃣", text: "Set a target price on any product page" },
+                { icon: "2️⃣", text: "We check prices every 15 minutes" },
+                { icon: "3️⃣", text: "Email sent the instant price drops below your target" },
+                { icon: "4️⃣", text: `Free: ${FREE_LIMIT} active alerts · Premium: unlimited` },
+              ].map((s, i) => (
+                <div key={i} className="flex items-center gap-3 text-sm text-white/50">
+                  <span>{s.icon}</span>
+                  <span>{s.text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

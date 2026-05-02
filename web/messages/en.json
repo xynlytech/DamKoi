@@ -1,0 +1,16 @@
+{
+  "Navigation": {
+    "dashboard": "Dashboard",
+    "compare": "Compare",
+    "alerts": "Alerts"
+  },
+  "Dashboard": {
+    "title": "Shopping Intelligence",
+    "subtitle": "Real-time pricing data across Bangladesh."
+  },
+  "Product": {
+    "current_price": "Current Price",
+    "lowest_price": "All-Time Low",
+    "alternative_stores": "Alternative Stores"
+  }
+}
