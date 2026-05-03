@@ -101,6 +101,13 @@
         <div id="alternatives-list" class="alternatives-list"></div>
       </div>
 
+      <!-- Cross-platform compare -->
+      <div id="compare-section" class="hidden">
+        <div class="divider"></div>
+        <div class="alternatives-label">🔀 Same product, other platforms</div>
+        <div id="compare-list" class="alternatives-list"></div>
+      </div>
+
       <div class="divider"></div>
 
       <!-- Full history link -->
@@ -120,6 +127,20 @@
         <div id="alert-status" class="alert-status"></div>
       </div>
 
+    </div>
+
+    <!-- ── Coupon Opt-in Modal ─────────────────────────────── -->
+    <div id="optin-modal" class="popup-section hidden">
+      <div class="optin-wrap">
+        <div class="optin-icon">🏷️</div>
+        <h2 class="optin-title">Auto-apply best coupon?</h2>
+        <p class="optin-desc">DamKoi found a coupon for your Daraz cart. Try it automatically?</p>
+        <div class="optin-actions">
+          <button id="optin-yes" class="btn-primary optin-btn">Yes, always</button>
+          <button id="optin-once" class="btn-secondary optin-btn">Just this once</button>
+          <button id="optin-no" class="optin-skip">No thanks</button>
+        </div>
+      </div>
     </div>
 
     <!-- ── Error State ──────────────────────────────────── -->

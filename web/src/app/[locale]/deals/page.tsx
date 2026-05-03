@@ -5,18 +5,25 @@ import { ArrowUpRight } from "lucide-react";
 export const metadata: Metadata = {
   title: "Best Deals in Bangladesh Today",
   description:
-    "Verified genuine price drops across Daraz, Cartup, Rokomari, and Pickaboo — not inflated fake discounts. Updated every hour.",
+    "Verified genuine price drops across Daraz, Cartup, Rokomari, Pickaboo, Chaldal, and Othoba — not inflated fake discounts. Updated every hour.",
 };
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
 
-const PLATFORMS = ["", "daraz", "cartup", "rokomari", "pickaboo"];
+const PLATFORMS = ["", "daraz", "cartup", "rokomari", "pickaboo", "chaldal", "othoba"];
+
+const CATEGORIES = [
+  "", "electronics", "mobile", "laptop", "fashion", "grocery", "books",
+  "home", "beauty", "sports", "toys",
+];
 
 const PLATFORM_COLOR: Record<string, string> = {
   daraz:    "text-orange-400 bg-orange-500/10 border-orange-500/20",
   cartup:   "text-blue-400 bg-blue-500/10 border-blue-500/20",
   rokomari: "text-green-400 bg-green-500/10 border-green-500/20",
   pickaboo: "text-purple-400 bg-purple-500/10 border-purple-500/20",
+  chaldal:  "text-teal-400 bg-teal-500/10 border-teal-500/20",
+  othoba:   "text-rose-400 bg-rose-500/10 border-rose-500/20",
 };
 
 const SCORE_COLOR = (s: number) =>
@@ -26,9 +33,10 @@ function fmt(p: number | null) {
   return p ? `৳${(p / 100).toLocaleString("en-BD")}` : "—";
 }
 
-async function getDeals(platform?: string, minScore = 7) {
-  const params = new URLSearchParams({ min_score: String(minScore), limit: "30" });
+async function getDeals(platform?: string, category?: string, minScore = 7) {
+  const params = new URLSearchParams({ min_score: String(minScore), limit: "50" });
   if (platform) params.set("platform", platform);
+  if (category) params.set("category", category);
   try {
     const res = await fetch(`${API}/products/deals?${params}`, {
       next: { revalidate: 3600 },
@@ -48,12 +56,13 @@ type DealItem = {
 export default async function DealsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ platform?: string; score?: string }>;
+  searchParams: Promise<{ platform?: string; category?: string; score?: string }>;
 }) {
   const params = await searchParams;
   const platform = params.platform ?? "";
+  const category = params.category ?? "";
   const minScore = parseInt(params.score ?? "7", 10);
-  const deals: DealItem[] = await getDeals(platform || undefined, minScore);
+  const deals: DealItem[] = await getDeals(platform || undefined, category || undefined, minScore);
 
   return (
     <div className="container mx-auto px-4 max-w-5xl">
@@ -65,12 +74,12 @@ export default async function DealsPage({
         </p>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-8">
+      {/* Filters — Platform row */}
+      <div className="flex flex-wrap gap-2 mb-3">
         {PLATFORMS.map((p) => (
           <Link
             key={p}
-            href={`/deals?platform=${p}`}
+            href={`/deals?platform=${p}&category=${category}&score=${minScore}`}
             className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest border transition-all ${
               platform === p
                 ? "bg-indigo-600 border-indigo-500 text-white"
@@ -84,7 +93,7 @@ export default async function DealsPage({
           {[7, 8, 9].map((s) => (
             <Link
               key={s}
-              href={`/deals?platform=${platform}&score=${s}`}
+              href={`/deals?platform=${platform}&category=${category}&score=${s}`}
               className={`px-3 py-2 rounded-full text-xs font-black border transition-all ${
                 minScore === s
                   ? "bg-indigo-600 border-indigo-500 text-white"
@@ -95,6 +104,23 @@ export default async function DealsPage({
             </Link>
           ))}
         </div>
+      </div>
+
+      {/* Filters — Category row */}
+      <div className="flex flex-wrap gap-2 mb-8">
+        {CATEGORIES.map((c) => (
+          <Link
+            key={c}
+            href={`/deals?platform=${platform}&category=${c}&score=${minScore}`}
+            className={`px-3 py-1.5 rounded-full text-[11px] font-bold capitalize border transition-all ${
+              category === c
+                ? "bg-emerald-600 border-emerald-500 text-white"
+                : "bg-white/5 border-white/10 text-white/30 hover:border-white/20"
+            }`}
+          >
+            {c || "All Categories"}
+          </Link>
+        ))}
       </div>
 
       {/* Deals grid */}

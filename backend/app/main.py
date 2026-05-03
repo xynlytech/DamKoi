@@ -16,7 +16,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from app.config import settings
-from app.routers import products, alerts, tracking, auth, compare, admin, coupons, payments, ai
+from app.routers import products, alerts, tracking, auth, compare, admin, coupons, payments, ai, telemetry
 
 # ── Sentry Error Monitoring (Free: 5K events/month) ──────────
 
@@ -104,6 +104,7 @@ app.include_router(compare.router, prefix="/v1")
 app.include_router(coupons.router, prefix="/v1/coupons")
 app.include_router(payments.router, prefix="/v1/payments")
 app.include_router(admin.router, prefix="/admin", tags=["Admin"])
+app.include_router(telemetry.router, prefix="/v1")
 
 
 # ── Health Check ──────────────────────────────────────────────

@@ -35,6 +35,14 @@
       "js": ["content.bundle.js"],
       "css": ["content.css"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "*://www.daraz.com.bd/checkout/*",
+        "*://www.daraz.com.bd/cart/*"
+      ],
+      "js": ["cart_detector.bundle.js"],
+      "run_at": "document_idle"
     }
   ],
   "background": {
@@ -49,6 +57,7 @@
   "host_permissions": [
     "https://api.damkoi.com/*",
     "http://localhost:8000/*",
+    "https://www.daraz.com.bd/*",
     "https://fonts.googleapis.com/*",
     "https://fonts.gstatic.com/*",
     "https://www.cartup.com.bd/*",
@@ -67,7 +76,7 @@
         "icons/icon48.png",
         "icons/icon128.png"
       ],
-      "matches": ["*://www.daraz.com.bd/*"]
+      "matches": ["*://www.daraz.com.bd/*", "*://www.daraz.com.bd/checkout/*", "*://www.daraz.com.bd/cart/*"]
     }
   ],
   "content_security_policy": {

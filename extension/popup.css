@@ -658,6 +658,17 @@ body {
   flex-shrink: 0;
 }
 
+.alt-platform {
+  font-size: 9px; font-weight: 900;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-dim); margin-bottom: 2px;
+}
+
+.alt-more {
+  font-size: 9px; color: #f87171;
+  margin-left: 5px; font-weight: 500;
+}
+
 /* ── Alert Section ───────────────────────────────────────── */
 
 .alert-section {
@@ -848,4 +859,53 @@ body {
 .btn-submit-fix {
   width: auto !important;
   padding: 9px 14px !important;
+}
+
+
+/* ── Coupon Opt-in Modal ─────────────────────────────────── */
+
+.optin-wrap {
+  text-align: center;
+  padding: 8px 0 4px;
+}
+
+.optin-icon {
+  font-size: 36px;
+  margin-bottom: 12px;
+}
+
+.optin-title {
+  font-size: 15px;
+  font-weight: 900;
+  font-family: var(--font-heading);
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.optin-desc {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin-bottom: 18px;
+}
+
+.optin-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.optin-btn {
+  width: 100%;
+}
+
+.optin-skip {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 4px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }

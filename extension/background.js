@@ -16,7 +16,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     'FETCH_VERDICT':      () => fetchApi(`/products/lookup?url=${encodeURIComponent(message.url)}`),
     'FETCH_HISTORY':      () => fetchApi(`/products/${message.productId}/price-history?days=${message.days || 90}`),
     'FETCH_ALTERNATIVES': () => fetchApi(`/products/${message.productId}/compare`),
-    'FETCH_COUPONS':      () => fetchApi(`/coupons`),
+    'FETCH_COMPARE':      () => fetchApi(`/products/${message.productId}/compare`),
+    'FETCH_COUPONS':      () => fetchApi(`/coupons/${message.platform || 'daraz'}${message.cartTotal ? `?cart_total=${message.cartTotal}` : ''}`),
+    'LOG_COUPON':         () => fetchApi(`/v1/telemetry/coupon`, {
+                               method: 'POST',
+                               headers: { 'Content-Type': 'application/json' },
+                               body: JSON.stringify(message.payload)
+                             }),
     'CREATE_ALERT':       () => fetchApi(`/alerts`, {
                                method: 'POST',
                                headers: { 'Content-Type': 'application/json' },

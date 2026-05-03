@@ -32,6 +32,7 @@ from app.models.price_snapshot import PriceSnapshot
 from app.models.alert import Alert
 from app.models.alert_event import AlertEvent
 from app.models.coupon import Coupon
+from app.models.coupon_application import CouponApplication
 from app.scraper.daraz_scraper import DarazScraper
 from app.services.telegram import get_telegram_service
 from app.scraper.wayback import WaybackBackfiller
@@ -464,8 +465,27 @@ async def send_daily_digest_job():
             )
             alerts_sent = alerts_result.scalar_one()
 
-            # Platform stats (dummy/estimated for now until we have dedicated scraping logs table)
-            # Fetching counts from today's last_scraped_at
+            # 4. Coupon auto-apply stats
+            coupon_total_result = await db.execute(
+                select(func.count(CouponApplication.id)).where(CouponApplication.created_at >= today)
+            )
+            coupon_total = coupon_total_result.scalar_one()
+
+            coupon_success_result = await db.execute(
+                select(func.count(CouponApplication.id)).where(
+                    and_(CouponApplication.created_at >= today, CouponApplication.success == True)
+                )
+            )
+            coupon_success = coupon_success_result.scalar_one()
+
+            coupon_savings_result = await db.execute(
+                select(func.coalesce(func.sum(CouponApplication.savings), 0)).where(
+                    and_(CouponApplication.created_at >= today, CouponApplication.success == True)
+                )
+            )
+            coupon_savings_paisa = coupon_savings_result.scalar_one()
+
+            # Platform stats
             platforms = {}
             from app.scraper.registry import PLATFORM_REGISTRY
             for p in PLATFORM_REGISTRY.keys():
@@ -479,16 +499,19 @@ async def send_daily_digest_job():
                 )
                 platforms[p] = {
                     "scraped": scraped_result.scalar_one(),
-                    "failed": 0  # To track exactly we need a ScrapeLog table
+                    "failed": 0
                 }
 
         stats = {
             "total_products": total_products,
             "new_products": new_products,
             "alerts_sent": alerts_sent,
-            "deals_posted": 3, # Static for now, requires Deals table
+            "deals_posted": 3,
             "uptime_pct": 99.9,
-            "platforms": platforms
+            "platforms": platforms,
+            "coupon_attempts": coupon_total,
+            "coupon_successes": coupon_success,
+            "coupon_savings_bdt": round(coupon_savings_paisa / 100, 2),
         }
 
         await telegram.send_daily_digest(stats)

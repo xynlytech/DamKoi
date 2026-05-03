@@ -29,6 +29,8 @@ import {
   DEFAULT_ALERT_CHANNEL,
   extractProductIdFromUrl
 } from './utils.js';
+import { getFromStorage, saveToStorage } from './storage.js';
+import { runCouponInjector } from './coupon_injector.js';
 
 // ── DOM Elements ─────────────────────────────────────────────
 
@@ -36,6 +38,7 @@ const loadingState = document.getElementById('loading-state');
 const notDarazState = document.getElementById('not-daraz-state');
 const verdictState = document.getElementById('verdict-state');
 const errorState = document.getElementById('error-state');
+const optinModal = document.getElementById('optin-modal');
 
 // ── Performance Tracking ─────────────────────────
 
@@ -50,10 +53,10 @@ function recordTiming(name) {
 // ── Helpers ──────────────────────────────────────
 
 function showState(state) {
-  [loadingState, notDarazState, verdictState, errorState].forEach(
-    (s) => s.classList.add('hidden')
+  [loadingState, notDarazState, verdictState, errorState, optinModal].forEach(
+    (s) => s?.classList.add('hidden')
   );
-  state.classList.remove('hidden');
+  state?.classList.remove('hidden');
 }
 
 // ── Main Logic ───────────────────────────────────
@@ -201,6 +204,7 @@ function renderVerdict(data, fromCache = false) {
   // ── Async enrichment ────────────────────────────────────
   loadPriceChart(product.id);
   loadAlternatives(product.id);
+  loadCompare(product.id);
 }
 
 async function loadPriceChart(productId) {
@@ -241,6 +245,45 @@ async function loadAlternatives(productId) {
     `).join('');
   } catch (e) {
     console.warn('[DamKoi] Alternatives load failed:', e);
+  }
+}
+
+async function loadCompare(productId) {
+  try {
+    const data = await safeFetch('FETCH_COMPARE', { productId });
+    const matches = (data?.alternatives || []).filter(a => !a.is_original_request);
+    if (matches.length === 0) return;
+
+    const section = document.getElementById('compare-section');
+    const list = document.getElementById('compare-list');
+    section.classList.remove('hidden');
+
+    // Show top 3 cheapest matches
+    const top3 = matches
+      .filter(m => m.current_price != null)
+      .sort((a, b) => a.current_price - b.current_price)
+      .slice(0, 3);
+
+    const original = data.alternatives.find(a => a.is_original_request);
+    list.innerHTML = top3.map(m => {
+      const delta = original?.current_price != null
+        ? m.current_price - original.current_price
+        : null;
+      const deltaHtml = delta !== null
+        ? `<span class="${delta < 0 ? 'alt-savings' : 'alt-more'}">${delta < 0 ? 'Save ' + formatBDT(Math.abs(delta)) : '+' + formatBDT(delta)}</span>`
+        : '';
+      return `
+        <a href="${m.url}" target="_blank" class="alternative-item">
+          ${m.image_url ? `<img src="${m.image_url}" alt="" class="alt-image" />` : '<img src="icons/dk_logo.svg" alt="" class="alt-image alt-image-logo" />'}
+          <div class="alt-info">
+            <div class="alt-platform">${m.platform}</div>
+            <div class="alt-price">${formatBDT(m.current_price)} ${deltaHtml}</div>
+          </div>
+        </a>
+      `;
+    }).join('');
+  } catch (e) {
+    console.warn('[DamKoi] Compare load failed:', e);
   }
 }
 
@@ -311,6 +354,37 @@ function setupAlertButton(product) {
     }
   });
 }
+
+// ── Coupon Opt-in Modal ──────────────────────────
+
+function setupOptinModal(platform, cartTotal) {
+  showState(optinModal);
+
+  document.getElementById('optin-yes')?.addEventListener('click', async () => {
+    await saveToStorage('coupon_optin', 'always');
+    showState(loadingState);
+    await runCouponInjector(platform, cartTotal);
+    window.close();
+  }, { once: true });
+
+  document.getElementById('optin-once')?.addEventListener('click', async () => {
+    showState(loadingState);
+    await runCouponInjector(platform, cartTotal);
+    window.close();
+  }, { once: true });
+
+  document.getElementById('optin-no')?.addEventListener('click', async () => {
+    await saveToStorage('coupon_optin', 'no');
+    window.close();
+  }, { once: true });
+}
+
+// Listen for cart detection signals from cart_detector content script
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type === 'CART_DETECTED') {
+    setupOptinModal(msg.platform, msg.cartTotal);
+  }
+});
 
 // ── Initialize ───────────────────────────────────
 

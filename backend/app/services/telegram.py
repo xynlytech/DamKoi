@@ -161,6 +161,10 @@ class TelegramAlertService:
         deals = _escape_md(str(stats.get("deals_posted", 0)))
         uptime = _escape_md(str(stats.get("uptime_pct", 100)))
 
+        coupon_att = _escape_md(str(stats.get("coupon_attempts", 0)))
+        coupon_suc = _escape_md(str(stats.get("coupon_successes", 0)))
+        coupon_sav = _escape_md(str(stats.get("coupon_savings_bdt", 0)))
+
         text = (
             f"📊 *DamKoi Daily Digest* — {ts}\n\n"
             f"*Scraper Health*\n{platforms_block}\n\n"
@@ -168,7 +172,10 @@ class TelegramAlertService:
             f"🆕 New today: *{new_p}*\n"
             f"🔔 Alerts sent: *{alrt}*\n"
             f"🔥 Deals posted: *{deals}*\n"
-            f"🏥 Uptime: *{uptime}%*"
+            f"🏥 Uptime: *{uptime}%*\n\n"
+            f"*Coupon Auto\\-Apply*\n"
+            f"🏷️ Attempts: *{coupon_att}* · Successes: *{coupon_suc}*\n"
+            f"💰 Total saved: *৳{coupon_sav}*"
         )
         return await self._send(text)
 

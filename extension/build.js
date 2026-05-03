@@ -49,9 +49,10 @@ const sharedConfig = {
 // ── Build entries (output to same folder, referenced by manifest) ─
 
 const entries = [
-  { entryPoints: ['popup.js'],      outfile: 'popup.bundle.js'      },
-  { entryPoints: ['content.js'],    outfile: 'content.bundle.js'    },
-  { entryPoints: ['background.js'], outfile: 'background.bundle.js' },
+  { entryPoints: ['popup.js'],          outfile: 'popup.bundle.js'          },
+  { entryPoints: ['content.js'],        outfile: 'content.bundle.js'        },
+  { entryPoints: ['background.js'],     outfile: 'background.bundle.js'     },
+  { entryPoints: ['cart_detector.js'],  outfile: 'cart_detector.bundle.js'  },
 ];
 
 // ── Run ───────────────────────────────────────────────────────
