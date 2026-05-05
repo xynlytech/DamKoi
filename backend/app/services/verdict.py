@@ -26,8 +26,8 @@ class VerdictLabel(str, Enum):
 class Verdict:
     """The complete verdict for a product's current price."""
     label: VerdictLabel
-    deal_score: int  # 1–10
-    display: str  # e.g., "❌ NOT a real deal"
+    deal_score: int  # 1-10
+    display: str  # e.g., "FAKE DISCOUNT"
     explanation: str  # human-readable reason
     current_price: int  # in paisa
     avg_30d: Optional[int]  # in paisa
@@ -37,22 +37,22 @@ class Verdict:
     confidence: float  # 0.0–1.0
 
 
-# ── Display templates ─────────────────────────────────────────
+# -- Display templates ------------------------------------------------
 
 VERDICT_DISPLAY = {
-    VerdictLabel.FAKE_DISCOUNT: "❌ FAKE DISCOUNT",
-    VerdictLabel.BEST_PRICE: "✅ BEST PRICE — ALL-TIME LOW",
-    VerdictLabel.GOOD_DEAL: "🔥 GOOD DEAL",
-    VerdictLabel.FAIR_PRICE: "🟡 FAIR PRICE",
-    VerdictLabel.INSUFFICIENT_DATA: "⏳ TRACKING — NOT ENOUGH DATA YET",
+    VerdictLabel.FAKE_DISCOUNT:     "FAKE DISCOUNT",
+    VerdictLabel.BEST_PRICE:        "BEST PRICE -- ALL-TIME LOW",
+    VerdictLabel.GOOD_DEAL:         "GOOD DEAL",
+    VerdictLabel.FAIR_PRICE:        "FAIR PRICE",
+    VerdictLabel.INSUFFICIENT_DATA: "TRACKING -- NOT ENOUGH DATA YET",
 }
 
 VERDICT_DISPLAY_BN = {
-    VerdictLabel.FAKE_DISCOUNT: "❌ ভুয়া ছাড়",
-    VerdictLabel.BEST_PRICE: "✅ সর্বনিম্ন দাম",
-    VerdictLabel.GOOD_DEAL: "🔥 ভাল ডিল",
-    VerdictLabel.FAIR_PRICE: "🟡 স্বাভাবিক দাম",
-    VerdictLabel.INSUFFICIENT_DATA: "⏳ তথ্য সংগ্রহ হচ্ছে",
+    VerdictLabel.FAKE_DISCOUNT:     "ভুয়া ছাড়",
+    VerdictLabel.BEST_PRICE:        "সর্বনিম্ন দাম",
+    VerdictLabel.GOOD_DEAL:         "ভাল ডিল",
+    VerdictLabel.FAIR_PRICE:        "স্বাভাবিক দাম",
+    VerdictLabel.INSUFFICIENT_DATA: "তথ্য সংগ্রহ হচ্ছে",
 }
 
 

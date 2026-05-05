@@ -29,19 +29,19 @@ class Mailer:
         Send a price drop notification email.
         """
         if not settings.RESEND_API_KEY:
-            print("⚠️ RESEND_API_KEY not configured. Skipping email.")
+            print("[WARN] RESEND_API_KEY not configured. Skipping email.")
             return False
 
         try:
             params = {
                 "from": settings.EMAIL_FROM,
                 "to": [to_email],
-                "subject": f"🎯 Price Drop: {product_title[:40]}... reached your target!",
+                "subject": f"[Price Drop] {product_title[:40]} reached your target price",
                 "html": f"""
                 <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #111;">
                     <div style="background: #a78bfa; padding: 2px; border-radius: 12px; margin-bottom: 20px;">
                         <div style="background: white; padding: 30px; border-radius: 10px;">
-                            <h1 style="color: #111; font-size: 24px; margin-bottom: 10px;">Good News! 🎉</h1>
+                            <h1 style="color: #111; font-size: 24px; margin-bottom: 10px;">Price Alert Triggered</h1>
                             <p style="font-size: 16px; color: #4b5563; margin-bottom: 25px;">
                                 A product you are tracking just hit your target price on Daraz.
                             </p>
@@ -77,7 +77,7 @@ class Mailer:
             resend.Emails.send(params)
             return True
         except Exception as e:
-            print(f"❌ Resend error: {e}")
+            print(f"[ERROR] Resend error: {e}")
             return False
 
 

@@ -8,11 +8,11 @@ export const contentType = "image/png";
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
 
 const VERDICT_CONFIG: Record<string, { icon: string; label: string; color: string; bg: string }> = {
-  FAKE_DISCOUNT:     { icon: "❌", label: "Fake Discount",  color: "#ef4444", bg: "#1a0a0a" },
-  BEST_PRICE:        { icon: "✅", label: "Best Price",      color: "#10b981", bg: "#0a1a12" },
-  GOOD_DEAL:         { icon: "🔥", label: "Good Deal",       color: "#6366f1", bg: "#0d0d1a" },
-  FAIR_PRICE:        { icon: "🟡", label: "Fair Price",      color: "#f59e0b", bg: "#1a1500" },
-  INSUFFICIENT_DATA: { icon: "⏳", label: "Collecting Data", color: "#94a3b8", bg: "#111116" },
+  FAKE_DISCOUNT:     { icon: "X", label: "Fake Discount",  color: "#ef4444", bg: "#1a0a0a" },
+  BEST_PRICE:        { icon: "✓", label: "Best Price",      color: "#10b981", bg: "#0a1a12" },
+  GOOD_DEAL:         { icon: "★", label: "Good Deal",       color: "#6366f1", bg: "#0d0d1a" },
+  FAIR_PRICE:        { icon: "●", label: "Fair Price",      color: "#f59e0b", bg: "#1a1500" },
+  INSUFFICIENT_DATA: { icon: "—", label: "Collecting Data", color: "#94a3b8", bg: "#111116" },
 };
 
 export default async function OgImage({

@@ -24,9 +24,9 @@ const API_BASE       = isProd ? 'https://api.damkoi.com/v1'  : 'http://localhost
 const DASHBOARD_BASE = isProd ? 'https://damkoi.com'          : 'http://localhost:3000';
 
 if (isProd) {
-  console.log('🚀 Production build — API:', API_BASE);
+  console.log('[PROD] Production build — API:', API_BASE);
 } else {
-  console.log('🔧 Development build — API:', API_BASE);
+  console.log('[DEV] Development build — API:', API_BASE);
 }
 
 // ── Shared esbuild config ─────────────────────────────────────
@@ -71,9 +71,9 @@ async function build() {
   } else {
     await Promise.all(ctxs.map(ctx => ctx.rebuild()));
     await Promise.all(ctxs.map(ctx => ctx.dispose()));
-    console.log('\n✅ Build complete!');
+    console.log('\n[SUCCESS] Build complete!');
     console.log('   popup.bundle.js, content.bundle.js, background.bundle.js written.');
-    console.log(`   Mode: ${isProd ? '🚀 PRODUCTION' : '🔧 DEVELOPMENT'}`);
+    console.log(`   Mode: ${isProd ? '[PROD] PRODUCTION' : '[DEV] DEVELOPMENT'}`);
     console.log('   Go to edge://extensions → click Refresh on DamKoi.\n');
   }
 }

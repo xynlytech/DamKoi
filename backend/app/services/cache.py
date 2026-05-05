@@ -32,7 +32,7 @@ class CacheService:
             val = await self.redis.get(key)
             return json.loads(val) if val else None
         except Exception as e:
-            print(f"⚠️ Redis GET error: {e}")
+            print(f"[WARN] Redis GET error: {e}")
             return None
 
     async def set(self, key: str, value: Any, expire_seconds: int = 3600):
@@ -45,7 +45,7 @@ class CacheService:
                 ex=expire_seconds
             )
         except Exception as e:
-            print(f"⚠️ Redis SET error: {e}")
+            print(f"[WARN] Redis SET error: {e}")
 
     async def delete(self, key: str):
         if not self.enabled: return
@@ -53,7 +53,7 @@ class CacheService:
         try:
             await self.redis.delete(key)
         except Exception as e:
-            print(f"⚠️ Redis DELETE error: {e}")
+            print(f"[WARN] Redis DELETE error: {e}")
 
     async def invalidate_product(self, product_id: str):
         """Invalidate all cache keys related to a product."""
@@ -65,7 +65,7 @@ class CacheService:
             await self.delete(f"product_details:{product_id}")
             await self.delete(f"price_history:{product_id}")
         except Exception as e:
-            print(f"⚠️ Redis Invalidation error: {e}")
+            print(f"[WARN] Redis Invalidation error: {e}")
 
 # Singleton instance
 cache = CacheService()

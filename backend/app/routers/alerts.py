@@ -444,3 +444,102 @@ async def export_alerts_csv(
         media_type="text/csv",
         headers={"Content-Disposition": 'attachment; filename="damkoi_alerts.csv"'},
     )
+
+
+# ── Telegram Account Linking ───────────────────────────────────────────────────
+
+
+class TelegramLinkRequest(BaseModel):
+    telegram_chat_id: str = Field(
+        ...,
+        description=(
+            "The user's personal Telegram chat ID. "
+            "Obtain by messaging @userinfobot or the DamKoi bot's /start command."
+        ),
+    )
+
+
+@router.post("/telegram/link", status_code=200)
+async def link_telegram(
+    body: TelegramLinkRequest,
+    user: "User" = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Link the authenticated user's Telegram account for price-drop DMs.
+
+    **How to get your chat_id:**
+    1. Open Telegram and start a chat with the DamKoi bot.
+    2. Send /start — the bot will reply with your personal chat ID.
+    3. Paste that ID here.
+
+    After linking, set `notify_via: ["email", "telegram"]` (or just `["telegram"]`)
+    on any alert to receive personal DMs when the price drops.
+    """
+    from app.models.user import User as UserModel
+    from app.services.telegram import get_telegram_service
+
+    # Validate the chat_id is numeric
+    chat_id_str = body.telegram_chat_id.strip()
+    try:
+        int(chat_id_str)
+    except ValueError:
+        raise HTTPException(
+            status_code=422,
+            detail="telegram_chat_id must be a numeric string (e.g. '123456789').",
+        )
+
+    # Persist on user row
+    result = await db.execute(
+        select(UserModel).where(UserModel.id == user.id)
+    )
+    db_user = result.scalar_one_or_none()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    db_user.telegram_chat_id = chat_id_str
+    await db.commit()
+    await db.refresh(db_user)
+
+    # Fire-and-forget confirmation DM (errors don't fail the HTTP request)
+    telegram = get_telegram_service()
+    dm_sent = await telegram.send_telegram_link_confirmation(
+        user_chat_id=chat_id_str,
+        email=db_user.email or "",
+    )
+
+    return {
+        "linked": True,
+        "telegram_chat_id": chat_id_str,
+        "confirmation_dm_sent": dm_sent,
+        "message": (
+            "Telegram linked successfully. "
+            + ("A confirmation DM was sent to your Telegram." if dm_sent
+               else "Could not send confirmation DM — check that you started the DamKoi bot first.")
+        ),
+    }
+
+
+@router.delete("/telegram/unlink", status_code=200)
+async def unlink_telegram(
+    user: "User" = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Remove the Telegram link from the authenticated user's account.
+    Future alerts will fall back to email-only delivery.
+    """
+    from app.models.user import User as UserModel
+
+    result = await db.execute(
+        select(UserModel).where(UserModel.id == user.id)
+    )
+    db_user = result.scalar_one_or_none()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    db_user.telegram_chat_id = None
+    await db.commit()
+
+    return {"linked": False, "message": "Telegram unlinked. Alerts will be sent via email only."}
+

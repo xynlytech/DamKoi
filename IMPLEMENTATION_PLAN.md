@@ -23,6 +23,10 @@
 | APScheduler (all jobs including matching + digest) | ✅ Built | Daily digest, 6-platform scrapes, alert checks, backfill, coupon refresh |
 | Wayback backfill + sitemap harvester | ✅ Built | |
 | Email alerts (Resend) | ✅ Built | |
+| Deals pagination + platform filter fix | ✅ Built | Backend /deals offset + platform bug fixed; web Load More client component |
+| Admin scraper health dashboard | ✅ Built | GET /admin/scrapers/health; web page auto-refreshes 60s |
+| CSV export (price history + alerts) | ✅ Built | GET /products/{id}/price-history.csv + GET /alerts/export.csv |
+| Telegram user price-drop alerts | ✅ Built | services/telegram.py send_price_drop_alert(); tasks.py _send_alert_notification wired; /alerts/telegram/link + /unlink endpoints; migration c4d5e6f7a8b9 |
 | Supabase auth + rate limiting | ✅ Built | |
 | Sentry + Telegram code | ✅ Built | Not configured — no DSN / bot token in .env |
 | AI Product Lens | ⚠️ Mock | services/ai.py is keyword-based, NOT real Claude API |
@@ -480,8 +484,9 @@ Per-platform: last scrape time, success rate (today), last error, queue depth. A
 002 — add_coupons_table                     (done)
 003 — add_matchgroup_model                  (done)
 004 — add_coupon_applications_table         (Phase 2 — Track D)
-005 — add_subscriptions_table               (Phase 3 — Track E)
-006 — add_product_lens_table                (Phase 3 — Track G)
+005 — add_telegram_chat_id_to_users         (done — c4d5e6f7a8b9)
+006 — add_subscriptions_table               (Phase 3 — Track E)
+007 — add_product_lens_table                (Phase 3 — Track G)
 ```
 
 Apply migrations idempotently. Never drop columns; never rename in a single migration (use a deprecation cycle).

@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   ArrowUpRight, Bell, TrendingDown, TrendingUp,
   Minus, LayoutDashboard, RefreshCw, Loader2,
+  ShoppingCart, Activity, BellOff
 } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
@@ -59,7 +60,7 @@ function ProductCard({ p }: { p: Product }) {
       <div className="w-14 h-14 rounded-xl bg-white/5 flex-shrink-0 overflow-hidden">
         {p.image_url
           ? <img src={p.image_url} alt="" className="w-full h-full object-contain p-1" />
-          : <div className="w-full h-full flex items-center justify-center text-xl">🛒</div>
+          : <div className="w-full h-full flex items-center justify-center text-white/20"><ShoppingCart size={24} /></div>
         }
       </div>
       <div className="flex-1 min-w-0">
@@ -223,7 +224,9 @@ export default function DashboardPage() {
             </div>
           ) : products.length === 0 ? (
             <div className="text-center py-16 glass-card rounded-2xl">
-              <p className="text-4xl mb-4">🐟</p>
+              <div className="flex justify-center mb-4 text-white/20">
+                <Activity size={48} strokeWidth={1.5} />
+              </div>
               <h3 className="font-black font-outfit mb-2">Nothing tracked yet</h3>
               <p className="text-white/40 text-sm mb-6">
                 Paste a product URL on the homepage to start.
@@ -258,7 +261,9 @@ export default function DashboardPage() {
           <div className="glass-card rounded-2xl p-4">
             {!email ? (
               <div className="text-center py-6">
-                <p className="text-3xl mb-3">🔔</p>
+                <div className="flex justify-center mb-3 text-white/20">
+                  <Bell size={40} strokeWidth={1.5} />
+                </div>
                 <p className="text-sm text-white/40 mb-4 leading-relaxed">
                   Sign in with your email to see your alerts here.
                 </p>
@@ -275,7 +280,9 @@ export default function DashboardPage() {
               </div>
             ) : alerts.length === 0 ? (
               <div className="text-center py-6">
-                <p className="text-3xl mb-3">🔕</p>
+                <div className="flex justify-center mb-3 text-white/20">
+                  <BellOff size={40} strokeWidth={1.5} />
+                </div>
                 <p className="text-sm text-white/40 mb-4">No alerts set yet.</p>
                 <Link
                   href="/"

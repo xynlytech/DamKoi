@@ -205,7 +205,7 @@ class DamKoiExtension {
             applyBtn.click();
             await new Promise(r => setTimeout(r, 1000));
           }
-          btn.innerText = `Saved ৳${bestDiscount}! 🎉`;
+          btn.innerText = `Saved ৳${bestDiscount}!`;
           btn.style.background = '#10b981';
         } else {
           btn.innerText = 'No coupons worked 😔';
@@ -323,28 +323,28 @@ class DamKoiExtension {
   renderNotTracked(container, tabId) {
     if (tabId === 'history') {
       container.innerHTML = `
-        <h3>📈 Price History</h3>
+        <h3 style="display:flex;align-items:center;gap:6px;"><span style="width:16px;height:16px;display:inline-block;">${ICONS.history}</span> Price History</h3>
         <p style="margin: 15px 0; color: var(--dk-dim); line-height: 1.5;">
           No price history available yet. We are tracking this item starting today.
         </p>
       `;
     } else if (tabId === 'alternatives') {
       container.innerHTML = `
-        <h3>🔍 Alternatives</h3>
+        <h3 style="display:flex;align-items:center;gap:6px;"><span style="width:16px;height:16px;display:inline-block;">${ICONS.alternatives}</span> Alternatives</h3>
         <p style="margin: 15px 0; color: var(--dk-dim); line-height: 1.5;">
           Searching for similar deals... This will populate once our system analyzes the product.
         </p>
       `;
     } else if (tabId === 'alerts') {
       container.innerHTML = `
-        <h3>🔔 Price Alerts</h3>
+        <h3 style="display:flex;align-items:center;gap:6px;"><span style="width:16px;height:16px;display:inline-block;">${ICONS.alerts}</span> Price Alerts</h3>
         <p style="margin: 15px 0; color: var(--dk-dim); line-height: 1.5;">
           You can set target price alerts once the initial price data is gathered. Check back soon!
         </p>
       `;
     } else {
       container.innerHTML = `
-        <h3>⏳ Getting Started</h3>
+        <h3>Getting Started</h3>
         <p style="margin: 15px 0; color: var(--dk-dim); line-height: 1.5;">
           This product is not fully tracked yet. We've added it to our next scrape batch.
         </p>
@@ -400,7 +400,7 @@ class DamKoiExtension {
 
   renderHistory(container) {
     container.innerHTML = `
-      <h3>📈 Price Trend</h3>
+      <h3 style="display:flex;align-items:center;gap:6px;"><span style="width:16px;height:16px;display:inline-block;">${ICONS.history}</span> Price Trend</h3>
       <p style="font-size: 11px; margin: 4px 0 15px; color: rgba(255,255,255,0.4);">Last 30 data points</p>
       <div id="damkoi-sparkline"></div>
       <div class="damkoi-price-grid">
@@ -420,7 +420,7 @@ class DamKoiExtension {
   }
 
   renderAlternatives(container) {
-    container.innerHTML = `<h3>🔍 Look-Alike Deals</h3><div id="damkoi-alternatives-list">Loading...</div>`;
+    container.innerHTML = `<h3 style="display:flex;align-items:center;gap:6px;"><span style="width:16px;height:16px;display:inline-block;">${ICONS.alternatives}</span> Look-Alike Deals</h3><div id="damkoi-alternatives-list">Loading...</div>`;
 
     // Use cached alternatives if available
     if (this.alternativesCache) {
@@ -502,7 +502,7 @@ class DamKoiExtension {
     const savedPrice = this.alertFormState.price || defaultPrice;
 
     container.innerHTML = `
-      <h3>🔔 Set Price Alert</h3>
+      <h3 style="display:flex;align-items:center;gap:6px;"><span style="width:16px;height:16px;display:inline-block;">${ICONS.alerts}</span> Set Price Alert</h3>
       <p style="margin: 8px 0 20px; font-size: 12px; color: rgba(255,255,255,0.4);">
         Get an email the instant this product drops below your target.
       </p>

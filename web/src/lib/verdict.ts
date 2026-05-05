@@ -24,19 +24,19 @@ function fmt(paisa: number): string {
 }
 
 const DISPLAY_EN: Record<VerdictLabel, string> = {
-  FAKE_DISCOUNT: "❌ FAKE DISCOUNT",
-  BEST_PRICE: "✅ BEST PRICE — ALL-TIME LOW",
-  GOOD_DEAL: "🔥 GOOD DEAL",
-  FAIR_PRICE: "🟡 FAIR PRICE",
-  INSUFFICIENT_DATA: "⏳ TRACKING — NOT ENOUGH DATA YET",
+  FAKE_DISCOUNT: "FAKE DISCOUNT",
+  BEST_PRICE: "BEST PRICE — ALL-TIME LOW",
+  GOOD_DEAL: "GOOD DEAL",
+  FAIR_PRICE: "FAIR PRICE",
+  INSUFFICIENT_DATA: "TRACKING — NOT ENOUGH DATA YET",
 };
 
 const DISPLAY_BN: Record<VerdictLabel, string> = {
-  FAKE_DISCOUNT: "❌ ভুয়া ছাড়",
-  BEST_PRICE: "✅ সর্বনিম্ন দাম",
-  GOOD_DEAL: "🔥 ভাল ডিল",
-  FAIR_PRICE: "🟡 স্বাভাবিক দাম",
-  INSUFFICIENT_DATA: "⏳ তথ্য সংগ্রহ হচ্ছে",
+  FAKE_DISCOUNT: "ভুয়া ছাড়",
+  BEST_PRICE: "সর্বনিম্ন দাম",
+  GOOD_DEAL: "ভাল ডিল",
+  FAIR_PRICE: "স্বাভাবিক দাম",
+  INSUFFICIENT_DATA: "তথ্য সংগ্রহ হচ্ছে",
 };
 
 export function getVerdict(

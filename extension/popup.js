@@ -112,7 +112,7 @@ async function init() {
            showState(verdictState);
            document.getElementById('product-title').textContent = 'Product not yet tracked';
            const badge = document.getElementById('verdict-badge');
-           badge.textContent = '⏳ TRACKING STARTING';
+           badge.textContent = 'TRACKING STARTING';
            badge.classList.add('text-orange');
            document.getElementById('deal-score').textContent = '';
            document.getElementById('verdict-explanation').textContent = 'This product will be picked up in our next scrape cycle. Check back in an hour!';
@@ -197,7 +197,7 @@ function renderVerdict(data, fromCache = false) {
     const pt = document.getElementById('product-title');
     const badge = document.createElement('span');
     badge.className = 'cache-badge';
-    badge.textContent = '⚡ cached';
+    badge.textContent = 'cached';
     pt.appendChild(badge);
   }
 

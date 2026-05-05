@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { PartyPopper } from 'lucide-react';
 
 export default function PremiumPage() {
   const t = useTranslations();
@@ -50,7 +51,9 @@ export default function PremiumPage() {
 
       {success ? (
         <div className="bg-emerald-500/10 border border-emerald-500/20 p-12 rounded-3xl text-center">
-          <div className="text-6xl mb-6">🎉</div>
+          <div className="flex justify-center mb-6 text-emerald-400">
+            <PartyPopper size={64} strokeWidth={1.5} />
+          </div>
           <h2 className="text-3xl font-bold text-emerald-400 mb-4">You are now Premium!</h2>
           <p className="text-white/60">Enjoy unlimited price alerts and priority queueing.</p>
         </div>

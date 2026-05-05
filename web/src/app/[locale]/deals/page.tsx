@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Flame, Search } from "lucide-react";
 import DealsLoadMore from "./DealsLoadMore";
 
 export const metadata: Metadata = {
@@ -50,7 +51,9 @@ export default async function DealsPage({
     <div className="container mx-auto px-4 max-w-5xl">
       {/* Header */}
       <div className="mb-10">
-        <h1 className="text-4xl font-black font-outfit mb-2">🔥 Real Deals Today</h1>
+        <h1 className="text-4xl font-black font-outfit mb-2 flex items-center gap-3">
+          <Flame size={32} className="text-indigo-500" /> Real Deals Today
+        </h1>
         <p className="text-white/40 text-sm">
           {deals.length}+ verified price drops · Updated every hour
         </p>
@@ -108,7 +111,9 @@ export default async function DealsPage({
       {/* Deals grid + Load More */}
       {deals.length === 0 ? (
         <div className="text-center py-20 text-white/20">
-          <p className="text-4xl mb-4">🔍</p>
+          <div className="flex justify-center mb-4 text-white/20">
+            <Search size={48} strokeWidth={1.5} />
+          </div>
           <p className="font-black uppercase tracking-widest text-sm">No deals matched your filters</p>
           <Link href="/deals" className="mt-4 inline-block text-indigo-400 text-sm hover:text-indigo-300">
             Reset filters

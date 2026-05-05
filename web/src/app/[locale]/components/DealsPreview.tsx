@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, TrendingDown } from "lucide-react";
+import { ArrowRight, TrendingDown, Flame, ShoppingCart } from "lucide-react";
 
 type DealItem = {
   product: {
@@ -43,7 +43,9 @@ export default function DealsPreview({ deals }: { deals: DealItem[] }) {
     <section className="py-16 border-t border-white/5">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-2xl font-black font-outfit">🔥 Today&apos;s Real Deals</h2>
+          <h2 className="text-2xl font-black font-outfit flex items-center gap-2">
+            <Flame className="text-indigo-500" size={24} /> Today&apos;s Real Deals
+          </h2>
           <p className="text-white/30 text-sm mt-1">Verified genuine price drops — not inflated discounts</p>
         </div>
         <Link
@@ -72,7 +74,9 @@ export default function DealsPreview({ deals }: { deals: DealItem[] }) {
                     className="w-full h-full object-contain p-1"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-2xl">🛒</div>
+                  <div className="w-full h-full flex items-center justify-center text-white/20">
+                    <ShoppingCart size={24} />
+                  </div>
                 )}
               </div>
 

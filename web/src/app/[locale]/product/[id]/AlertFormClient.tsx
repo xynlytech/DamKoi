@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Bell, Loader2 } from "lucide-react";
+import { Bell, Loader2, CheckCircle2 } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
 const EMAIL_KEY = "damkoi_alert_email";
@@ -55,7 +55,9 @@ export default function AlertFormClient({
   if (status === "ok") {
     return (
       <div className="glass-card rounded-2xl p-6 border border-emerald-500/20 bg-emerald-500/5 text-center">
-        <p className="text-2xl mb-2">✅</p>
+        <div className="flex justify-center mb-2 text-emerald-400">
+          <CheckCircle2 size={32} />
+        </div>
         <p className="text-sm font-bold text-emerald-400">{msg}</p>
         <button
           onClick={() => setStatus("idle")}

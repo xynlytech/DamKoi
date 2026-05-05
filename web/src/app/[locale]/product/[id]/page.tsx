@@ -3,6 +3,7 @@ import Link from "next/link";
 import {
   ArrowLeft, ExternalLink, Sparkles, Layers,
   CheckCircle, AlertCircle, Clock, TrendingDown,
+  XCircle, Flame, Circle
 } from "lucide-react";
 import PriceChartClient from "./PriceChartClient";
 import AlertFormClient from "./AlertFormClient";
@@ -142,11 +143,11 @@ function fmtDate(iso: string | null | undefined): string {
 }
 
 const VERDICT_CONFIG = {
-  FAKE_DISCOUNT:     { icon: "❌", label: "Fake Discount",  color: "#ef4444" },
-  BEST_PRICE:        { icon: "✅", label: "Best Price",      color: "#10b981" },
-  GOOD_DEAL:         { icon: "🔥", label: "Good Deal",       color: "#6366f1" },
-  FAIR_PRICE:        { icon: "🟡", label: "Fair Price",      color: "#f59e0b" },
-  INSUFFICIENT_DATA: { icon: "⏳", label: "Tracking…",       color: "#94a3b8" },
+  FAKE_DISCOUNT:     { icon: <XCircle size={24} />, label: "Fake Discount",  color: "#ef4444" },
+  BEST_PRICE:        { icon: <CheckCircle size={24} />, label: "Best Price",      color: "#10b981" },
+  GOOD_DEAL:         { icon: <Flame size={24} />, label: "Good Deal",       color: "#6366f1" },
+  FAIR_PRICE:        { icon: <Circle size={24} />, label: "Fair Price",      color: "#f59e0b" },
+  INSUFFICIENT_DATA: { icon: <Clock size={24} />, label: "Tracking…",       color: "#94a3b8" },
 };
 
 // ── Sub-components (server) ────────────────────────────────────
@@ -274,7 +275,7 @@ export default async function ProductPage({
               {verdict && <ScoreRing score={verdict.deal_score} />}
               <div className="flex-1 text-center sm:text-left">
                 <div className="flex items-center justify-center sm:justify-start gap-2 mb-3">
-                  <span className="text-2xl">{vc.icon}</span>
+                  <span className="text-2xl" style={{ color: vc.color }}>{vc.icon}</span>
                   <span className="text-2xl font-black font-outfit" style={{ color: vc.color }}>
                     {vc.label}
                   </span>

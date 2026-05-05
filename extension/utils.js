@@ -201,7 +201,7 @@ export function setStatusMessage(element, type, message) {
   const isSuccess = type === 'success';
   const isInfo = type === 'info';
 
-  element.textContent = `${isSuccess ? '✅' : isInfo ? 'ℹ️' : '❌'} ${message}`;
+  element.textContent = message;
 
   // Reset classes
   element.classList.remove('dk-status-success', 'dk-status-error', 'dk-status-info');

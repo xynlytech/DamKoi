@@ -183,21 +183,19 @@ def setup_scheduler():
 
 async def post_deals_to_telegram():
     """Post today's top deals to the Telegram channel."""
-    print(f"📢 [{datetime.now()}] Posting deals to Telegram...")
+    print(f"[SCRAPER] [{datetime.now()}] Posting deals to Telegram...")
     try:
-        # Import here to avoid circular import at module level
         import sys, os
         bot_path = os.path.join(os.path.dirname(__file__), "..", "..", "telegram_deals_bot.py")
-        # Dynamically run the bot module's main function
         import importlib.util
         spec = importlib.util.spec_from_file_location("telegram_deals_bot", bot_path)
         if spec and spec.loader:
             mod = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(mod)  # type: ignore[union-attr]
             await mod.run(dry_run=False)
-            print(f"✅ Telegram deals post complete.")
+            print("[OK] Telegram deals post complete.")
         else:
-            print("⚠️  Could not load telegram_deals_bot.py")
+            print("[WARN] Could not load telegram_deals_bot.py")
     except Exception as e:
         logger.error("Telegram deals bot failed: %s", e, exc_info=True)
 
@@ -208,13 +206,12 @@ async def post_deals_to_telegram():
 
 async def scrape_hot_products():
     """Scrape products with >10 active alerts (high priority)."""
-    print(f"🔥 [{datetime.now()}] Starting hot product scrape...")
+    print(f"[SCRAPER] [{datetime.now()}] Starting hot product scrape...")
     start_time = datetime.now()
     telegram = get_telegram_service()
 
     try:
         async with async_session_factory() as db:
-            # Find products with the most active alerts
             result = await db.execute(
                 select(Product.id, Product.url)
                 .join(Alert, and_(Alert.product_id == Product.id, Alert.is_active == True))
@@ -230,18 +227,17 @@ async def scrape_hot_products():
         urls = [p.url for p in hot_products]
         scraped_count = await _run_scrape_batch(urls, "hot")
 
-        # Send success alert
         duration = (datetime.now() - start_time).total_seconds()
         await telegram.send_scraper_success(
             batch_name="Hot Products",
             count=scraped_count,
             duration_seconds=duration
         )
-        print(f"   ✅ Hot scrape completed: {scraped_count} products in {duration:.1f}s")
+        print(f"   [OK] Hot scrape completed: {scraped_count} products in {duration:.1f}s")
 
     except Exception as e:
         error_msg = str(e)
-        print(f"   ❌ Hot scrape failed: {error_msg}")
+        print(f"   [ERROR] Hot scrape failed: {error_msg}")
         await telegram.send_alert(
             title="Hot Products Scraper Failed",
             message=f"Error: {error_msg}",
@@ -252,7 +248,7 @@ async def scrape_hot_products():
 
 async def scrape_tracked_products():
     """Scrape products tracked by at least 1 user."""
-    print(f"👁️ [{datetime.now()}] Starting tracked product scrape...")
+    print(f"[SCRAPER] [{datetime.now()}] Starting tracked product scrape...")
 
     async with async_session_factory() as db:
         from app.models.tracked_product import TrackedProduct
@@ -275,7 +271,7 @@ async def scrape_tracked_products():
 
 async def scrape_longtail_products():
     """Scrape all other active products (daily at 2AM)."""
-    print(f"🌙 [{datetime.now()}] Starting long-tail product scrape...")
+    print(f"[SCRAPER] [{datetime.now()}] Starting long-tail product scrape...")
 
     async with async_session_factory() as db:
         result = await db.execute(
@@ -304,10 +300,10 @@ async def scrape_platform_products(platform: str, limit: int = 200):
         limit: Max number of products to scrape per run
     """
     if not is_platform_enabled(platform):
-        print(f"   ⏭  [{platform}] Platform not enabled — skipping.")
+        print(f"   [SKIP] [{platform}] Platform not enabled -- skipping.")
         return
 
-    print(f"🌐 [{datetime.now()}] Starting {platform} product scrape...")
+    print(f"[SCRAPER] [{datetime.now()}] Starting {platform} product scrape...")
     telegram = get_telegram_service()
     start_time = datetime.now()
 
@@ -389,7 +385,7 @@ async def scrape_platform_products(platform: str, limit: int = 200):
 
 async def check_all_alerts():
     """Check all active alerts and send notifications for triggered ones."""
-    print(f"🔔 [{datetime.now()}] Checking price alerts...")
+    print(f"[ALERT] [{datetime.now()}] Checking price alerts...")
 
     async with async_session_factory() as db:
         # Get all active alerts with user eagerly loaded (needed for email)
@@ -438,12 +434,12 @@ async def check_all_alerts():
         if triggered_count > 0:
             await db.commit()
 
-    print(f"   ✅ Checked {len(alerts)} alerts; {triggered_count} triggered.")
+    print(f"   [OK] Checked {len(alerts)} alerts; {triggered_count} triggered.")
 
 
 async def send_daily_digest_job():
     """Fetches daily metrics and sends digest to Telegram at 8AM BD."""
-    print(f"📊 [{datetime.now()}] Sending daily digest...")
+    print(f"[DIGEST] [{datetime.now()}] Sending daily digest...")
     telegram = get_telegram_service()
     
     try:
@@ -459,11 +455,20 @@ async def send_daily_digest_job():
             )
             new_products = new_result.scalar_one()
 
-            # 3. Alerts triggered
+            # 3. Alerts triggered — total and per channel
             alerts_result = await db.execute(
-                select(func.count(AlertEvent.id)).where(AlertEvent.created_at >= today)
+                select(func.count(AlertEvent.id)).where(
+                    and_(AlertEvent.sent_at >= today, AlertEvent.channel == "email")
+                )
             )
             alerts_sent = alerts_result.scalar_one()
+
+            tg_alerts_result = await db.execute(
+                select(func.count(AlertEvent.id)).where(
+                    and_(AlertEvent.sent_at >= today, AlertEvent.channel == "telegram")
+                )
+            )
+            telegram_alerts_sent = tg_alerts_result.scalar_one()
 
             # 4. Coupon auto-apply stats
             coupon_total_result = await db.execute(
@@ -506,6 +511,7 @@ async def send_daily_digest_job():
             "total_products": total_products,
             "new_products": new_products,
             "alerts_sent": alerts_sent,
+            "telegram_alerts_sent": telegram_alerts_sent,
             "deals_posted": 3,
             "uptime_pct": 99.9,
             "platforms": platforms,
@@ -515,7 +521,7 @@ async def send_daily_digest_job():
         }
 
         await telegram.send_daily_digest(stats)
-        print("   ✅ Daily digest sent.")
+        print("   [OK] Daily digest sent.")
     except Exception as e:
         logger.error(f"Failed to send daily digest: {e}", exc_info=True)
 
@@ -564,7 +570,7 @@ class ScrapeAgent:
         while retry_count < self.max_retries:
             try:
                 mode = "HEADFUL" if use_headful else "HEADLESS"
-                print(f"   🤖 [Agent] Attempting {self.batch_name} in {mode} mode (Attempt {retry_count + 1})")
+                print(f"   [AGENT] Attempting {self.batch_name} in {mode} mode (Attempt {retry_count + 1})")
                 
                 async with DarazScraper(headless=not use_headful) as scraper:
                     products = await scraper.scrape_batch(urls)
@@ -577,12 +583,12 @@ class ScrapeAgent:
                     self._log_metrics()
                     return len(products)
                 
-                print(f"   ⚠️ [Agent] No products returned in {mode} mode.")
+                print(f"   [WARN] [Agent] No products returned in {mode} mode.")
                 self.metrics["errors"].append(f"No products in {mode} mode")
                 
             except Exception as e:
                 err_msg = str(e)
-                print(f"   ❌ [Agent] Attempt failed: {err_msg}")
+                print(f"   [ERROR] [Agent] Attempt failed: {err_msg}")
                 self.metrics["errors"].append(err_msg)
                 if "block" in err_msg.lower() or "timeout" in err_msg.lower():
                     use_headful = True # Switch to headful on next attempt
@@ -610,9 +616,9 @@ class ScrapeAgent:
         success_rate = (self.metrics["success"] / total * 100) if total > 0 else 0
         avg_time = (elapsed / total) if total > 0 else 0
         
-        print(f"   📊 [Metrics] Batch: {self.batch_name}")
+        print(f"   [METRICS] Batch: {self.batch_name}")
         print(f"      Success Rate: {success_rate:.1f}% ({self.metrics['success']}/{total})")
-        print(f"      Total Time: {elapsed:.2fs} (Avg: {avg_time:.2fs}/product)")
+        print(f"      Total Time: {elapsed:.2f}s (Avg: {avg_time:.2f}s/product)")
         if self.metrics["errors"]:
             print(f"      Last Error: {self.metrics['errors'][-1]}")
 
@@ -671,7 +677,7 @@ class ScrapeAgent:
                 await cache.delete(f"product_lookup:{scraped.external_id}")
             # ───────────────────────────────────────────────────────────
             
-            print(f"   ✅ [Agent] Matrix updated: {len(products)} assets recorded (Cache Invalidated).")
+            print(f"   [OK] [Agent] Saved {len(products)} product(s). Cache invalidated.")
 
 
 async def _run_scrape_batch(urls: list, batch_type: str) -> int:
@@ -685,43 +691,90 @@ async def _send_alert_notification(
     product: Product,
     current_price: int,
     db: AsyncSession,
-):
-    """Send alert notification and log the event."""
+) -> None:
+    """
+    Send price-drop alert notification via all channels in alert.notify_via.
+
+    Supported channels:
+      - "email"    → Resend transactional email (always attempted if user has email)
+      - "telegram" → Personal Telegram DM (only if user.telegram_chat_id is set)
+
+    Each channel is logged as a separate AlertEvent row for analytics.
+    The alert.last_triggered timestamp is updated once, regardless of channel count.
+    """
     from app.services.mailer import mailer
-    
-    # Check if we have an email to send to
-    to_email = alert.user.email if alert.user and alert.user.email else None
-    if not to_email:
-        print(f"   ⚠️ No email found for alert {alert.id}. Skipping.")
-        return
 
-    # Log the event
-    event = AlertEvent(
-        alert_id=alert.id,
-        price_at_trigger=current_price,
-        channel="email",
-        success=False,  # default to False until sent
-    )
-    db.add(event)
+    user = alert.user
+    channels = alert.notify_via or ["email"]
+    current_price_bdt = current_price / 100.0
+    target_price_bdt  = alert.target_price / 100.0
 
-    # Update alert
+    # Mark alert as triggered (once, before any sends)
     alert.last_triggered = datetime.utcnow()
 
-    # Send email via Mailer Service
-    success = mailer.send_price_drop_email(
-        to_email=to_email,
-        product_title=product.title,
-        product_url=product.url,
-        current_price=current_price / 100.0,
-        target_price=alert.target_price / 100.0,
-        image_url=product.image_url
-    )
-    
-    if success:
-        event.success = True
-        print(f"   📧 Alert email sent to {to_email} for {product.title[:40]}...")
-    else:
-        print(f"   ❌ Alert email failed for {to_email}")
+    # ── Email channel ──────────────────────────────────────────
+    if "email" in channels:
+        to_email = user.email if user else None
+        if not to_email:
+            print(f"   [WARN] No email for alert {alert.id} -- skipping email channel.")
+        else:
+            email_event = AlertEvent(
+                alert_id=alert.id,
+                price_at_trigger=current_price,
+                channel="email",
+                success=False,
+            )
+            db.add(email_event)
+
+            email_ok = mailer.send_price_drop_email(
+                to_email=to_email,
+                product_title=product.title,
+                product_url=product.url,
+                current_price=current_price_bdt,
+                target_price=target_price_bdt,
+                image_url=product.image_url,
+            )
+            if email_ok:
+                email_event.success = True
+                print(f"   [OK] Alert email -> {to_email} for '{product.title[:40]}'")
+            else:
+                print(f"   [ERROR] Alert email failed -> {to_email}")
+
+    # ── Telegram channel ───────────────────────────────────────
+    if "telegram" in channels:
+        tg_chat_id = getattr(user, "telegram_chat_id", None) if user else None
+        if not tg_chat_id:
+            print(
+                f"   [WARN] Alert {alert.id}: 'telegram' in notify_via but user has no "
+                f"telegram_chat_id -- skipping. User can link via /alerts/telegram/link."
+            )
+        else:
+            tg_event = AlertEvent(
+                alert_id=alert.id,
+                price_at_trigger=current_price,
+                channel="telegram",
+                success=False,
+            )
+            db.add(tg_event)
+
+            telegram = get_telegram_service()
+            tg_ok = await telegram.send_price_drop_alert(
+                user_chat_id=tg_chat_id,
+                product_title=product.title,
+                product_url=product.url,
+                platform=product.platform,
+                current_price=current_price_bdt,
+                target_price=target_price_bdt,
+                image_url=product.image_url,
+            )
+            if tg_ok:
+                tg_event.success = True
+                print(
+                    f"   [OK] Telegram DM -> chat_id={tg_chat_id} "
+                    f"for '{product.title[:40]}'"
+                )
+            else:
+                print(f"   [ERROR] Telegram DM failed -> chat_id={tg_chat_id}")
 
 
 # ── Coupon Refresh Task ───────────────────────────────────────
@@ -731,7 +784,7 @@ async def refresh_platform_coupons():
     Fetch fresh platform-wide Daraz coupons every 2 hours.
     Also scrapes coupons from recently-updated product pages.
     """
-    print(f"🏷️  [{datetime.now()}] Starting coupon refresh...")
+    print(f"[COUPON] [{datetime.now()}] Starting coupon refresh...")
     try:
         import httpx
         from app.services.coupons import fetch_platform_coupons, upsert_coupons
@@ -742,18 +795,18 @@ async def refresh_platform_coupons():
         if coupons:
             async with async_session_factory() as db:
                 count = await upsert_coupons(coupons, db)
-                print(f"   ✅ Upserted {count} platform coupon(s).")
+                print(f"   [OK] Upserted {count} platform coupon(s).")
         else:
-            print("   ℹ️  No platform coupons found this cycle.")
+            print("   [INFO] No platform coupons found this cycle.")
 
     except Exception as e:
-        print(f"   ❌ Coupon refresh failed: {e}")
+        print(f"   [ERROR] Coupon refresh failed: {e}")
         logger.exception("Coupon refresh failed")
 # ── Expansion Tasks (Phase 4) ───────────────────────────────
 
 async def backfill_product_history(product_id: UUID):
     """Background task to backfill historical data for a product."""
-    print(f"⏳ [{datetime.now()}] Starting background backfill for {product_id}")
+    print(f"[BACKFILL] [{datetime.now()}] Starting background backfill for {product_id}")
     try:
         async with WaybackBackfiller() as filler:
             await filler.backfill_product(product_id)
@@ -763,22 +816,21 @@ async def backfill_product_history(product_id: UUID):
 
 async def harvest_new_products():
     """Daily discovery of new products from Daraz sitemaps."""
-    print(f"🚜 [{datetime.now()}] Starting sitemap harvesting...")
+    print(f"[HARVEST] [{datetime.now()}] Starting sitemap harvesting...")
     try:
         harvester = SitemapHarvester()
         async with harvester:
             await harvester.harvest_all()
-        print(f"✅ Sitemap harvesting complete.")
+        print("[OK] Sitemap harvesting complete.")
     except Exception as e:
         logger.error(f"Sitemap harvesting failed: {e}")
         logger.exception("Harvester exception")
 
 
 async def cleanup_snapshots():
-    """Delete old debug snapshots and raw HTML from database (PRD §9)."""
-    print(f"🧹 [{datetime.now()}] Starting snapshot cleanup...")
+    """Delete old debug snapshots and raw HTML from database (PRD section 9)."""
+    print(f"[CLEANUP] [{datetime.now()}] Starting snapshot cleanup...")
     try:
-        # 1. Cleanup local file snapshots
         snapshot_dir = os.path.join(os.getcwd(), "debug_snapshots")
         if os.path.exists(snapshot_dir):
             now = time.time()
@@ -788,12 +840,9 @@ async def cleanup_snapshots():
                 if os.stat(f_path).st_mtime < now - (48 * 3600):
                     os.remove(f_path)
                     deleted_files += 1
-            print(f"   🗑️ Deleted {deleted_files} local HTML snapshots.")
+            print(f"   [OK] Deleted {deleted_files} local HTML snapshots.")
 
-        # 2. Cleanup raw HTML in database if we ever store it there
-        # (For now we only store locally, but this is a good placeholder)
-        
-        print(f"✅ Snapshot cleanup complete.")
+        print("[OK] Snapshot cleanup complete.")
     except Exception as e:
         logger.error(f"Snapshot cleanup failed: {e}")
 
@@ -806,17 +855,14 @@ async def run_continuous_backfill(batch_size: int = 50):
     2. Products never backfilled
     3. Products with oldest backfill dates
     """
-    print(f"⏳ [{datetime.now()}] Starting continuous backfill (3-month target)...")
+    print(f"[BACKFILL] [{datetime.now()}] Starting continuous backfill (3-month target)...")
     try:
         async with async_session_factory() as db:
-            # Complexity: Priority join
-            # Products with active alerts first, then those never backfilled
             query = (
                 select(Product)
                 .outerjoin(Alert, and_(Alert.product_id == Product.id, Alert.is_active == True))
                 .where(Product.is_active == True)
                 .order_by(
-                    # NULLS FIRST puts products with alerts at top
                     func.count(Alert.id).desc(),
                     Product.last_backfilled_at.asc().nullsfirst()
                 )
@@ -831,15 +877,14 @@ async def run_continuous_backfill(batch_size: int = 50):
             print("   No products found requiring backfill.")
             return
 
-        print(f"   🎯 Processing {len(products)} products in this batch...")
+        print(f"   [INFO] Processing {len(products)} products in this batch...")
         from app.scraper.wayback import WaybackBackfiller
         async with WaybackBackfiller() as filler:
             for p in products:
                 await filler.backfill_product(p.id)
-                # Polite delay between products to avoid archive.org blocks
                 await asyncio.sleep(2)
 
-        print(f"✅ Continuous backfill batch complete.")
+        print("[OK] Continuous backfill batch complete.")
     except Exception as e:
         logger.error(f"Continuous backfill failed: {e}")
         logger.exception("Backfill exception")

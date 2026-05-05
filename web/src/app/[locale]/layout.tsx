@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Outfit, Inter, JetBrains_Mono } from "next/font/google";
 import Link from "next/link";
 import "../globals.css";
+import { Activity, Flame, Zap, ShoppingCart } from "lucide-react";
 
 const outfit = Outfit({ 
   subsets: ["latin"], 
@@ -55,18 +56,18 @@ export default async function RootLayout({
         <header className="fixed top-6 left-1/2 -translate-x-1/2 w-[90%] max-w-5xl z-50 rounded-2xl bg-white/3 backdrop-blur-xl border border-white/8 shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-300 hover:border-white/15">
           <div className="mx-auto px-6 h-16 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-3 group">
-               <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center border border-indigo-500/20 group-hover:bg-indigo-500/20 group-hover:scale-110 transition-all duration-500">
-                  <span className="text-xl">🐟</span>
+               <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center border border-indigo-500/20 group-hover:bg-indigo-500/20 group-hover:scale-110 transition-all duration-500 text-indigo-400">
+                  <Activity size={24} />
                </div>
                <span className="text-2xl font-black font-outfit tracking-tighter bg-gradient-to-r from-white via-white to-indigo-400 bg-clip-text text-transparent">DamKoi</span>
             </Link>
             <nav className="hidden md:flex items-center gap-8 text-[11px] font-bold uppercase tracking-[0.2em] text-white/40">
               <Link href={`/${locale}/`} className="hover:text-indigo-400 transition-colors">Home</Link>
-              <Link href={`/${locale}/deals`} className="hover:text-indigo-400 transition-colors">🔥 Deals</Link>
+              <Link href={`/${locale}/deals`} className="hover:text-indigo-400 transition-colors flex items-center gap-1"><Flame size={14} className="text-indigo-500"/> Deals</Link>
               <Link href={`/${locale}/dashboard`} className="hover:text-indigo-400 transition-colors">Dashboard</Link>
               <Link href={`/${locale}/alerts`} className="hover:text-indigo-400 transition-colors">My Alerts</Link>
               <Link href={`/${locale}/premium`} className="text-yellow-400 hover:text-yellow-300 transition-colors flex items-center gap-1">
-                <span className="text-sm">⚡</span> Premium
+                <Zap size={14} /> Premium
               </Link>
               <div className="w-px h-4 bg-white/10" />
               <div className="flex bg-white/5 rounded-full p-1 border border-white/10">
@@ -96,7 +97,7 @@ export default async function RootLayout({
           <div className="container mx-auto px-4">
             <div className="flex flex-col md:flex-row justify-between items-center gap-6">
               <div className="flex items-center gap-2">
-                <span className="text-xl">🛒</span>
+                <ShoppingCart size={24} className="text-white/80" />
                 <span className="font-black font-outfit text-white tracking-tight">DamKoi</span>
                 <span className="text-white/20 text-[10px] uppercase tracking-widest ml-4 font-bold border-l border-white/10 pl-4">Bangladesh Shopping Intelligence</span>
               </div>

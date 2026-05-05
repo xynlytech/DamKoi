@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Clock, Info, ArrowRight, TrendingDown, ShieldAlert, Bell, BarChart3 } from "lucide-react";
+import { Search, Clock, Info, ArrowRight, TrendingDown, ShieldAlert, Bell, BarChart3, Flame } from "lucide-react";
 import Link from "next/link";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
@@ -145,7 +145,7 @@ export default function HeroSection() {
 
       <div className="mt-6 flex items-center gap-6">
         <Link href="/deals" className="text-sm text-white/30 hover:text-indigo-400 transition-colors flex items-center gap-1">
-          🔥 Browse top deals <ArrowRight size={14} />
+          <Flame size={14} className="text-indigo-500" /> Browse top deals <ArrowRight size={14} />
         </Link>
         <Link href="/dashboard" className="text-sm text-white/30 hover:text-indigo-400 transition-colors flex items-center gap-1">
           My tracked products <ArrowRight size={14} />

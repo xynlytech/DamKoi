@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   Bell, Mail, Trash2, PauseCircle, PlayCircle,
   Plus, ArrowUpRight, AlertCircle, Loader2, CheckCircle2,
+  Mailbox, ShoppingCart, BellOff
 } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
@@ -56,7 +57,9 @@ function EmailGate({ onSubmit }: { onSubmit: (email: string) => void }) {
 
   return (
     <div className="glass-card rounded-2xl p-8 text-center max-w-sm mx-auto">
-      <div className="text-5xl mb-5">📭</div>
+      <div className="flex justify-center mb-5 text-indigo-400">
+        <Mailbox size={48} strokeWidth={1.5} />
+      </div>
       <h2 className="text-xl font-black font-outfit mb-2">Find your alerts</h2>
       <p className="text-white/40 text-sm mb-7 leading-relaxed">
         Enter the email you used when setting up alerts. No password needed.
@@ -140,7 +143,7 @@ function AlertCard({
       <div className="w-14 h-14 rounded-xl bg-white/5 flex-shrink-0 overflow-hidden">
         {alert.product_image
           ? <img src={alert.product_image} alt="" className="w-full h-full object-contain p-1" />
-          : <div className="w-full h-full flex items-center justify-center text-2xl">🛒</div>
+          : <div className="w-full h-full flex items-center justify-center text-white/20"><ShoppingCart size={24} /></div>
         }
       </div>
 
@@ -357,7 +360,9 @@ export default function AlertsPage() {
           {/* Alert list */}
           {alerts.length === 0 ? (
             <div className="text-center py-20">
-              <p className="text-5xl mb-5">🔕</p>
+              <div className="flex justify-center mb-5 text-white/20">
+                <BellOff size={48} strokeWidth={1.5} />
+              </div>
               <h2 className="text-xl font-black font-outfit mb-3">No alerts yet</h2>
               <p className="text-white/40 text-sm mb-7">
                 Go to any product page and set a target price to get started.
@@ -390,13 +395,13 @@ export default function AlertsPage() {
             </h3>
             <div className="space-y-2.5">
               {[
-                { icon: "1️⃣", text: "Set a target price on any product page" },
-                { icon: "2️⃣", text: "We check prices every 15 minutes" },
-                { icon: "3️⃣", text: "Email sent the instant price drops below your target" },
-                { icon: "4️⃣", text: `Free: ${FREE_LIMIT} active alerts · Premium: unlimited` },
+                { icon: "01", text: "Set a target price on any product page" },
+                { icon: "02", text: "We check prices every 15 minutes" },
+                { icon: "03", text: "Email sent the instant price drops below your target" },
+                { icon: "04", text: `Free: ${FREE_LIMIT} active alerts · Premium: unlimited` },
               ].map((s, i) => (
                 <div key={i} className="flex items-center gap-3 text-sm text-white/50">
-                  <span>{s.icon}</span>
+                  <span className="w-6 h-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-mono text-white/80 shrink-0">{s.icon}</span>
                   <span>{s.text}</span>
                 </div>
               ))}

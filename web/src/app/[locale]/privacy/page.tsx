@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Link2, Mail, BarChart3, Ban, Search, Globe, Bell, Send, Database } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Privacy Policy | DamKoi",
@@ -24,17 +25,17 @@ export default function PrivacyPage() {
 
         <Section title="What We Collect">
           <ul className="space-y-3 list-none">
-            <Li icon="🔗">
+            <Li icon={<Link2 size={18} className="text-indigo-400" />}>
               <strong>Product URLs:</strong> When you visit a Daraz product page with the extension active,
               or submit a URL on our website, we store that URL and its product ID to track price history.
               We do <em>not</em> collect any other URLs you visit.
             </Li>
-            <Li icon="📧">
+            <Li icon={<Mail size={18} className="text-emerald-400" />}>
               <strong>Email address:</strong> Only if you voluntarily set a price alert. Used solely
               to send you a single notification email when your target price is reached. We do not send
               marketing emails.
             </Li>
-            <Li icon="📊">
+            <Li icon={<BarChart3 size={18} className="text-blue-400" />}>
               <strong>Price data:</strong> We periodically scrape publicly available product prices
               from Daraz.com.bd to build price history. This data is not personally identifiable.
             </Li>
@@ -43,25 +44,25 @@ export default function PrivacyPage() {
 
         <Section title="What We Do NOT Collect">
           <ul className="space-y-3 list-none">
-            <Li icon="🚫">We do <strong>not</strong> track your browsing history beyond Daraz product pages.</Li>
-            <Li icon="🚫">We do <strong>not</strong> collect passwords, payment information, or personal details.</Li>
-            <Li icon="🚫">We do <strong>not</strong> require account registration to use the extension.</Li>
-            <Li icon="🚫">We do <strong>not</strong> sell, rent, or share your data with third parties for advertising.</Li>
-            <Li icon="🚫">We do <strong>not</strong> use cookies for tracking or analytics.</Li>
+            <Li icon={<Ban size={18} className="text-rose-400" />}>We do <strong>not</strong> track your browsing history beyond Daraz product pages.</Li>
+            <Li icon={<Ban size={18} className="text-rose-400" />}>We do <strong>not</strong> collect passwords, payment information, or personal details.</Li>
+            <Li icon={<Ban size={18} className="text-rose-400" />}>We do <strong>not</strong> require account registration to use the extension.</Li>
+            <Li icon={<Ban size={18} className="text-rose-400" />}>We do <strong>not</strong> sell, rent, or share your data with third parties for advertising.</Li>
+            <Li icon={<Ban size={18} className="text-rose-400" />}>We do <strong>not</strong> use cookies for tracking or analytics.</Li>
           </ul>
         </Section>
 
         <Section title="Chrome Extension Permissions">
           <ul className="space-y-3 list-none">
-            <Li icon="🔍">
+            <Li icon={<Search size={18} className="text-amber-400" />}>
               <strong>activeTab / tabs:</strong> Used only to read the current tab URL when you open the popup,
               to determine if you are on a Daraz product page.
             </Li>
-            <Li icon="🌐">
+            <Li icon={<Globe size={18} className="text-blue-400" />}>
               <strong>host_permissions (daraz.com.bd, api.damkoi.com):</strong> Allows the extension to
               fetch price data from our API and to inject the price history panel on Daraz product pages.
             </Li>
-            <Li icon="🔔">
+            <Li icon={<Bell size={18} className="text-indigo-400" />}>
               <strong>alarms / storage:</strong> Used locally to cache recent verdicts and schedule
               background badge updates. No data leaves your device via these permissions.
             </Li>
@@ -79,14 +80,14 @@ export default function PrivacyPage() {
 
         <Section title="Third-Party Services">
           <ul className="space-y-3 list-none">
-            <Li icon="📬">
+            <Li icon={<Send size={18} className="text-emerald-400" />}>
               <strong>Resend:</strong> Used to send price alert emails. Your email is transmitted to Resend
               solely for this purpose and is subject to{" "}
               <a href="https://resend.com/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                 Resend&apos;s Privacy Policy
               </a>.
             </Li>
-            <Li icon="🗄️">
+            <Li icon={<Database size={18} className="text-blue-400" />}>
               <strong>Supabase:</strong> Our database provider. Data is stored in servers compliant with
               standard cloud security practices. See{" "}
               <a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
@@ -133,10 +134,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Li({ icon, children }: { icon: string; children: React.ReactNode }) {
+function Li({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <li className="flex gap-3">
-      <span className="text-base shrink-0 mt-0.5">{icon}</span>
+      <span className="shrink-0 mt-0.5">{icon}</span>
       <span>{children}</span>
     </li>
   );

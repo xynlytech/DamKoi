@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DamKoi — Telegram Deals Bot
+DamKoi -- Telegram Deals Bot
 
 Posts top deals to a Telegram channel every 6 hours.
 Deduplicates using a local JSON file so the same product
@@ -44,7 +44,7 @@ if _env_file.exists():
                 k, _, v = line.partition("=")
                 os.environ.setdefault(k.strip(), v.strip())
 
-# ── Config ────────────────────────────────────────────────────
+# -- Config ------------------------------------------------------------
 
 BOT_TOKEN   = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 CHANNEL_ID  = os.environ.get("TELEGRAM_CHAT_ID", "")   # matches .env key
@@ -58,7 +58,7 @@ MAX_POSTS_PER_RUN  = 5    # Max deals posted per run
 DASHBOARD_BASE = os.environ.get("DAMKOI_DASHBOARD_BASE", "https://damkoi.com")
 
 
-# ── Dedup helpers ─────────────────────────────────────────────
+# -- Dedup helpers -----------------------------------------------------
 
 def load_sent() -> dict:
     if SENT_FILE.exists():
@@ -87,32 +87,41 @@ def mark_sent(sent: dict, product_id: str) -> None:
     sent[product_id] = datetime.now(timezone.utc).isoformat()
 
 
-# ── Formatting ────────────────────────────────────────────────
+# -- Formatting --------------------------------------------------------
 
-VERDICT_EMOJI = {
-    "BEST_PRICE":        "🏆",
-    "GOOD_DEAL":         "✅",
-    "FAIR_PRICE":        "🟡",
-    "FAKE_DISCOUNT":     "❌",
-    "INSUFFICIENT_DATA": "📊",
+VERDICT_LABEL = {
+    "BEST_PRICE":        "BEST PRICE",
+    "GOOD_DEAL":         "GOOD DEAL",
+    "FAIR_PRICE":        "FAIR PRICE",
+    "FAKE_DISCOUNT":     "FAKE DISCOUNT",
+    "INSUFFICIENT_DATA": "TRACKING",
 }
+
+SCORE_BAR_FILLED  = "|"
+SCORE_BAR_EMPTY   = "."
 
 
 def format_bdt(paisa: Optional[int]) -> str:
     if not paisa:
         return "N/A"
-    return f"৳{paisa / 100:,.0f}"
+    return f"BDT {paisa / 100:,.0f}"
+
+
+def _build_score_bar(score: int) -> str:
+    """Compact ASCII score bar: e.g. score 7 -> '|||||||...' (10 chars)"""
+    filled = min(score, 10)
+    return SCORE_BAR_FILLED * filled + SCORE_BAR_EMPTY * (10 - filled)
 
 
 def format_deal_message(deal: dict) -> str:
-    product    = deal["product"]
-    score      = deal["deal_score"]
-    label      = deal["label"]
-    explanation= deal["explanation"]
+    product     = deal["product"]
+    score       = deal["deal_score"]
+    label       = deal["label"]
+    explanation = deal["explanation"]
     avg_30d: Optional[int] = deal.get("avg_30d")
 
-    emoji = VERDICT_EMOJI.get(label, "🛍️")
-    score_bar = "🟩" * min(score, 10) + "⬜" * (10 - min(score, 10))
+    verdict_text = VERDICT_LABEL.get(label, label)
+    score_bar    = _build_score_bar(score)
 
     current_fmt = format_bdt(product.get("current_price"))
     avg_fmt     = format_bdt(avg_30d) if avg_30d else ""
@@ -122,36 +131,36 @@ def format_deal_message(deal: dict) -> str:
         savings = avg_30d - product["current_price"]
         if savings > 0:
             pct = round(savings / avg_30d * 100)
-            savings_line = f"\n💰 *Save {format_bdt(savings)}* ({pct}% below 30-day avg)"
+            savings_line = f"\nSave {format_bdt(savings)} ({pct}% below 30-day avg)"
 
-    title = product["title"][:80] + ("…" if len(product["title"]) > 80 else "")
+    title = product["title"][:80] + ("..." if len(product["title"]) > 80 else "")
     product_url = f"{DASHBOARD_BASE}/product/{product['id']}"
     daraz_url   = product.get("url", "")
 
     msg = (
-        f"{emoji} *{title}*\n\n"
-        f"🏷️ *{current_fmt}*"
-        f"{' — was ' + avg_fmt if avg_fmt else ''}"
+        f"[{verdict_text}] *{title}*\n\n"
+        f"*{current_fmt}*"
+        f"{' -- was ' + avg_fmt if avg_fmt else ''}"
         f"{savings_line}\n\n"
-        f"📊 Deal Score: {score}/10\n"
+        f"Deal Score: {score}/10\n"
         f"{score_bar}\n\n"
         f"_{explanation}_\n\n"
-        f"📈 [Full Price History]({product_url})\n"
-        f"🛒 [View on Daraz]({daraz_url})"
+        f"[Full Price History]({product_url})\n"
+        f"[View on Daraz]({daraz_url})"
     )
     return msg
 
 
-# ── Telegram API ──────────────────────────────────────────────
+# -- Telegram API ------------------------------------------------------
 
 async def send_telegram_message(client: httpx.AsyncClient, text: str, dry_run: bool) -> bool:
     if dry_run:
-        print("\n" + "─" * 60)
+        print("\n" + "-" * 60)
         print(text)
         return True
 
     if not BOT_TOKEN or not CHANNEL_ID:
-        print("❌ TELEGRAM_BOT_TOKEN or TELEGRAM_CHANNEL_ID not set.", file=sys.stderr)
+        print("[ERROR] TELEGRAM_BOT_TOKEN or TELEGRAM_CHANNEL_ID not set.", file=sys.stderr)
         return False
 
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
@@ -165,14 +174,15 @@ async def send_telegram_message(client: httpx.AsyncClient, text: str, dry_run: b
         resp.raise_for_status()
         return True
     except Exception as e:
-        print(f"❌ Telegram send failed: {e}", file=sys.stderr)
+        print(f"[ERROR] Telegram send failed: {e}", file=sys.stderr)
         return False
 
 
-# ── Main ──────────────────────────────────────────────────────
+# -- Main --------------------------------------------------------------
 
 async def run(dry_run: bool = False) -> None:
-    print(f"🚀 DamKoi Deals Bot — {'DRY RUN' if dry_run else 'LIVE'} — {datetime.now()}")
+    mode = "DRY RUN" if dry_run else "LIVE"
+    print(f"[START] DamKoi Deals Bot -- {mode} -- {datetime.now()}")
 
     # Load dedup state
     sent = load_sent()
@@ -189,10 +199,10 @@ async def run(dry_run: bool = False) -> None:
             resp.raise_for_status()
             all_deals: List[dict] = resp.json()
         except Exception as e:
-            print(f"❌ Failed to fetch deals: {e}", file=sys.stderr)
+            print(f"[ERROR] Failed to fetch deals: {e}", file=sys.stderr)
             return
 
-        print(f"📦 Got {len(all_deals)} deals from API")
+        print(f"[INFO] Got {len(all_deals)} deals from API")
 
         # Filter already-sent
         new_deals = [
@@ -201,24 +211,24 @@ async def run(dry_run: bool = False) -> None:
         ][:MAX_POSTS_PER_RUN]
 
         if not new_deals:
-            print("ℹ️  No new deals to post (all already sent within dedup window).")
+            print("[INFO] No new deals to post (all already sent within dedup window).")
             return
 
-        print(f"📮 Posting {len(new_deals)} new deals…")
+        print(f"[INFO] Posting {len(new_deals)} new deals...")
 
         for deal in new_deals:
             msg = format_deal_message(deal)
             ok  = await send_telegram_message(client, msg, dry_run=dry_run)
             if ok:
                 mark_sent(sent, deal["product"]["id"])
-                print(f"   ✅ Posted: {deal['product']['title'][:60]}")
+                print(f"  [OK] Posted: {deal['product']['title'][:60]}")
             await asyncio.sleep(1.5)  # Telegram rate limit
 
     # Persist dedup state
     if not dry_run:
         save_sent(sent)
 
-    print(f"\n✅ Done. Posted {len(new_deals)} deals.")
+    print(f"\n[DONE] Posted {len(new_deals)} deals.")
 
 
 if __name__ == "__main__":
