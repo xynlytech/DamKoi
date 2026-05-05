@@ -5,6 +5,7 @@ Protected routes for internal operations.
 MVP Security: Depends on a static ADMIN_TOKEN environment variable.
 """
 
+from datetime import datetime, timezone, timedelta
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy import select, func, and_
@@ -16,6 +17,7 @@ from app.database import get_db
 from app.config import settings
 from app.models.product import Product
 from app.models.match_group import MatchGroup
+from app.models.price_snapshot import PriceSnapshot
 
 router = APIRouter()
 
@@ -85,6 +87,76 @@ async def merge_products(group_id: str, payload: MergeRequest, db: AsyncSession 
 
     await db.commit()
     return {"message": f"Successfully merged {merged} products into group."}
+
+
+@router.get("/scrapers/health", dependencies=[Depends(verify_admin_token)])
+async def get_scraper_health(db: AsyncSession = Depends(get_db)):
+    """Per-platform scraper health: last scrape time, product count, today's snapshot count."""
+    platforms = ["daraz", "cartup", "rokomari", "pickaboo", "chaldal", "othoba"]
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+
+    health = []
+    for platform in platforms:
+        # Total products on this platform
+        total_res = await db.execute(
+            select(func.count(Product.id)).where(
+                Product.platform == platform, Product.is_active == True
+            )
+        )
+        total_products = total_res.scalar() or 0
+
+        # Most recent scrape time (MAX last_scraped_at)
+        last_res = await db.execute(
+            select(func.max(Product.last_scraped_at)).where(Product.platform == platform)
+        )
+        last_scraped_at = last_res.scalar()
+
+        # Snapshots recorded today
+        today_res = await db.execute(
+            select(func.count(PriceSnapshot.id))
+            .join(Product, PriceSnapshot.product_id == Product.id)
+            .where(
+                Product.platform == platform,
+                PriceSnapshot.scraped_at >= today_start,
+            )
+        )
+        snaps_today = today_res.scalar() or 0
+
+        # Products scraped in the last 6h (healthy = recently active)
+        recent_cutoff = datetime.now(timezone.utc) - timedelta(hours=6)
+        recent_res = await db.execute(
+            select(func.count(Product.id)).where(
+                Product.platform == platform,
+                Product.last_scraped_at >= recent_cutoff,
+            )
+        )
+        recently_scraped = recent_res.scalar() or 0
+
+        hours_since_last = None
+        status = "unknown"
+        if last_scraped_at:
+            if last_scraped_at.tzinfo is None:
+                last_scraped_at = last_scraped_at.replace(tzinfo=timezone.utc)
+            delta = datetime.now(timezone.utc) - last_scraped_at
+            hours_since_last = round(delta.total_seconds() / 3600, 1)
+            if hours_since_last < 6:
+                status = "healthy"
+            elif hours_since_last < 24:
+                status = "stale"
+            else:
+                status = "dead"
+
+        health.append({
+            "platform": platform,
+            "status": status,
+            "total_products": total_products,
+            "recently_scraped_6h": recently_scraped,
+            "snaps_today": snaps_today,
+            "last_scraped_at": last_scraped_at.isoformat() if last_scraped_at else None,
+            "hours_since_last_scrape": hours_since_last,
+        })
+
+    return health
 
 
 @router.post("/match-groups/split", dependencies=[Depends(verify_admin_token)])

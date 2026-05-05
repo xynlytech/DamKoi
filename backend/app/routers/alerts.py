@@ -399,3 +399,48 @@ async def delete_alert_by_email(
         raise HTTPException(status_code=404, detail="Alert not found.")
 
     await db.delete(alert)
+
+
+@router.get("/export.csv")
+async def export_alerts_csv(
+    email: str = Query(..., description="Email address to export alerts for"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Export all alerts for an email address as a CSV file."""
+    import csv, io
+    from fastapi.responses import StreamingResponse
+    from app.models.user import User
+
+    user_result = await db.execute(select(User).where(User.email == email))
+    user = user_result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="No account found for this email.")
+
+    alerts_result = await db.execute(
+        select(Alert, Product)
+        .join(Product, Alert.product_id == Product.id)
+        .where(Alert.user_id == user.id)
+        .order_by(Alert.created_at.desc())
+    )
+    rows = alerts_result.all()
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["product_title", "platform", "product_url", "target_price_bdt", "is_active", "created_at", "last_triggered"])
+    for alert, product in rows:
+        writer.writerow([
+            product.title,
+            product.platform,
+            product.url,
+            round(alert.target_price / 100, 2),
+            "yes" if alert.is_active else "no",
+            alert.created_at.strftime("%Y-%m-%d %H:%M:%S") if alert.created_at else "",
+            alert.last_triggered.strftime("%Y-%m-%d %H:%M:%S") if alert.last_triggered else "never",
+        ])
+
+    buf.seek(0)
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="damkoi_alerts.csv"'},
+    )

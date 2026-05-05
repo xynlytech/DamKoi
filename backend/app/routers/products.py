@@ -10,7 +10,10 @@ from typing import Optional
 from uuid import UUID
 
 from app.limiter import limiter
+import csv
+import io
 from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -204,19 +207,20 @@ class DealItem(BaseModel):
 
 @router.get("/deals", response_model=list[DealItem])
 async def get_deals(
+    platform: Optional[str] = Query(None, description="Filter by platform"),
     category: Optional[str] = Query(None, description="Filter by category"),
     min_score: int = Query(8, ge=1, le=10, description="Minimum deal score"),
     limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0, description="Pagination offset"),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Deals feed — returns products where deal_score >= min_score.
-    Used for the Telegram auto-post channel and web deals page.
+    Supports platform/category filtering and offset-based pagination.
     Filters to products with >= 5 data points (statistically significant only).
     """
     from sqlalchemy import func as sqlfunc
 
-    # Get products that have enough data points
     subq = (
         select(
             PriceSnapshot.product_id,
@@ -228,21 +232,25 @@ async def get_deals(
     )
 
     filters = [Product.is_active == True, subq.c.product_id == Product.id]
+    if platform:
+        filters.append(Product.platform == platform)
     if category:
         filters.append(Product.category.ilike(f"%{category}%"))
 
+    # Fetch enough candidates to satisfy offset + limit after score filtering
+    fetch_limit = (offset + limit) * 4
     result = await db.execute(
         select(Product)
         .join(subq, subq.c.product_id == Product.id)
         .where(and_(*filters))
-        .limit(limit * 3)  # fetch extra to filter by score after calculation
+        .order_by(Product.last_scraped_at.desc())
+        .limit(fetch_limit)
     )
     products = result.scalars().all()
 
     deals: list[DealItem] = []
 
     for product in products:
-        # Get all snapshots for verdict calculation
         snaps_result = await db.execute(
             select(PriceSnapshot)
             .where(PriceSnapshot.product_id == product.id)
@@ -271,12 +279,9 @@ async def get_deals(
                     avg_30d=verdict.avg_30d,
                 )
             )
-        if len(deals) >= limit:
-            break
 
-    # Sort by deal score descending
     deals.sort(key=lambda d: d.deal_score, reverse=True)
-    return deals
+    return deals[offset : offset + limit]
 
 
 def _build_product_response(product: Product, latest: Optional[PriceSnapshot]) -> ProductResponse:
@@ -573,6 +578,50 @@ async def get_price_history(
         highest_ever=max(prices) if prices else None,
         avg_30d=int(sum(prices) / len(prices)) if prices else None,
         current_price=prices[-1] if prices else None,
+    )
+
+
+@router.get("/{product_id}/price-history.csv")
+async def export_price_history_csv(
+    product_id: UUID,
+    days: int = Query(365, ge=1, le=1825),
+    db: AsyncSession = Depends(get_db),
+):
+    """Export full price history for a product as a CSV file."""
+    product_result = await db.execute(select(Product).where(Product.id == product_id))
+    product = product_result.scalar_one_or_none()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found.")
+
+    from datetime import timezone as tz
+    cutoff = datetime.now(tz.utc) - timedelta(days=days)
+    snaps_result = await db.execute(
+        select(PriceSnapshot)
+        .where(and_(PriceSnapshot.product_id == product_id, PriceSnapshot.scraped_at >= cutoff))
+        .order_by(PriceSnapshot.scraped_at.asc())
+    )
+    snapshots = snaps_result.scalars().all()
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["date", "price_bdt", "original_price_bdt", "discount_pct", "in_stock", "source"])
+    for s in snapshots:
+        writer.writerow([
+            s.scraped_at.strftime("%Y-%m-%d %H:%M:%S"),
+            round(s.price / 100, 2),
+            round(s.original_price / 100, 2) if s.original_price else "",
+            s.discount_pct or "",
+            "yes" if s.in_stock else "no",
+            getattr(s, "source", "live"),
+        ])
+
+    safe_title = "".join(c if c.isalnum() else "_" for c in product.title[:40])
+    filename = f"damkoi_{product.platform}_{safe_title}.csv"
+    buf.seek(0)
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 

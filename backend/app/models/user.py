@@ -23,6 +23,8 @@ class User(Base):
     auth_provider = Column(String(50), nullable=True)  # 'email', 'google', 'facebook'
     is_premium = Column(Boolean, default=False)
     premium_expires_at = Column(DateTime(timezone=True), nullable=True)
+    # Telegram DM channel: user links their chat_id via /alerts/telegram/link
+    telegram_chat_id = Column(String(64), nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
 
     # Relationships
