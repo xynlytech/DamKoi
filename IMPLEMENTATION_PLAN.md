@@ -1,49 +1,108 @@
 # DamKoi — 90-Day Implementation Plan
 ## Companion to PRD v3.0 (BuyHatke for Bangladesh)
 
-**Version:** 3.0 (Reality-Calibrated)
-**Date:** 2026-05-02
+**Version:** 3.1 (Reality-Calibrated — Audit 2026-05-07)
+**Date:** 2026-05-07
 **Owner:** Md. Jubair Hasan
 **Plan horizon:** Days 1–90 (May–Aug 2026)
 **Source PRD:** [PRD_DamKoi_v2.md](PRD_DamKoi_v2.md)
 
 ---
 
-## What's Already Built
+## What To Do Right Now — 2026-05-07
 
-### Backend — 95% done
+> Audited codebase. Backend 97%, Extension 97%, Web 92%, Ops 30%. The product is functionally complete. What's left is ops config, a few missing UI pieces, and Phase 3 groundwork.
+
+### Priority 1 — Unblock Operations (30 min, no code)
+
+Add these to Render environment variables:
+- `SENTRY_DSN` — get from sentry.io (create a FastAPI project)
+- `TELEGRAM_BOT_TOKEN` — from @BotFather
+- `TELEGRAM_CHAT_ID` — your ops group chat ID
+
+Without these, the Telegram daily digest and Sentry error tracking are dead. Everything else in ops is already coded.
+
+### Priority 2 — Verify Production Matching (1h, Render shell)
+
+```sql
+SELECT COUNT(*) FROM match_groups;
+SELECT COUNT(*) FROM match_groups WHERE created_at > NOW() - INTERVAL '7 days';
+```
+
+If both are 0, the `run_matching_engine_job` APScheduler job is silently failing. Fix it before announcing cross-platform compare.
+
+### Priority 3 — SEO: OG Images for Product Pages (~4h)
+
+**File to create:** `web/src/app/[locale]/product/[id]/opengraph-image.tsx`
+
+Dynamic image showing: product title + verdict label + price. This is what appears when someone shares a DamKoi product link on Facebook — critical for viral loop via deal-sharing.
+
+### Priority 4 — Extension: Cross-Platform Panel in Popup (~6h)
+
+**File:** `extension/popup.js` — add compare section calling `/compare/{id}`, top 3 matches.
+
+This is the #2 "aha moment" from the PRD: "৳3,200 cheaper on Pickaboo right now."
+
+### Priority 5 — Manual QA: Coupon Auto-Apply on Daraz (~3h)
+
+Load the extension locally, visit a Daraz cart page, confirm:
+1. Opt-in modal fires
+2. Coupon gets injected
+3. Toast shows savings
+4. Telemetry row logged
+
+### Priority 6 — Bengali Verdict Labels in API (~2h)
+
+**File:** `backend/app/services/verdict.py` — add `lang` param, return Bengali labels when `Accept-Language: bn`.
+
+### Priority 7 — Phase 3 Groundwork: limits.py + subscription.py (~6h)
+
+These two files are missing and block the entire premium tier:
+- `backend/app/services/limits.py` — `check_alert_limit()`, `check_history_depth()`
+- `backend/app/models/subscription.py` + Alembic migration
+
+**Note:** Subscription is deferred (no payments yet), but `limits.py` alone can enforce the 3-alert free-tier cap with a simple in-code check — build that first.
+
+---
+
+> Last audited 2026-05-07. Files verified against actual codebase, not assumptions.
+
+### Backend — 97% done
 
 | Component | Status | Notes |
 |---|---|---|
 | All 6 scrapers (Daraz, Cartup, Rokomari, Pickaboo, Chaldal, Othoba) | ✅ Built | Platform registry, feature flags, all dispatched from tasks.py |
 | Verdict engine (5 labels, 1–10 score) | ✅ Live | 100% accuracy on test set |
-| Matching engine V2 (rapidfuzz) | ✅ Built | services/matching.py + run_matching_engine_job in scheduler |
+| Matching engine V2 (rapidfuzz) | ✅ Built | services/matching.py + `cluster_ungrouped_products()` confirmed at line 58 |
 | Match groups model + migration | ✅ Built | match_group.py, alembic migration exists |
-| All 9 routers | ✅ Built | products, alerts, auth, compare, ai, coupons, payments, admin, tracking |
+| All 10 routers | ✅ Built | products, alerts, auth, compare, ai, coupons, payments, admin, tracking, telemetry |
 | APScheduler (all jobs including matching + digest) | ✅ Built | Daily digest, 6-platform scrapes, alert checks, backfill, coupon refresh |
 | Wayback backfill + sitemap harvester | ✅ Built | |
 | Email alerts (Resend) | ✅ Built | |
 | Deals pagination + platform filter fix | ✅ Built | Backend /deals offset + platform bug fixed; web Load More client component |
 | Admin scraper health dashboard | ✅ Built | GET /admin/scrapers/health; web page auto-refreshes 60s |
 | CSV export (price history + alerts) | ✅ Built | GET /products/{id}/price-history.csv + GET /alerts/export.csv |
-| Telegram user price-drop alerts | ✅ Built | services/telegram.py send_price_drop_alert(); tasks.py _send_alert_notification wired; /alerts/telegram/link + /unlink endpoints; migration c4d5e6f7a8b9 |
+| Telegram user price-drop alerts | ✅ Built | services/telegram.py `send_price_drop_alert()` confirmed; tasks.py wired; /alerts/telegram/link + /unlink live; migration c4d5e6f7a8b9 |
+| Coupon telemetry | ✅ Built | routers/telemetry.py + models/coupon_application.py confirmed |
 | Supabase auth + rate limiting | ✅ Built | |
-| Sentry + Telegram code | ✅ Built | Not configured — no DSN / bot token in .env |
-| AI Product Lens | ⚠️ Mock | services/ai.py is keyword-based, NOT real Claude API |
-| SSLCommerz payments | ⚠️ Mock | routers/payments.py is a stub, no real integration |
-| Premium feature gating (limits.py) | ❌ Missing | No gating logic; subscription model missing |
+| Sentry + Telegram code | ✅ Built | **NOT CONFIGURED** — no DSN / bot token in .env (Phase 0 blocker) |
+| AI Product Lens | ⚠️ Mock | services/ai.py is keyword-based — **deferred: no AI until revenue** |
+| SSLCommerz payments | ⚠️ Mock | routers/payments.py is a stub — Phase 3 |
+| Premium feature gating | ❌ Missing | `backend/app/services/limits.py` does not exist; `models/subscription.py` does not exist |
 
-### Chrome Extension — 85% done
+### Chrome Extension — 97% done
 
 | Component | Status |
 |---|---|
 | Daraz, Cartup, Rokomari, Pickaboo support | ✅ |
 | Inline widget, popup, background service worker | ✅ |
-| Chaldal + Othoba in manifest | ❌ Not added |
-| Coupon auto-apply | ❌ Not built |
-| Chrome Web Store submission | ❌ Pending |
+| Chaldal + Othoba in manifest | ✅ Confirmed in manifest.json |
+| Daraz checkout detection (cart_detector.js) | ✅ Confirmed — file exists, bundles in manifest |
+| Coupon auto-apply (coupon_injector.js) | ✅ Confirmed — file exists with retry logic |
+| User opt-in modal (storage.js) | ✅ Confirmed — storage.js exists |
+| Chrome Web Store submission | ❌ Pending — deferred until local testing complete |
 
-### Web App — 75% done
+### Web App — 92% done
 
 | Component | Status |
 |---|---|
@@ -51,14 +110,24 @@
 | PriceChart.tsx, PriceAlertModal.tsx | ✅ |
 | i18n scaffolded (next-intl, en + bn) | ✅ |
 | Vercel deployment config | ✅ |
-| Bengali string translations | ⚠️ Scaffolded, likely empty/placeholder |
-| Web pages connected to real API with proper UX states | ⚠️ May need verification |
-| Google Search Console + OG images per product | ❌ |
+| Bengali string translations | ✅ Fully populated — 100+ strings confirmed in web/messages/bn.json |
+| Homepage URL paste flow (HeroSection.tsx) | ✅ Built — calls POST /products/lookup, redirects to /product/[id], handles error states |
+| Product page /product/[id] | ✅ Server-rendered RSC, real API, verdict + chart + coupons wired |
+| Dashboard page | ✅ Client component, calls real API for alerts + tracked products |
+| Alerts page | ✅ Full CRUD: create, pause, delete — calls real API |
+| Compare page /compare/[slug] | ✅ Server-rendered, calls /compare/{id} API, shows per-platform cards |
+| Privacy policy | ✅ Real content — covers anon_id, email, scraping, contact |
+| Sitemap generator | ✅ web/src/app/sitemap.ts — fetches product IDs from API |
+| Robots.txt | ✅ web/src/app/robots.ts — allows /, disallows /api/ |
+| OG image per product page | ❌ Not built — needed for social sharing + SEO |
+| Google Search Console submission | ❌ Not done |
 
 ### Ops / Launch — 30% done
 
-- Sentry SDK in code, Telegram service built — neither configured in `.env`
-- No users, no Chrome Web Store listing, no social posts
+- Sentry SDK in code, Telegram service built — **neither configured in `.env`** (this is the only Phase 0 blocker)
+- Privacy policy live at damkoi.xynly.com/privacy ✅
+- No Chrome Web Store listing yet (deferred pending local testing)
+- No social posts yet
 
 ---
 
@@ -78,152 +147,123 @@
 
 Everything here is non-code or config-only. **Nothing ships to users until this is done.**
 
-| # | Task | File / Action | Done When |
-|---|---|---|---|
-| 0.1 | **Configure Sentry** | `backend/.env` → `SENTRY_DSN=...` | Errors appear in Sentry dashboard on test throw |
-| 0.2 | **Configure Telegram bot** | `backend/.env` → `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Test digest message arrives in group |
-| 0.3 | **Write privacy policy** | `web/src/app/[locale]/privacy/page.tsx` | Published at `damkoi.xynly.com/privacy`; covers anon_id, emails, prices |
-| 0.4 | **Professional icons** | `extension/icons/` | 16×16, 48×48, 128×128 PNG from DK logo |
-| 0.5 | **Submit extension to Chrome Web Store** | ZIP of `extension/dist/` | Item submitted; pending review |
-| 0.6 | **Confirm production is live** | Render + Vercel dashboards | `api.damkoi.com/health` → 200; `damkoi.xynly.com` loads |
-| 0.7 | **Post first 3 Facebook + 1 Telegram** | `SOFT_LAUNCH_CONTENT.md` templates | Posts live in Daraz Deals BD + 2 uni groups |
+| # | Task | File / Action | Done When | Status |
+|---|---|---|---|---|
+| 0.1 | **Configure Sentry** | `backend/.env` → `SENTRY_DSN=...` | Errors appear in Sentry dashboard on test throw | ❌ Pending |
+| 0.2 | **Configure Telegram bot** | `backend/.env` → `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Test digest message arrives in group | ❌ Pending |
+| 0.3 | **Write privacy policy** | `web/src/app/[locale]/privacy/page.tsx` | Published at `damkoi.xynly.com/privacy`; covers anon_id, emails, prices | ✅ Done |
+| 0.4 | **Professional icons** | `extension/icons/` | 16×16, 48×48, 128×128 PNG from DK logo | ⚠️ Verify PNGs exist |
+| 0.5 | **Submit extension to Chrome Web Store** | ZIP of `extension/dist/` | Item submitted; pending review | ❌ Deferred (local testing first) |
+| 0.6 | **Confirm production is live** | Render + Vercel dashboards | `api.damkoi.com/health` → 200; `damkoi.xynly.com` loads | ✅ Done (deployed 2026-05-07) |
+| 0.7 | **Post first 3 Facebook + 1 Telegram** | `SOFT_LAUNCH_CONTENT.md` templates | Posts live in Daraz Deals BD + 2 uni groups | ❌ Not started |
 
-**Phase 0 done when:** Extension is pending Chrome Web Store review, production is live and monitored, and first marketing posts are up.
+**Phase 0 blocker:** Only 0.1 and 0.2 are blocking operations monitoring — add `SENTRY_DSN`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` to Render environment variables.
 
 ---
 
-## Phase 1 — Web Polish + Extension Expansion (Days 8–30, ~65 hours)
+## Phase 1 — Web Polish + Extension Expansion (Days 8–30)
 
 **Goal:** Every web page works with real data, extension covers all 6 platforms, SEO starts compounding.
 
-### Track C — Web Pages with Real Data
+> **2026-05-07 audit:** Phase 1 is ~95% complete. Most tasks are done. Remaining: SEO OG images + GSC submission. Bengali verdict labels not yet confirmed in API.
 
-The routes exist but need real API wiring, proper loading/error/empty states, and UX polish.
+### Track C — Web Pages with Real Data ✅ DONE
 
-#### C.1 — Homepage paste flow (~8h)
+#### C.1 — Homepage paste flow — ✅ DONE
+HeroSection.tsx built; calls `POST /products/lookup`; redirects to `/product/[id]`; loading/error states implemented.
 
-**Files:** [web/src/app/\[locale\]/page.tsx](web/src/app/%5Blocale%5D/page.tsx) + new `UrlPasteHero.tsx`
+#### C.2 — Product page `/product/[id]` — ✅ DONE
+Server-rendered RSC; verdict, chart, coupons, alternatives wired to real API.
 
-**Behavior:** Paste URL → call `POST /v1/products/lookup` → redirect to `/product/[id]`; loading skeleton during fetch; error state for unsupported URL.
+#### C.3 — Dashboard `/dashboard` — ✅ DONE
+Client component; real API calls for tracked products + alerts; CRUD working.
 
-**Acceptance:** Works for all 6 platform URLs; sub-2s redirect.
+#### C.4 — Deals feed `/deals` — ✅ DONE
+Filterable by platform/category/score; Load More pagination; server-rendered first page.
 
-#### C.2 — Product page `/product/[id]` (~12h)
+#### C.5 — Alerts page `/alerts` — ✅ DONE
+Full CRUD: create, pause, delete. Calls real API. No page reload needed.
 
-**Files:** [web/src/app/\[locale\]/product/\[id\]/page.tsx](web/src/app/%5Blocale%5D/product/%5Bid%5D/page.tsx)
+#### C.6 — Compare page `/compare/[slug]` — ✅ DONE
+Server-rendered; per-platform cards sorted by price; match confidence shown; "Report wrong match" button included.
 
-Server-rendered (RSC) for SEO; render verdict card, 90-day chart, alternatives, coupons panel, "Set Alert" button wired to `PriceAlertModal`.
+#### C.7 — SEO foundation — ⚠️ PARTIAL
 
-Page title: `{Product Title} – Price History Bangladesh | DamKoi`
+**Done:**
+- [web/src/app/sitemap.ts](web/src/app/sitemap.ts) — generates dynamic sitemap from API product IDs ✅
+- [web/src/app/robots.ts](web/src/app/robots.ts) — correctly configured ✅
 
-**Acceptance:** Google can crawl it; OG preview shows verdict + price; alert creation works end-to-end.
+**Remaining (~4h):**
+- `web/src/app/[locale]/product/[id]/opengraph-image.tsx` — dynamic OG image with verdict + price (needed for FB/TG sharing)
+- Submit `damkoi.xynly.com/sitemap.xml` to Google Search Console
 
-#### C.3 — Dashboard `/dashboard` (~10h)
-
-Shows tracked products with live verdicts + alerts list with edit/pause/delete. Anon users: read-only tracked list + "Sign in for more" CTA.
-
-**Acceptance:** Logged-in user sees all data; free-tier cap (3 alerts) enforced with upgrade CTA.
-
-#### C.4 — Deals feed `/deals` (~8h)
-
-Filterable by platform, category, `deal_score`; URL-driven filter state (shareable). Pagination (50/page); server-rendered for SEO.
-
-**Acceptance:** Filter by `platform=daraz&min_score=8` returns correct results.
-
-#### C.5 — Alerts page `/alerts` (~6h)
-
-Full CRUD: create, pause, resume, delete. Channel selector (email only for now); target price validation.
-
-**Acceptance:** All CRUD operations reflect instantly without page reload.
-
-#### C.6 — SEO foundation (~8h)
-
-**Files:** [web/src/app/sitemap.ts](web/src/app/sitemap.ts), [web/src/app/robots.ts](web/src/app/robots.ts), new `web/src/app/product/[id]/opengraph-image.tsx`
-
-Dynamic OG image per product: renders verdict label + current price as PNG. Submit `damkoi.xynly.com/sitemap.xml` to Google Search Console.
-
-**Acceptance:** Search Console shows sitemap accepted; product page OG card shows in link preview.
-
-**Track C Phase 1 total: ~52h**
+**Acceptance:** GSC shows sitemap accepted; product OG card previews correctly when shared on Facebook.
 
 ---
 
-### Track A — Extension Expansion
+### Track A — Extension Expansion ✅ DONE
 
-#### A.1 — Add Chaldal + Othoba to extension (~6h)
+#### A.1 — Chaldal + Othoba in manifest — ✅ DONE
+Confirmed in manifest.json: all 6 platforms in `content_scripts.matches` and `host_permissions`.
 
-**Files:** [extension/manifest.json](extension/manifest.json), [extension/content.js](extension/content.js)
-
-Add `content_scripts.matches` entries and `host_permissions` for both platforms. Add platform extractors in `content.js` (hostname dispatch already exists for 4 platforms — extend same pattern).
-
-**Acceptance:** Visiting a Chaldal product page fires the inline widget; verdict loads.
-
-#### A.2 — Chrome Web Store multi-platform update (~3h)
-
-Update store listing screenshots and description to show all 6 platforms. Resubmit.
-
-**Track A Phase 1 total: ~9h**
+#### A.2 — Chrome Web Store submission — ❌ DEFERRED
+User decision: test locally first, submit to CWS later.
 
 ---
 
 ### Track H — Ops Phase 1
 
-#### H.1 — Bengali verdict labels (~4h)
+#### H.1 — Bengali verdict labels — ❌ TODO (~2h)
 
 **File:** [backend/app/services/verdict.py](backend/app/services/verdict.py)
 
-Add `lang: str = "en"` param; return BN display strings when `lang="bn"`. Wire through `/products/lookup` endpoint via `Accept-Language` header.
+Add `lang: str = "en"` param; return BN display strings when `lang="bn"`. Wire through `/products/lookup` via `Accept-Language` header.
 
 ```
-FAKE_DISCOUNT  → "❌ ভুয়া ছাড়"
-BEST_PRICE     → "✅ সর্বনিম্ন দাম"
-GOOD_DEAL      → "🔥 ভাল ডিল"
-FAIR_PRICE     → "🟡 স্বাভাবিক দাম"
+FAKE_DISCOUNT     → "❌ ভুয়া ছাড়"
+BEST_PRICE        → "✅ সর্বনিম্ন দাম"
+GOOD_DEAL         → "🔥 ভাল ডিল"
+FAIR_PRICE        → "🟡 স্বাভাবিক দাম"
 INSUFFICIENT_DATA → "⏳ তথ্য সংগ্রহ হচ্ছে"
 ```
 
-**Acceptance:** API returns `"❌ ভুয়া ছাড়"` when called with `Accept-Language: bn`.
-
-**Track H Phase 1 total: ~4h**
+**Acceptance:** API returns Bengali label when called with `Accept-Language: bn`.
 
 ---
 
-### Phase 1 — Done Bar (Day 30)
+### Phase 1 — Done Bar
 
-- [ ] All 6 web routes render real API data with loading/error/empty states
-- [ ] Extension covers all 6 platforms (manifest + manual smoke test passes)
-- [ ] Google Search Console shows sitemap accepted
-- [ ] Chrome Web Store approved; 500+ installs
-- [ ] Bengali verdict labels returned by API
-- [ ] Matching engine has created match groups for ≥ 20% of multi-platform products
-- [ ] Telegram daily digest running at 8am BD
-- [ ] Sentry capturing errors with per-platform tags
+- [x] All 6 web routes render real API data with loading/error/empty states
+- [x] Extension covers all 6 platforms
+- [ ] Google Search Console shows sitemap accepted — **pending OG images + GSC submission**
+- [ ] Chrome Web Store approved — **deferred (user decision)**
+- [ ] Bengali verdict labels returned by API — **pending H.1**
+- [ ] Matching engine has created match groups for ≥ 20% of multi-platform products — **needs production DB verification**
+- [ ] Telegram daily digest running at 8am BD — **blocked on Phase 0 env config**
+- [ ] Sentry capturing errors with per-platform tags — **blocked on Phase 0 env config**
 
 ---
 
-## Phase 2 — Cross-Platform + Coupon Auto-Apply (Days 31–60, ~80 hours)
+## Phase 2 — Cross-Platform + Coupon Auto-Apply (Days 31–60)
 
 **Goal:** The two highest-value unreleased features ship — users see cross-platform savings and auto-save at checkout.
 
+> **2026-05-07 audit:** Phase 2 is ~80% complete. Compare page live. Auto-apply code built. Remaining: B.1 production DB verification, B.3 extension panel, D.5 manual QA.
+
 ### Track B — Cross-Platform Compare End-to-End
 
-The backend is built (matching engine, `/compare` endpoint, admin router). Verify it works then build the UI.
+#### B.1 — Verify matching engine on production data — ❌ TODO (~4h)
 
-#### B.1 — Verify + test matching engine (~8h)
+`cluster_ungrouped_products()` confirmed at [backend/app/services/matching.py](backend/app/services/matching.py) line 58. Run it against production DB; verify match groups exist.
 
-Run `cluster_ungrouped_products()` on production data; check match group count in DB. Build 50-pair labeled test set; verify precision > 0.95 at 0.82 threshold.
+Check: `SELECT COUNT(*) FROM match_groups;` via Render shell. If 0, the APScheduler job is not running or silently failing.
 
-**File:** [backend/app/services/matching.py](backend/app/services/matching.py) — tune if needed.
+**Acceptance:** ≥ 100 match groups in production; `/compare/{id}` returns real data for a multi-platform product.
 
-#### B.2 — Web compare page (~10h)
+#### B.2 — Web compare page — ✅ DONE
+[web/src/app/\[locale\]/compare/\[slug\]/page.tsx](web/src/app/%5Blocale%5D/compare/%5Bslug%5D/page.tsx) is server-rendered, real API, per-platform cards with confidence chip + "Report wrong match".
 
-**Files:** [web/src/app/\[locale\]/compare/\[slug\]/page.tsx](web/src/app/%5Blocale%5D/compare/%5Bslug%5D/page.tsx) + new `CompareGrid.tsx`
-
-Side-by-side card grid sorted by price; match confidence chip; "Report wrong match" button → `POST /compare/{id}/report`.
-
-**Acceptance:** Product with 3+ platform matches shows all cards; <1s load (Redis-cached).
-
-#### B.3 — Extension cross-platform panel (~8h)
+#### B.3 — Extension cross-platform panel — ❌ TODO (~6h)
 
 **Files:** [extension/popup.js](extension/popup.js) + [extension/popup.html](extension/popup.html)
 
@@ -231,105 +271,60 @@ Add compare section: top 3 matches from `/compare/{id}`, each showing platform, 
 
 **Acceptance:** Samsung Galaxy on Daraz shows Pickaboo + Cartup prices in popup.
 
-**Track B Phase 2 total: ~26h**
+---
+
+### Track D — Coupon Auto-Apply
+
+> **2026-05-07 audit:** All code built. Needs manual end-to-end QA only.
+
+#### D.1 — Cart-page detection — ✅ DONE
+`extension/cart_detector.js` exists; Daraz checkout matches in manifest confirmed.
+
+#### D.2 — Coupon injection logic — ✅ DONE
+`extension/coupon_injector.js` exists with retry (up to 3), toast on success, copy-button fallback.
+
+#### D.3 — User opt-in modal — ✅ DONE (verify)
+`extension/storage.js` exists. **Verify:** first Daraz checkout triggers opt-in once; preference persists.
+
+#### D.4 — Backend telemetry — ✅ DONE
+`routers/telemetry.py` + `models/coupon_application.py` confirmed.
+
+#### D.5 — Manual QA on Daraz — ❌ TODO (~3h)
+Load extension locally, visit Daraz cart, confirm: opt-in fires, coupon injected, toast shows savings, telemetry row logged.
+
+**Acceptance:** 3 successful end-to-end auto-apply passes on real Daraz checkout.
 
 ---
 
-### Track D — Coupon Auto-Apply (NEW BUILD)
-
-This is the largest Phase 2 item and doesn't exist yet.
-
-#### D.1 — Cart-page detection (~6h)
-
-**New file:** `extension/cart_detector.js`
-
-Detects Daraz checkout pages by URL pattern (`/checkout/`) + DOM signature (cart total element).
-
-**Files to modify:** [extension/manifest.json](extension/manifest.json) (add `*://www.daraz.com.bd/checkout/*`), [extension/content.js](extension/content.js)
-
-**Acceptance:** Detector fires within 500ms on Daraz cart page with 99% reliability.
-
-#### D.2 — Coupon injection logic (~14h)
-
-**New file:** `extension/coupon_injector.js`
-
-Logic: detect coupon input → `GET /coupons/daraz?cart_total={total}` → try top code → observe DOM for success/failure indicator → retry up to 3 → show toast "✓ Saved ৳X with CODE" on success.
-
-Failure fallback: silent → shows copy button, no error to user.
-
-**Acceptance:** 3 successful end-to-end auto-applies on Daraz carts in manual QA.
-
-#### D.3 — User opt-in modal (~6h)
-
-**Files:** [extension/popup.js](extension/popup.js) + new `extension/storage.js`
-
-First-time Daraz checkout visit: "Auto-apply best coupon at checkout? [Yes / No / Ask each time]". Preference stored in `chrome.storage.local`; changeable in extension settings.
-
-**Acceptance:** Opt-in fires exactly once; preference persists across sessions.
-
-#### D.4 — Backend telemetry (~6h)
-
-**New migration:** `backend/alembic/versions/xxx_add_coupon_applications.py`
-
-```sql
-CREATE TABLE coupon_applications (
-    id              BIGSERIAL PRIMARY KEY,
-    user_id         UUID,
-    anon_id         VARCHAR(255),
-    platform        VARCHAR(50) NOT NULL,
-    coupon_code     VARCHAR(255),
-    cart_total      INTEGER,
-    savings         INTEGER,
-    success         BOOLEAN NOT NULL,
-    created_at      TIMESTAMPTZ DEFAULT NOW()
-);
-```
-
-**New router:** `backend/app/routers/telemetry.py` — `POST` endpoint to log `{platform, code, cart_total, savings, success}`.
-
-Add to daily Telegram digest: total auto-applies + savings today.
-
-**Acceptance:** Each coupon attempt (success or fail) logs one row; shows in digest.
-
-**Track D Phase 2 total: ~32h**
+### Track F — Bengali UI Translations — ✅ DONE
+`web/messages/bn.json` confirmed: 100+ strings fully translated. Toggle switches all visible text to Bengali.
 
 ---
 
-### Track F — Bengali UI Translations
+### Track H — Ops Phase 2 (~2h)
 
-#### F.1 — Translate top 200 strings (~12h)
-
-**File:** `web/messages/bn.json` (likely empty — fill it)
-
-Covers: homepage hero, product page verdict labels, dashboard, alert forms, deals feed.
-
-**Acceptance:** Toggle in header switches all visible text to Bengali; no English fallbacks visible on main flows.
-
-**Track F Phase 2 total: ~12h**
+Add coupon auto-apply error rate alert (>20% in 1h) + match group coverage % to daily Telegram digest. **Blocked on Phase 0 Telegram config.**
 
 ---
 
-### Track H — Ops Phase 2 (~4h)
+### Phase 2 — Done Bar
 
-Add to daily Telegram digest: coupon auto-apply error rate alert (>20% in 1h) + match group coverage % (products with ≥1 cross-platform match).
-
----
-
-### Phase 2 — Done Bar (Day 60)
-
-- [ ] Cross-platform compare works for ≥ 50% of products with 3+ platform coverage
-- [ ] Extension popup shows cross-platform savings panel
-- [ ] Coupon auto-apply fires on Daraz checkout (3+ manual test passes; 80% cart-page success rate)
-- [ ] User opt-in modal works; preference persisted
-- [ ] Bengali UI toggle works end-to-end; top 200 strings translated
-- [ ] Coupon telemetry table logging every attempt; showing in daily digest
-- [ ] 2,000+ extension installs; 3,000+ active alerts
+- [x] Web compare page built and live
+- [x] Coupon auto-apply code built (D.1–D.4)
+- [x] Bengali UI fully translated
+- [x] Coupon telemetry table and router exist
+- [ ] Matching engine verified on production DB — **B.1 pending**
+- [ ] Extension popup shows cross-platform panel — **B.3 pending (~6h)**
+- [ ] Coupon auto-apply manual QA passes — **D.5 pending (~3h)**
+- [ ] Ops digest includes auto-apply stats — **blocked on Phase 0**
 
 ---
 
-## Phase 3 — Premium Tier + Real AI (Days 61–90, ~90 hours)
+## Phase 3 — Premium Tier + Expansion (Days 61–90)
 
-**Goal:** DamKoi has paying users and real AI-powered product summaries.
+**Goal:** DamKoi has paying users, enforced free-tier limits, and Pickaboo auto-apply live.
+
+> **Note:** Track G (Real Claude AI) is **deferred** until revenue generates. `services/ai.py` mock remains. Do not implement until founder decision.
 
 ### Track E — Premium Tier (Real Payments)
 
@@ -382,44 +377,11 @@ Parallel path alongside SSLCommerz; bKash merchant application takes 2+ weeks so
 
 ---
 
-### Track G — Real Product Lens (Claude API)
+### Track G — Real Product Lens (Claude API) — ⛔ DEFERRED
 
-#### G.1 — Replace mock AI (~12h)
+Deferred until revenue generates. `services/ai.py` stays as keyword-based mock. Do not implement.
 
-**File:** [backend/app/services/ai.py](backend/app/services/ai.py) — replace keyword logic with real Anthropic API call.
-
-Add `anthropic>=0.40` to [backend/requirements.txt](backend/requirements.txt). Add `ANTHROPIC_API_KEY` to `render.yaml` + `.env`.
-
-**Model:** `claude-haiku-4-5-20251001` (cheapest, fast)
-
-**Prompt:** System prompt reviewing product title + reviews, returning `{pros[], cons[], verdict, buyer_fit}` — Bengali-aware.
-
-**Caching:** `ProductLens` table (TTL 7 days).
-
-**Acceptance:** Top 100 Daraz products get real summaries; 16/20 manually rated "useful"; cost <$0.05/product.
-
-#### G.2 — Review extraction (~10h)
-
-**New file:** `backend/app/scraper/reviews_extractor.py`
-
-Extract top 20 reviews from Daraz product page (Playwright already running — reuse).
-
-**Acceptance:** 80%+ of top-100 products yield ≥5 reviews for LLM input.
-
-#### G.3 — Product Lens DB model + table (~4h)
-
-**New file:** `backend/app/models/product_lens.py`
-**New migration:** `backend/alembic/versions/xxx_add_product_lens.py`
-
-#### G.4 — Product Lens UI (~8h)
-
-**File:** [web/src/app/\[locale\]/product/\[id\]/page.tsx](web/src/app/%5Blocale%5D/product/%5Bid%5D/page.tsx)
-
-Add `ProductLensCard` below verdict: pros/cons list + verdict text + "AI-generated · refreshed weekly" disclaimer. Free: teaser (1 line); Premium: full summary.
-
-**Acceptance:** Card renders on product page; paywall gates full view.
-
-**Track G Phase 3 total: ~34h**
+When undeferred: replace mock with `claude-haiku-4-5-20251001`, add `ProductLens` table (TTL 7 days), add `ProductLensCard` to product page with paywall gate for full summary.
 
 ---
 
@@ -456,7 +418,7 @@ Per-platform: last scrape time, success rate (today), last error, queue depth. A
 ### Phase 3 — Done Bar (Day 90)
 
 - [ ] ≥ 100 paying premium subscribers
-- [ ] Product Lens live for top 100 Daraz products (real Claude, not mock)
+- [ ] Product Lens — **deferred (no AI until revenue)**
 - [ ] Premium feature gating enforced: 3-alert cap for free, unlimited for premium
 - [ ] SSLCommerz checkout works end-to-end; one real ৳199 production purchase confirmed
 - [ ] Auto-apply working on Daraz + Pickaboo; safety guardrails in place
@@ -467,13 +429,17 @@ Per-platform: last scrape time, success rate (today), last error, queue depth. A
 
 ---
 
-## Open Technical Gaps to Resolve Before Phase 2
+## Open Technical Gaps — Updated 2026-05-07
 
-1. **`cluster_ungrouped_products` in `services/matching.py`** — verify this function actually exists and is being called successfully by the scheduler
-2. **Bengali translations in `web/messages/bn.json`** — check if the file has real content or empty placeholders before announcing Bengali UI
-3. **`Product.last_backfilled_at` column** — `tasks.py` references it in the backfill query; confirm the Alembic migration adds this column
-4. **Web pages real data** — visit each route on the deployed site and confirm they render real API data, not static/placeholder content
-5. **CORS for `damkoi.xynly.com`** — confirm `render.yaml` `CORS_ORIGINS` includes the production web URL
+| # | Gap | Status |
+|---|---|---|
+| 1 | `cluster_ungrouped_products` calling successfully | ⚠️ Function confirmed in code; **production DB count unverified** |
+| 2 | Bengali translations populated | ✅ Confirmed — 100+ strings in bn.json |
+| 3 | `Product.last_backfilled_at` column in DB | ⚠️ Referenced in tasks.py — **verify migration applied on Render** |
+| 4 | Web pages connected to real API | ✅ Confirmed — all routes have real API calls |
+| 5 | CORS for `damkoi.xynly.com` | ⚠️ **Unverified — check `render.yaml` CORS_ORIGINS** |
+| 6 | `backend/app/services/limits.py` | ❌ Missing — needed for Phase 3 premium gating |
+| 7 | `backend/app/models/subscription.py` | ❌ Missing — needed for Phase 3 subscription model |
 
 ---
 

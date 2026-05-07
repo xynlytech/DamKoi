@@ -76,7 +76,21 @@
         "icons/icon48.png",
         "icons/icon128.png"
       ],
-      "matches": ["*://www.daraz.com.bd/*", "*://www.daraz.com.bd/checkout/*", "*://www.daraz.com.bd/cart/*"]
+      "matches": [
+        "*://www.daraz.com.bd/*",
+        "*://www.daraz.com.bd/checkout/*",
+        "*://www.daraz.com.bd/cart/*",
+        "*://www.cartup.com.bd/*",
+        "*://cartup.com.bd/*",
+        "*://www.rokomari.com/*",
+        "*://rokomari.com/*",
+        "*://www.pickaboo.com/*",
+        "*://pickaboo.com/*",
+        "*://chaldal.com/*",
+        "*://www.chaldal.com/*",
+        "*://www.othoba.com/*",
+        "*://othoba.com/*"
+      ]
     }
   ],
   "content_security_policy": {

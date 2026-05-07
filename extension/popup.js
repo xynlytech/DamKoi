@@ -69,16 +69,24 @@ async function init() {
       currentWindow: true,
     });
 
-    // Detect all Daraz product URL formats:
-    //   /products/name-i{id}-s{id}.html
-    //   /i{id}-s{id}.html
-    //   /name-i{id}-s{id}.html
-    const isDarazProduct = tab?.url && (
+    // Detect product pages on all 6 supported BD platforms
+    const isSupportedProduct = tab?.url && (
+      // Daraz
       tab.url.includes('daraz.com.bd/products/') ||
-      /daraz\.com\.bd\/.*i\d+-s\d+/i.test(tab.url)
+      /daraz\.com\.bd\/.*i\d+-s\d+/i.test(tab.url) ||
+      // Cartup
+      tab.url.includes('cartup.com.bd/products/') ||
+      // Rokomari
+      tab.url.includes('rokomari.com/book/') ||
+      // Pickaboo
+      tab.url.includes('pickaboo.com/product/') ||
+      // Chaldal
+      /chaldal\.com\/.+\/.+/.test(tab.url) ||
+      // Othoba
+      tab.url.includes('othoba.com/product/')
     );
 
-    if (!isDarazProduct) {
+    if (!isSupportedProduct) {
       showState(notDarazState);
       setupUrlInput();
       recordTiming('not-daraz');
@@ -296,7 +304,15 @@ function setupUrlInput() {
 
   btn?.addEventListener('click', async () => {
     const url = input?.value?.trim();
-    if (!url || !url.includes('daraz.com.bd')) {
+    const isSupportedUrl = url && (
+      url.includes('daraz.com.bd') ||
+      url.includes('cartup.com.bd') ||
+      url.includes('rokomari.com') ||
+      url.includes('pickaboo.com') ||
+      url.includes('chaldal.com') ||
+      url.includes('othoba.com')
+    );
+    if (!isSupportedUrl) {
       input.classList.add('border-danger');
       return;
     }
