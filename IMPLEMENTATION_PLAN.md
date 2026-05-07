@@ -433,13 +433,14 @@ Per-platform: last scrape time, success rate (today), last error, queue depth. A
 
 | # | Gap | Status |
 |---|---|---|
-| 1 | `cluster_ungrouped_products` calling successfully | ⚠️ Function confirmed in code; **production DB count unverified** |
+| 1 | `cluster_ungrouped_products` calling successfully | ⚠️ Function confirmed in code; **production DB count still unverified** |
 | 2 | Bengali translations populated | ✅ Confirmed — 100+ strings in bn.json |
-| 3 | `Product.last_backfilled_at` column in DB | ⚠️ Referenced in tasks.py — **verify migration applied on Render** |
+| 3 | `Product.last_backfilled_at` column in DB | ✅ Migration `d5e6f7a8b9c0` created and deployed 2026-05-07 |
 | 4 | Web pages connected to real API | ✅ Confirmed — all routes have real API calls |
-| 5 | CORS for `damkoi.xynly.com` | ⚠️ **Unverified — check `render.yaml` CORS_ORIGINS** |
-| 6 | `backend/app/services/limits.py` | ❌ Missing — needed for Phase 3 premium gating |
-| 7 | `backend/app/models/subscription.py` | ❌ Missing — needed for Phase 3 subscription model |
+| 5 | CORS for `damkoi.xynly.com` | ✅ Confirmed — render.yaml has correct origins incl. damkoi.xynly.com |
+| 6 | `users.is_premium` + `users.premium_expires_at` columns | ✅ Migration `e6f7a8b9c0d1` created and deployed 2026-05-07 |
+| 7 | `backend/app/models/subscription.py` | ❌ Missing — Phase 3 only, deferred |
+| 8 | Extension popup Daraz-only detection | ✅ Fixed 2026-05-07 — all 6 platforms now detected |
 
 ---
 
