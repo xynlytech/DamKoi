@@ -79,6 +79,13 @@ app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    print(f"[DEBUG] Request: {request.method} {request.url}")
+    response = await call_next(request)
+    print(f"[DEBUG] Response: {response.status_code}")
+    return response
+
 # CORS — allow extension and frontend origins
 # Origins are configured via CORS_ORIGINS env var (JSON list).
 # ALLOWED_EXTENSION_ID auto-adds the chrome-extension:// origin.

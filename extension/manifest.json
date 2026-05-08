@@ -57,6 +57,7 @@
   "host_permissions": [
     "https://api.damkoi.com/*",
     "http://localhost:8000/*",
+    "http://127.0.0.1:8000/*",
     "https://www.daraz.com.bd/*",
     "https://fonts.googleapis.com/*",
     "https://fonts.gstatic.com/*",
@@ -77,23 +78,16 @@
         "icons/icon128.png"
       ],
       "matches": [
-        "*://www.daraz.com.bd/*",
-        "*://www.daraz.com.bd/checkout/*",
-        "*://www.daraz.com.bd/cart/*",
-        "*://www.cartup.com.bd/*",
-        "*://cartup.com.bd/*",
-        "*://www.rokomari.com/*",
-        "*://rokomari.com/*",
-        "*://www.pickaboo.com/*",
-        "*://pickaboo.com/*",
-        "*://chaldal.com/*",
-        "*://www.chaldal.com/*",
-        "*://www.othoba.com/*",
-        "*://othoba.com/*"
+        "*://*.daraz.com.bd/*",
+        "*://*.cartup.com.bd/*",
+        "*://*.rokomari.com/*",
+        "*://*.pickaboo.com/*",
+        "*://*.chaldal.com/*",
+        "*://*.othoba.com/*"
       ]
     }
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' http://localhost:8000 https://api.damkoi.com"
+    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' http://localhost:8000 http://127.0.0.1:8000 https://api.damkoi.com"
   }
 }

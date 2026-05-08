@@ -17,6 +17,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models.alert import Alert
 from app.models.product import Product
+from app.models.user import User
+
 
 router = APIRouter(prefix="/alerts", tags=["Alerts"])
 
@@ -73,7 +75,6 @@ async def create_alert(
     Create a price drop alert for a product.
     Supports both authenticated users (via Bearer token) and anonymous users (via email).
     """
-    from app.models.user import User
     
     # 1. Resolve User (Token > Email)
     target_user = None
@@ -462,7 +463,7 @@ class TelegramLinkRequest(BaseModel):
 @router.post("/telegram/link", status_code=200)
 async def link_telegram(
     body: TelegramLinkRequest,
-    user: "User" = Depends(get_current_user),
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -522,7 +523,7 @@ async def link_telegram(
 
 @router.delete("/telegram/unlink", status_code=200)
 async def unlink_telegram(
-    user: "User" = Depends(get_current_user),
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """

@@ -14,7 +14,7 @@ from typing import List
 from app.database import get_db
 from app.models.product import Product
 from app.services.ai import AIService
-from app.services.cache import get_cached_val, set_cached_val
+from app.services.cache import cache
 
 router = APIRouter()
 
@@ -30,7 +30,7 @@ async def get_product_lens(product_id: UUID, db: AsyncSession = Depends(get_db))
     """
     # 1. Check cache first to avoid LLM spam
     cache_key = f"lens_{product_id}"
-    cached_lens = await get_cached_val(cache_key)
+    cached_lens = await cache.get(cache_key)
     if cached_lens:
         return cached_lens
 
@@ -47,6 +47,6 @@ async def get_product_lens(product_id: UUID, db: AsyncSession = Depends(get_db))
     lens_data = await AIService.generate_product_lens(product.title, 0)
     
     # 4. Cache for 7 days (604800 seconds)
-    await set_cached_val(cache_key, lens_data, ttl=604800)
+    await cache.set(cache_key, lens_data, expire_seconds=604800)
     
     return lens_data

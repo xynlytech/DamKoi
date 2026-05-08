@@ -11,8 +11,8 @@
 //
 // To build for production: NODE_ENV=production node build.js
 //
-export const API_BASE       = typeof __API_BASE__       !== 'undefined' ? __API_BASE__       : 'http://localhost:8000/v1';
-export const DASHBOARD_BASE = typeof __DASHBOARD_BASE__ !== 'undefined' ? __DASHBOARD_BASE__ : 'http://localhost:3000';
+export const API_BASE       = typeof __API_BASE__       !== 'undefined' ? __API_BASE__       : 'http://127.0.0.1:8000';
+export const DASHBOARD_BASE = typeof __DASHBOARD_BASE__ !== 'undefined' ? __DASHBOARD_BASE__ : 'http://127.0.0.1:3000';
 
 /**
  * Proxies API requests through the background script to bypass CORS

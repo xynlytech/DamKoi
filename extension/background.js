@@ -13,17 +13,17 @@ import { API_BASE } from './utils.js';
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const handlers = {
-    'FETCH_VERDICT':      () => fetchApi(`/products/lookup?url=${encodeURIComponent(message.url)}`),
-    'FETCH_HISTORY':      () => fetchApi(`/products/${message.productId}/price-history?days=${message.days || 90}`),
-    'FETCH_ALTERNATIVES': () => fetchApi(`/products/${message.productId}/compare`),
-    'FETCH_COMPARE':      () => fetchApi(`/products/${message.productId}/compare`),
-    'FETCH_COUPONS':      () => fetchApi(`/coupons/${message.platform || 'daraz'}${message.cartTotal ? `?cart_total=${message.cartTotal}` : ''}`),
+    'FETCH_VERDICT':      () => fetchApi(`/v1/products/lookup?url=${encodeURIComponent(message.url)}`),
+    'FETCH_HISTORY':      () => fetchApi(`/v1/products/${message.productId}/price-history?days=${message.days || 90}`),
+    'FETCH_ALTERNATIVES': () => fetchApi(`/v1/products/${message.productId}/compare`),
+    'FETCH_COMPARE':      () => fetchApi(`/v1/products/${message.productId}/compare`),
+    'FETCH_COUPONS':      () => fetchApi(`/v1/coupons/${message.platform || 'daraz'}${message.cartTotal ? `?cart_total=${message.cartTotal}` : ''}`),
     'LOG_COUPON':         () => fetchApi(`/v1/telemetry/coupon`, {
                                method: 'POST',
                                headers: { 'Content-Type': 'application/json' },
                                body: JSON.stringify(message.payload)
                              }),
-    'CREATE_ALERT':       () => fetchApi(`/alerts`, {
+    'CREATE_ALERT':       () => fetchApi(`/v1/alerts`, {
                                method: 'POST',
                                headers: { 'Content-Type': 'application/json' },
                                body: JSON.stringify(message.payload)
