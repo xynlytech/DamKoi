@@ -77,7 +77,7 @@ async function fetchApi(path, options = {}) {
   const resp = await fetch(`${API_BASE}${path}`, options);
   if (!resp.ok) {
     const errorData = await resp.json().catch(() => ({}));
-    throw new Error(errorData.detail || `API error ${resp.status}`);
+    throw new Error(`${resp.status}: ${errorData.detail || `API error ${resp.status}`}`);
   }
   return resp.json();
 }

@@ -110,7 +110,8 @@ class DamKoiExtension {
       return data;
     } catch (e) {
       console.error('[DamKoi] Fetch failed:', e);
-      return { notTracked: true }; // Fallback to not tracked on error
+      const is404 = e.message?.startsWith('404');
+      return { notTracked: true, connectionError: !is404 };
     }
   }
 
@@ -321,6 +322,15 @@ class DamKoiExtension {
   }
 
   renderNotTracked(container, tabId) {
+    if (this.data?.connectionError) {
+      container.innerHTML = `
+        <h3>Connection Error</h3>
+        <p style="margin: 15px 0; color: var(--dk-dim); line-height: 1.5;">
+          Could not reach DamKoi servers. Check your internet connection and try refreshing the page.
+        </p>
+      `;
+      return;
+    }
     if (tabId === 'history') {
       container.innerHTML = `
         <h3 style="display:flex;align-items:center;gap:6px;"><span style="width:16px;height:16px;display:inline-block;">${ICONS.history}</span> Price History</h3>
