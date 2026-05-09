@@ -6,8 +6,8 @@
 // ── API Configuration ─────────────────────────────────────────
 //
 // These values are injected at build time by esbuild (see build.js).
-// In development:   http://localhost:8000/v1
-// In production:    https://api.damkoi.com/v1  (or your Render URL)
+// In development:   http://localhost:8000
+// In production:    https://api.damkoi.com
 //
 // To build for production: NODE_ENV=production node build.js
 //

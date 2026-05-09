@@ -20,8 +20,8 @@ const isProd = process.argv.includes('--prod') || process.env.NODE_ENV === 'prod
 
 // ── Environment-specific API URLs ─────────────────────────────
 
-const API_BASE       = isProd ? 'https://api.damkoi.com/v1'  : 'http://127.0.0.1:8000';
-const DASHBOARD_BASE = isProd ? 'https://damkoi.com'          : 'http://127.0.0.1:3000';
+const API_BASE       = isProd ? 'https://api.damkoi.com'      : 'http://127.0.0.1:8000';
+const DASHBOARD_BASE = isProd ? 'https://damkoi.xynly.com'    : 'http://127.0.0.1:3000';
 
 if (isProd) {
   console.log('[PROD] Production build — API:', API_BASE);
