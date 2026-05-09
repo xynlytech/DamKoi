@@ -105,31 +105,33 @@ async function init() {
       fromCache = true;
       console.log('[DamKoi Popup] Loaded from cache (< 50ms expected)');
     } else {
-      // Not in cache, fetch from API
-      try {
-        const fetchStart = Date.now();
-        data = await safeFetch('FETCH_VERDICT', { url: tab.url });
-        
-        const fetchDuration = Date.now() - fetchStart;
-        console.log(`[DamKoi] API fetch: ${fetchDuration}ms`);
+      // Not in cache — fetch directly from API (no service worker round-trip)
+      const fetchStart = Date.now();
+      const resp = await fetch(
+        `${API_BASE}/v1/products/lookup?url=${encodeURIComponent(tab.url)}`
+      );
+      console.log(`[DamKoi] API fetch: ${Date.now() - fetchStart}ms, status: ${resp.status}`);
 
-        // Cache the result
-        saveToCache(cacheKey, data);
-      } catch (error) {
-        if (error.message.includes('404')) {
-           showState(verdictState);
-           document.getElementById('product-title').textContent = 'Product not yet tracked';
-           const badge = document.getElementById('verdict-badge');
-           badge.textContent = 'TRACKING STARTING';
-           badge.classList.add('text-orange');
-           document.getElementById('deal-score').textContent = '';
-           document.getElementById('verdict-explanation').textContent = 'This product will be picked up in our next scrape cycle. Check back in an hour!';
-           document.querySelector('.price-grid').classList.add('hidden');
-           recordTiming('fetch-not-found');
-           return;
-        }
-        throw error;
+      if (resp.status === 404) {
+        showState(verdictState);
+        document.getElementById('product-title').textContent = 'Product not yet tracked';
+        const badge = document.getElementById('verdict-badge');
+        badge.textContent = 'TRACKING STARTING';
+        badge.classList.add('text-orange');
+        document.getElementById('deal-score').textContent = '';
+        document.getElementById('verdict-explanation').textContent =
+          'This product will be picked up in our next scrape cycle. Check back in an hour!';
+        document.querySelector('.price-grid').classList.add('hidden');
+        recordTiming('fetch-not-found');
+        return;
       }
+
+      if (!resp.ok) {
+        throw new Error(`API error ${resp.status}`);
+      }
+
+      data = await resp.json();
+      saveToCache(cacheKey, data);
     }
 
     renderVerdict(data, fromCache);
@@ -320,12 +322,21 @@ function setupUrlInput() {
     showState(loadingState);
 
     try {
-      const data = await safeFetch('FETCH_VERDICT', { url });
-      renderVerdict(data);
+      const resp = await fetch(
+        `${API_BASE}/v1/products/lookup?url=${encodeURIComponent(url)}`
+      );
+      if (resp.status === 404) {
+        showState(errorState);
+        document.getElementById('error-message').textContent =
+          'Product not found or not yet tracked.';
+        return;
+      }
+      if (!resp.ok) throw new Error(`API error ${resp.status}`);
+      renderVerdict(await resp.json());
     } catch {
       showState(errorState);
       document.getElementById('error-message').textContent =
-        'Product not found or not yet tracked.';
+        'Could not reach DamKoi. Check your connection.';
     }
   });
 
