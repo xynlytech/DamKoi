@@ -55,6 +55,7 @@
     "clipboardWrite"
   ],
   "host_permissions": [
+    "https://backend-seven-flame-14.vercel.app/*",
     "https://*.vercel.app/*",
     "https://damkoi-api.onrender.com/*",
     "https://api.damkoi.com/*",

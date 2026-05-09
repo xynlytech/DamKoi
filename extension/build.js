@@ -20,9 +20,7 @@ const isProd = process.argv.includes('--prod') || process.env.NODE_ENV === 'prod
 
 // ── Environment-specific API URLs ─────────────────────────────
 
-// After deploying the backend to Vercel, replace PROD_API_BASE with your actual URL.
-// Example: 'https://damkoi-backend.vercel.app'
-const PROD_API_BASE  = process.env.PROD_API_BASE || 'https://damkoi-backend.vercel.app';
+const PROD_API_BASE  = process.env.PROD_API_BASE || 'https://backend-seven-flame-14.vercel.app';
 const API_BASE       = isProd ? PROD_API_BASE                  : 'http://127.0.0.1:8000';
 const DASHBOARD_BASE = isProd ? 'https://damkoi.xynly.com'     : 'http://127.0.0.1:3000';
 
