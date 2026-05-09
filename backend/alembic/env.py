@@ -20,8 +20,14 @@ load_dotenv()
 # access to the values within the .ini file in use.
 config = context.config
 
-# Overwrite sqlalchemy.url with env var dynamically
-config.set_main_option("sqlalchemy.url", os.environ.get("DATABASE_URL", ""))
+# Overwrite sqlalchemy.url with env var dynamically.
+# Supabase/Render provide postgresql:// — async_engine_from_config needs postgresql+asyncpg://
+_db_url = os.environ.get("DATABASE_URL", "")
+if _db_url.startswith("postgresql://"):
+    _db_url = _db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+elif _db_url.startswith("postgres://"):
+    _db_url = _db_url.replace("postgres://", "postgresql+asyncpg://", 1)
+config.set_main_option("sqlalchemy.url", _db_url)
 
 target_metadata = Base.metadata
 

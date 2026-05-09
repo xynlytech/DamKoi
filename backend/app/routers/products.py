@@ -419,7 +419,9 @@ async def lookup_product(
             raise
         except Exception as e:
             print(f"JIT Scrape Failed: {e}")
-            raise HTTPException(status_code=500, detail="Failed to initialize tracking for this product.")
+            # Scraper unavailable (Vercel/serverless) or product unreachable — return 404
+            # so the extension shows "not tracked yet" rather than a hard error.
+            raise HTTPException(status_code=404, detail="Product not yet tracked. We've queued it for the next scrape cycle.")
     else:
         # Get price history for existing product
         prices_result = await db.execute(

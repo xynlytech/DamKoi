@@ -36,13 +36,13 @@ services:
       - key: API_BASE_URL
         value: https://damkoi-api.onrender.com
       - key: FRONTEND_URL
-        value: https://damkoi.com
+        value: https://damkoi.xynly.com
       - key: CORS_ORIGINS
-        value: '["https://damkoi.com","https://www.damkoi.com","https://damkoi.xynly.com","https://www.damkoi.xynly.com"]'
+        value: '["https://damkoi.xynly.com","https://www.damkoi.xynly.com","https://damkoi-api.onrender.com"]'
       - key: ALLOWED_EXTENSION_ID
-        sync: false
+        value: ljbcfoegfiiooabknbddddakpmpjaklb
       - key: PRODUCTION_DOMAIN
-        value: https://api.damkoi.com
+        value: https://damkoi-api.onrender.com
       - key: EMAIL_FROM
         value: alerts@damkoi.com
     healthCheckPath: /health

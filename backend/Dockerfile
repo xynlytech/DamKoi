@@ -32,12 +32,14 @@ COPY --chown=damkoi:damkoi . .
 RUN pip install --no-cache-dir playwright && \
     playwright install chromium --with-deps
 
+# Make startup script executable
+RUN chmod +x start.sh
+
 # Switch to non-root user
 USER damkoi
 
 # Expose port
 EXPOSE 8000
 
-# Startup: run Alembic migrations then start API
-# This ensures the DB schema is always up-to-date on deploy
-CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2"]
+# start.sh: runs alembic (non-fatally if DB unreachable), then uvicorn
+CMD ["./start.sh"]

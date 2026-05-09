@@ -10,14 +10,27 @@ from sqlalchemy.orm import DeclarativeBase
 from app.config import settings
 
 
-# Async engine — uses asyncpg driver
-# pool_size=5 keeps us well within Supabase free tier's 60 connection limit
+def _async_db_url(url: str) -> str:
+    """Normalize Supabase/Render postgresql:// URLs to postgresql+asyncpg://.
+    Falls back to local SQLite when DATABASE_URL is not set (dev/CI only)."""
+    if not url:
+        return "sqlite+aiosqlite:///./damkoi_local.db"
+    if url.startswith("postgresql://"):
+        return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    if url.startswith("postgres://"):
+        return url.replace("postgres://", "postgresql+asyncpg://", 1)
+    return url
+
+
+_db_url = _async_db_url(settings.DATABASE_URL)
+_is_sqlite = _db_url.startswith("sqlite")
+
+# Async engine — uses asyncpg for PostgreSQL, aiosqlite for local dev
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    _db_url,
     echo=settings.APP_DEBUG,
-    pool_size=5,
-    max_overflow=10,
-    pool_pre_ping=True,  # verify connections before use
+    # SQLite doesn't support pool_size / max_overflow
+    **({} if _is_sqlite else {"pool_size": 5, "max_overflow": 10, "pool_pre_ping": True}),
 )
 
 # Session factory

@@ -45,17 +45,26 @@ async def lifespan(app: FastAPI):
     if settings.SENTRY_DSN:
         sentry_sdk.set_tag("enabled_platforms", ",".join(enabled))
 
-    # Start the scraper/alert/coupon/deals scheduler
-    from app.scraper.tasks import setup_scheduler, scheduler
-    setup_scheduler()
-    print("   Scheduler: all jobs registered and running.")
+    # Start the scraper/alert/coupon/deals scheduler.
+    # Vercel serverless has no persistent process — skip APScheduler there.
+    # Scraping is triggered via HTTP cron endpoints instead.
+    import os
+    _is_serverless = bool(os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"))
+    if not _is_serverless:
+        from app.scraper.tasks import setup_scheduler, scheduler as _scheduler
+        setup_scheduler()
+        print("   Scheduler: all jobs registered and running.")
+    else:
+        print("   Scheduler: skipped (serverless environment — use cron endpoints).")
+        _scheduler = None
 
     yield
 
     # Shutdown
     print("DamKoi API shutting down...")
-    scheduler.shutdown(wait=False)
-    print("   Scheduler stopped.")
+    if not _is_serverless and _scheduler:
+        _scheduler.shutdown(wait=False)
+        print("   Scheduler stopped.")
 
 
 

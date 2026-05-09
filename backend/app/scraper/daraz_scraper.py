@@ -18,8 +18,13 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional, List
 
-from playwright.async_api import async_playwright, Page, BrowserContext
-from playwright_stealth import Stealth
+try:
+    from playwright.async_api import async_playwright, Page, BrowserContext
+    from playwright_stealth import Stealth
+    PLAYWRIGHT_AVAILABLE = True
+except ImportError:
+    PLAYWRIGHT_AVAILABLE = False
+    async_playwright = Page = BrowserContext = Stealth = None  # type: ignore
 
 # Import shared ScrapedProduct from base module (multi-platform support)
 from app.scraper.base import ScrapedProduct
@@ -141,6 +146,8 @@ class DarazScraper:
 
     async def start(self):
         """Launch browser with stealth settings."""
+        if not PLAYWRIGHT_AVAILABLE:
+            raise RuntimeError("Playwright is not installed in this environment. JIT scraping unavailable.")
         self._playwright = await async_playwright().start()
         self._browser = await self._playwright.chromium.launch(
             headless=self.headless,
