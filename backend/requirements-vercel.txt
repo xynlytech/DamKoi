@@ -1,0 +1,23 @@
+# DamKoi Backend — Vercel deployment dependencies
+# Excludes playwright (no browser in serverless) and apscheduler (no persistent process).
+# Vercel reads this via vercel.json outputDirectory setting.
+
+fastapi==0.115.6
+sqlalchemy==2.0.36
+asyncpg==0.30.0
+aiosqlite==0.20.0
+alembic==1.14.1
+pydantic==2.10.4
+pydantic-settings==2.7.1
+redis==5.2.1
+httpx==0.28.1
+beautifulsoup4==4.13.3
+lxml==5.3.0
+slowapi==0.1.9
+resend>=2.5.1
+sentry-sdk[fastapi]==2.19.2
+supabase==2.11.0
+python-telegram-bot==21.9
+rapidfuzz==3.10.1
+python-dotenv==1.0.1
+python-dateutil==2.9.0
