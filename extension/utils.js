@@ -7,7 +7,7 @@
 //
 // These values are injected at build time by esbuild (see build.js).
 // In development:   http://localhost:8000
-// In production:    https://api.damkoi.com
+// In production:    https://damkoi-api.onrender.com
 //
 // To build for production: NODE_ENV=production node build.js
 //
