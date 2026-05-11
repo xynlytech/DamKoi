@@ -39,33 +39,41 @@
 
 @layer base {
   :root {
-    /* Dark neumorphism base: L≈17% navy gives shadow contrast room */
-    --background: 220 35% 17%;
-    --foreground: 210 40% 92%;
-    --card: 220 35% 19%;
-    --card-foreground: 210 40% 92%;
-    --popover: 220 35% 17%;
-    --popover-foreground: 210 40% 92%;
+    /*
+     * Dark neumorphism needs L ≥ 22% so both light and dark shadows
+     * are visible. Too dark (≤ 15%) → light shadow vanishes into bg.
+     * L=22% navy ≈ #24314C — dark enough for night feel, light enough
+     * for dual-shadow contrast.
+     */
+    --background: 220 35% 22%;
+    --foreground: 210 40% 93%;
+    /* Card = same as background. Neumorphism is monochromatic — shadows
+       do all the depth work, not bg color contrast. */
+    --card: 220 35% 22%;
+    --card-foreground: 210 40% 93%;
+    --popover: 220 35% 22%;
+    --popover-foreground: 210 40% 93%;
     --primary: 239 84% 67%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 35% 24%;
-    --secondary-foreground: 210 40% 92%;
-    --muted: 220 35% 24%;
-    --muted-foreground: 215 20% 52%;
+    --secondary: 220 35% 28%;
+    --secondary-foreground: 210 40% 93%;
+    --muted: 220 35% 28%;
+    --muted-foreground: 215 20% 50%;
     --accent: 239 84% 67%;
-    --accent-foreground: 210 40% 92%;
+    --accent-foreground: 210 40% 93%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 92%;
-    --border: 220 35% 26%;
-    --input: 220 35% 15%;
+    --destructive-foreground: 210 40% 93%;
+    --border: 220 35% 30%;
+    /* Input surface: noticeably darker than bg → creates concave illusion */
+    --input: 220 35% 17%;
     --ring: 239 84% 67%;
     --radius: 1rem;
 
-    /* Neumorphic shadow tokens */
-    --nm-light: rgba(255, 255, 255, 0.055);
-    --nm-dark:  rgba(0, 0, 0, 0.45);
-    --nm-light-sm: rgba(255, 255, 255, 0.035);
-    --nm-dark-sm:  rgba(0, 0, 0, 0.28);
+    /* Shadow tokens — tuned for L=22% base */
+    --nm-light:    rgba(255, 255, 255, 0.10);
+    --nm-dark:     rgba(0,   0,   0,   0.55);
+    --nm-light-sm: rgba(255, 255, 255, 0.07);
+    --nm-dark-sm:  rgba(0,   0,   0,   0.35);
   }
 }
 
@@ -80,101 +88,110 @@
 
 /* ─── Dark Neumorphism Core ─────────────────────────────────────── */
 
-/* Raised / convex — cards, panels at rest */
+/*
+ * Raised / convex — cards, panels, buttons at rest.
+ * Light top-left + dark bottom-right = "light source from top-left" illusion.
+ * Border adds subtle edge definition (critical in dark mode).
+ */
 .nm-raised {
   background-color: hsl(var(--card));
+  border: 1px solid rgba(255, 255, 255, 0.07);
   box-shadow:
-    -8px -8px 20px var(--nm-light),
-     8px  8px 20px var(--nm-dark),
-    -3px -3px  8px var(--nm-light-sm),
-     3px  3px  8px var(--nm-dark-sm);
+    -10px -10px 24px var(--nm-light),
+      10px 10px 24px var(--nm-dark),
+      -4px  -4px  10px var(--nm-light-sm),
+       4px   4px  10px var(--nm-dark-sm);
 }
 
-/* Inset / concave — URL input, pressed surfaces */
+/* Inset / concave — inputs, pressed surfaces */
 .nm-inset {
   background-color: hsl(var(--input));
+  border: 1px solid rgba(0, 0, 0, 0.25);
   box-shadow:
-    inset  5px  5px 14px rgba(0, 0, 0, 0.42),
-    inset -5px -5px 14px rgba(255, 255, 255, 0.04);
+    inset  6px  6px 16px rgba(0,   0,   0,   0.48),
+    inset -6px -6px 16px rgba(255, 255, 255, 0.05);
 }
 
-/* Pressed — active button state */
+/* Pressed — active click state */
 .nm-pressed {
   box-shadow:
-    inset  3px  3px  8px rgba(0, 0, 0, 0.48),
-    inset -3px -3px  8px rgba(255, 255, 255, 0.035);
+    inset  4px  4px 10px rgba(0,   0,   0,   0.52),
+    inset -4px -4px 10px rgba(255, 255, 255, 0.04);
 }
 
 /* Pill / badge — small raised chips */
 .nm-pill {
   background-color: hsl(var(--card));
+  border: 1px solid rgba(255, 255, 255, 0.07);
   box-shadow:
-    -4px -4px 10px var(--nm-light),
-     4px  4px 10px var(--nm-dark);
+    -5px -5px 12px var(--nm-light),
+     5px  5px 12px var(--nm-dark);
 }
 
-/* Header — semi-transparent raised panel */
+/* Floating header — semi-transparent raised panel */
 .nm-header {
-  background-color: hsla(220, 35%, 19%, 0.88);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background-color: hsla(220, 35%, 22%, 0.90);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   box-shadow:
-    -6px -6px 18px rgba(255, 255, 255, 0.04),
-     6px  6px 18px rgba(0, 0, 0, 0.55),
-     0   12px 40px rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.055);
+    -6px  -6px 20px rgba(255, 255, 255, 0.06),
+     6px   6px 20px rgba(0,   0,   0,   0.60),
+     0    16px 48px  rgba(0,   0,   0,   0.35);
 }
 
-/* Interactive lift on hover */
+/* Interactive: lift on hover, press on active */
 .nm-interactive {
   @apply transition-all duration-300 cursor-pointer;
 }
 .nm-interactive:hover {
   box-shadow:
-    -10px -10px 26px var(--nm-light),
-      10px 10px 26px var(--nm-dark),
-     -4px  -4px 10px var(--nm-light-sm),
-      4px   4px 10px var(--nm-dark-sm);
-  transform: translateY(-3px);
+    -14px -14px 30px var(--nm-light),
+      14px 14px 30px var(--nm-dark),
+      -5px  -5px 12px var(--nm-light-sm),
+       5px   5px 12px var(--nm-dark-sm);
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.11);
 }
 .nm-interactive:active {
   box-shadow:
-    inset 3px  3px  8px rgba(0, 0, 0, 0.48),
-    inset -3px -3px 8px rgba(255, 255, 255, 0.035);
+    inset 4px  4px 10px rgba(0,   0,   0,   0.52),
+    inset -4px -4px 10px rgba(255, 255, 255, 0.04);
   transform: translateY(0);
 }
 
-/* Indigo accent button — raised with color wash */
+/* Primary CTA button — indigo gradient over raised surface */
 .nm-btn-primary {
   background: linear-gradient(145deg, #6366f1, #4f46e5);
+  border: 1px solid rgba(99, 102, 241, 0.4);
   box-shadow:
-    -4px -4px 12px rgba(255, 255, 255, 0.06),
-     4px  4px 12px rgba(0, 0, 0, 0.5),
-     0    0   20px rgba(99, 102, 241, 0.25);
+    -4px -4px 12px rgba(255, 255, 255, 0.07),
+     4px  4px 12px rgba(0,   0,   0,   0.55),
+     0    0   24px  rgba(99, 102, 241, 0.30);
   @apply text-white font-black transition-all duration-200;
 }
 .nm-btn-primary:hover {
   background: linear-gradient(145deg, #818cf8, #6366f1);
   box-shadow:
-    -5px -5px 15px rgba(255, 255, 255, 0.07),
-     5px  5px 15px rgba(0, 0, 0, 0.55),
-     0    0   30px rgba(99, 102, 241, 0.4);
-  transform: scale(1.02);
+    -5px -5px 16px rgba(255, 255, 255, 0.08),
+     5px  5px 16px rgba(0,   0,   0,   0.60),
+     0    0   36px  rgba(99, 102, 241, 0.45);
+  transform: scale(1.03);
 }
 .nm-btn-primary:active {
   box-shadow:
-    inset 3px  3px  8px rgba(0, 0, 0, 0.4),
-    inset -3px -3px 8px rgba(255, 255, 255, 0.04);
+    inset 3px  3px  8px rgba(0,   0,   0,   0.45),
+    inset -3px -3px 8px rgba(255, 255, 255, 0.05);
   transform: scale(0.97);
 }
 .nm-btn-primary:disabled {
-  opacity: 0.4;
+  opacity: 0.38;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
 }
 
-/* Text gradient utilities */
+/* Text gradients */
 .text-gradient-indigo {
   background: linear-gradient(135deg, #F8FAFC 0%, #818CF8 100%);
   -webkit-background-clip: text;
@@ -189,7 +206,7 @@
   background-clip: text;
 }
 
-/* Focus ring for accessibility */
+/* Keyboard focus ring */
 .nm-focus:focus-visible {
   outline: 2px solid hsl(var(--ring));
   outline-offset: 3px;
