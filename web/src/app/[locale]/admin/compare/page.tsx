@@ -125,7 +125,7 @@ export default function AdminComparePage() {
         ) : (
           <div className="space-y-6">
             {groups.map(group => (
-              <div key={group.id} className="glass-card rounded-2xl border border-white/5 overflow-hidden">
+              <div key={group.id} className="nm-raised rounded-2xl overflow-hidden">
                 <div className="bg-white/5 p-4 flex items-center justify-between">
                   <div>
                     <h2 className="font-black font-outfit text-lg">{group.name}</h2>

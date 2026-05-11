@@ -3,6 +3,7 @@ import { Outfit, Inter, JetBrains_Mono } from "next/font/google";
 import Link from "next/link";
 import "../globals.css";
 import { Activity, Flame, Zap } from "lucide-react";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -102,29 +103,7 @@ export default async function RootLayout({
                   <Zap size={13} /> Premium
                 </Link>
 
-                {/* Lang switcher */}
-                <div className="nm-inset rounded-full p-1 flex">
-                  <Link
-                    href="/en"
-                    className={`px-2.5 py-1 rounded-full text-[9px] font-black transition-all ${
-                      locale === "en"
-                        ? "nm-btn-primary text-white shadow-none"
-                        : "text-white/40 hover:text-white"
-                    }`}
-                  >
-                    EN
-                  </Link>
-                  <Link
-                    href="/bn"
-                    className={`px-2.5 py-1 rounded-full text-[9px] font-black transition-all ${
-                      locale === "bn"
-                        ? "nm-btn-primary text-white shadow-none"
-                        : "text-white/40 hover:text-white"
-                    }`}
-                  >
-                    BN
-                  </Link>
-                </div>
+                <ThemeToggle />
 
                 <Link
                   href={`/${locale}/install`}

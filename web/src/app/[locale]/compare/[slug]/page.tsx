@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, Trophy, AlertTriangle } from "lucide-react";
+import { ArrowLeft, ExternalLink, Trophy, AlertTriangle, Search } from "lucide-react";
 import ReportButtonClient from "./ReportButtonClient";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
@@ -72,7 +72,7 @@ export default async function ComparePage({
   if (!data) {
     return (
       <div className="container mx-auto px-4 max-w-4xl py-20 text-center">
-        <p className="text-4xl mb-4">🔍</p>
+        <Search size={48} className="text-white/20 mx-auto mb-4" />
         <h1 className="text-2xl font-black mb-2">Product not found</h1>
         <p className="text-white/40 mb-6 text-sm">This product doesn't exist or was removed.</p>
         <Link href="/" className="text-indigo-400 hover:text-indigo-300 text-sm">← Back to homepage</Link>
@@ -107,7 +107,7 @@ export default async function ComparePage({
       </div>
 
       {noMatches ? (
-        <div className="glass-card rounded-2xl p-10 text-center">
+        <div className="nm-raised rounded-2xl p-10 text-center">
           <AlertTriangle size={32} className="mx-auto text-amber-400 mb-4" />
           <h2 className="font-black text-lg mb-2">No cross-platform matches yet</h2>
           <p className="text-white/40 text-sm max-w-xs mx-auto">
@@ -143,7 +143,7 @@ export default async function ComparePage({
               return (
                 <div
                   key={item.id}
-                  className={`glass-card rounded-2xl p-5 flex flex-col gap-4 relative ${
+                  className={`nm-raised rounded-2xl p-5 flex flex-col gap-4 relative ${
                     isCheapest ? "ring-1 ring-emerald-500/40" : ""
                   }`}
                 >
@@ -160,7 +160,7 @@ export default async function ComparePage({
 
                   <div className="flex items-start gap-3">
                     {item.image_url && (
-                      <div className="w-12 h-12 rounded-xl bg-white/5 flex-shrink-0 overflow-hidden">
+                      <div className="w-12 h-12 rounded-xl nm-inset flex-shrink-0 overflow-hidden">
                         <img src={item.image_url} alt="" className="w-full h-full object-contain p-1" />
                       </div>
                     )}
@@ -199,7 +199,7 @@ export default async function ComparePage({
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl py-2 text-xs font-black uppercase tracking-widest transition-colors"
+                    className="flex items-center justify-center gap-2 nm-raised nm-interactive rounded-xl py-2 text-xs font-black uppercase tracking-widest text-white/60 hover:text-white"
                   >
                     Buy on {item.platform} <ExternalLink size={11} />
                   </a>

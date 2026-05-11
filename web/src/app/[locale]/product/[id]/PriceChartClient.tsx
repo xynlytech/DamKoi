@@ -119,7 +119,7 @@ export default function PriceChartClient({ productId }: { productId: string }) {
   }, [productId, days]);
 
   return (
-    <div className="glass-card rounded-[2.5rem] p-10 border-white/5">
+    <div className="nm-raised rounded-2xl p-8">
       <div className="flex items-center justify-between mb-8">
         <h3 className="text-sm font-black uppercase tracking-widest font-outfit">Price History</h3>
         <span className="text-[10px] font-bold text-white/20">Updated every 6h</span>

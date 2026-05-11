@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Download, Globe, Star, Shield, Zap, Bell, BarChart3, Search, ArrowRight, CheckCircle } from "lucide-react";
+import { Download, Globe, Star, Shield, Zap, Bell, BarChart3, Search, ArrowRight, CheckCircle, Activity } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Install DamKoi — Free Chrome Extension for BD Shoppers",
@@ -109,8 +109,8 @@ export default function InstallPage() {
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {FEATURES.map((f) => (
-            <div key={f.title} className="glass-card rounded-2xl p-5 flex flex-col gap-3">
-              <div className={`w-10 h-10 rounded-xl border flex items-center justify-center ${f.color}`}>
+            <div key={f.title} className="nm-raised nm-interactive rounded-2xl p-5 flex flex-col gap-3">
+              <div className={`w-10 h-10 nm-raised rounded-xl flex items-center justify-center ${f.color}`}>
                 <f.icon size={20} />
               </div>
               <h3 className="font-black text-sm font-outfit">{f.title}</h3>
@@ -137,17 +137,19 @@ export default function InstallPage() {
           </div>
 
           {/* Mock sidebar widget */}
-          <div className="glass-card rounded-2xl p-6 border border-white/8">
+          <div className="nm-raised rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-5">
-              <span className="text-xl">🐟</span>
+              <div className="nm-raised w-7 h-7 rounded-lg flex items-center justify-center text-indigo-400">
+                <Activity size={14} />
+              </div>
               <span className="font-black font-outfit text-indigo-400">DamKoi</span>
-              <span className="ml-auto text-[9px] font-black uppercase tracking-widest text-white/20 border border-white/10 rounded-full px-2 py-0.5">
+              <span className="ml-auto text-[9px] font-black uppercase tracking-widest text-white/20 nm-pill rounded-full px-2 py-0.5">
                 v2.0
               </span>
             </div>
             <div className="space-y-3">
-              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3">
-                <p className="text-emerald-400 font-black text-sm">&#x2705; BEST PRICE</p>
+              <div className="nm-inset rounded-xl px-4 py-3 border border-emerald-500/20">
+                <p className="text-emerald-400 font-black text-sm flex items-center gap-1.5"><CheckCircle size={14} /> BEST PRICE</p>
                 <p className="text-white/50 text-xs mt-1">Lowest in 90 days — buy with confidence</p>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
@@ -157,7 +159,7 @@ export default function InstallPage() {
                   { label: "All-time Low", val: "৳4,200" },
                   { label: "Deal Score", val: "9 / 10" },
                 ].map((item) => (
-                  <div key={item.label} className="bg-white/3 rounded-xl p-3">
+                  <div key={item.label} className="nm-inset rounded-xl p-3">
                     <p className="text-white/30 text-[9px] uppercase tracking-wider mb-1">{item.label}</p>
                     <p className="font-black text-white">{item.val}</p>
                   </div>

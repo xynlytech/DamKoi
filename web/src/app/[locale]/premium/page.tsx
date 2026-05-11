@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { PartyPopper } from 'lucide-react';
+import { PartyPopper, CheckCircle } from 'lucide-react';
 
 export default function PremiumPage() {
   const t = useTranslations();
@@ -50,7 +50,7 @@ export default function PremiumPage() {
       </div>
 
       {success ? (
-        <div className="bg-emerald-500/10 border border-emerald-500/20 p-12 rounded-3xl text-center">
+        <div className="nm-raised border border-emerald-500/20 p-12 rounded-2xl text-center">
           <div className="flex justify-center mb-6 text-emerald-400">
             <PartyPopper size={64} strokeWidth={1.5} />
           </div>
@@ -60,35 +60,35 @@ export default function PremiumPage() {
       ) : (
         <div className="grid md:grid-cols-2 gap-8">
           {/* Free Tier */}
-          <div className="bg-white/5 border border-white/10 p-8 rounded-3xl opacity-60">
+          <div className="nm-raised p-8 rounded-2xl opacity-60">
             <h3 className="text-2xl font-bold mb-2">Free</h3>
             <div className="text-4xl font-black mb-6">৳0<span className="text-lg text-white/40 font-normal">/mo</span></div>
             <ul className="space-y-4 mb-8 text-sm">
-              <li className="flex items-center gap-3"><span className="text-emerald-400">✓</span> Cross-platform price history</li>
-              <li className="flex items-center gap-3"><span className="text-emerald-400">✓</span> Alternative Stores Compare</li>
-              <li className="flex items-center gap-3"><span className="text-emerald-400">✓</span> Auto-apply Coupons (Daraz)</li>
-              <li className="flex items-center gap-3"><span className="text-yellow-400">!</span> Up to 3 Active Price Alerts</li>
+              <li className="flex items-center gap-3"><CheckCircle size={16} className="text-emerald-400 flex-shrink-0" /> Cross-platform price history</li>
+              <li className="flex items-center gap-3"><CheckCircle size={16} className="text-emerald-400 flex-shrink-0" /> Alternative Stores Compare</li>
+              <li className="flex items-center gap-3"><CheckCircle size={16} className="text-emerald-400 flex-shrink-0" /> Auto-apply Coupons (Daraz)</li>
+              <li className="flex items-center gap-3"><CheckCircle size={16} className="text-yellow-400 flex-shrink-0" /> Up to 3 Active Price Alerts</li>
             </ul>
-            <button disabled className="w-full py-3 rounded-xl bg-white/10 text-white/50 font-bold cursor-not-allowed">
+            <button disabled className="w-full py-3 nm-inset rounded-xl text-white/50 font-bold cursor-not-allowed">
               Current Plan
             </button>
           </div>
 
           {/* Premium Tier */}
-          <div className="bg-gradient-to-b from-indigo-500/20 to-purple-500/10 border border-indigo-500/30 p-8 rounded-3xl relative overflow-hidden shadow-[0_0_40px_rgba(99,102,241,0.15)]">
-            <div className="absolute top-0 right-0 bg-indigo-500 text-[10px] font-black uppercase tracking-widest py-1 px-4 rounded-bl-xl">Most Popular</div>
+          <div className="nm-raised border border-indigo-500/30 p-8 rounded-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 nm-btn-primary text-[10px] font-black uppercase tracking-widest py-1 px-4 rounded-bl-xl">Most Popular</div>
             <h3 className="text-2xl font-bold mb-2 text-indigo-300">Premium</h3>
             <div className="text-4xl font-black mb-6">৳199<span className="text-lg text-white/40 font-normal">/mo</span></div>
             <ul className="space-y-4 mb-8 text-sm">
-              <li className="flex items-center gap-3"><span className="text-indigo-400">✓</span> <strong>Unlimited Price Alerts</strong></li>
-              <li className="flex items-center gap-3"><span className="text-indigo-400">✓</span> Priority Scraper Queue (updates 4x faster)</li>
-              <li className="flex items-center gap-3"><span className="text-indigo-400">✓</span> Access to Spend Lens (Coming Soon)</li>
-              <li className="flex items-center gap-3"><span className="text-indigo-400">✓</span> Product Lens AI Reports (Beta)</li>
+              <li className="flex items-center gap-3"><CheckCircle size={16} className="text-indigo-400 flex-shrink-0" /> <strong>Unlimited Price Alerts</strong></li>
+              <li className="flex items-center gap-3"><CheckCircle size={16} className="text-indigo-400 flex-shrink-0" /> Priority Scraper Queue (updates 4x faster)</li>
+              <li className="flex items-center gap-3"><CheckCircle size={16} className="text-indigo-400 flex-shrink-0" /> Access to Spend Lens (Coming Soon)</li>
+              <li className="flex items-center gap-3"><CheckCircle size={16} className="text-indigo-400 flex-shrink-0" /> Product Lens AI Reports (Beta)</li>
             </ul>
-            <button 
+            <button
               onClick={handleUpgrade}
               disabled={loading}
-              className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black transition-all shadow-[0_0_20px_rgba(99,102,241,0.4)] hover:scale-105 active:scale-95"
+              className="w-full py-3 nm-btn-primary rounded-xl disabled:opacity-50"
             >
               {loading ? "Processing..." : "Upgrade to Premium"}
             </button>

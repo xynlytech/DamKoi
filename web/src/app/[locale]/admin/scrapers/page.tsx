@@ -129,7 +129,7 @@ export default function ScraperHealthPage() {
               : 0;
 
             return (
-              <div key={p.platform} className={`glass-card rounded-2xl p-5 border ${cfg.bg}`}>
+              <div key={p.platform} className={`nm-raised rounded-2xl p-5 border ${cfg.bg}`}>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <span className={`text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full bg-white/5 ${PLATFORM_COLOR[p.platform] ?? "text-white/40"}`}>

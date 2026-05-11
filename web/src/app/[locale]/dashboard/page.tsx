@@ -55,9 +55,9 @@ function ProductCard({ p }: { p: Product }) {
   return (
     <Link
       href={`/product/${p.id}`}
-      className="glass-card rounded-2xl p-5 flex gap-4 hover:-translate-y-1 transition-transform duration-300 group"
+      className="nm-raised nm-interactive rounded-2xl p-5 flex gap-4 group"
     >
-      <div className="w-14 h-14 rounded-xl bg-white/5 flex-shrink-0 overflow-hidden">
+      <div className="w-14 h-14 rounded-xl nm-inset flex-shrink-0 overflow-hidden">
         {p.image_url
           ? <img src={p.image_url} alt="" className="w-full h-full object-contain p-1" />
           : <div className="w-full h-full flex items-center justify-center text-white/20"><ShoppingCart size={24} /></div>
@@ -198,7 +198,7 @@ export default function DashboardPage() {
           { label: "Active Alerts", value: loadingAlerts ? "…" : activeAlerts.length.toString(), sub: `of 3 free` },
           { label: "Price Hits", value: loadingAlerts ? "…" : hitAlerts.length.toString(), sub: "ready to buy" },
         ].map((s) => (
-          <div key={s.label} className="glass-card rounded-2xl p-4 text-center">
+          <div key={s.label} className="nm-raised rounded-2xl p-4 text-center">
             <p className="text-2xl font-black font-mono">{s.value}</p>
             <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mt-0.5">{s.label}</p>
             <p className="text-[9px] text-white/20 mt-0.5">{s.sub}</p>
@@ -223,7 +223,7 @@ export default function DashboardPage() {
               <Loader2 size={24} className="animate-spin text-indigo-400" />
             </div>
           ) : products.length === 0 ? (
-            <div className="text-center py-16 glass-card rounded-2xl">
+            <div className="text-center py-16 nm-raised rounded-2xl">
               <div className="flex justify-center mb-4 text-white/20">
                 <Activity size={48} strokeWidth={1.5} />
               </div>
@@ -258,7 +258,7 @@ export default function DashboardPage() {
             </Link>
           </div>
 
-          <div className="glass-card rounded-2xl p-4">
+          <div className="nm-raised rounded-2xl p-4">
             {!email ? (
               <div className="text-center py-6">
                 <div className="flex justify-center mb-3 text-white/20">

@@ -56,7 +56,7 @@ function EmailGate({ onSubmit }: { onSubmit: (email: string) => void }) {
   };
 
   return (
-    <div className="glass-card rounded-2xl p-8 text-center max-w-sm mx-auto">
+    <div className="nm-raised rounded-2xl p-8 text-center max-w-sm mx-auto">
       <div className="flex justify-center mb-5 text-indigo-400">
         <Mailbox size={48} strokeWidth={1.5} />
       </div>
@@ -70,14 +70,14 @@ function EmailGate({ onSubmit }: { onSubmit: (email: string) => void }) {
           value={email}
           onChange={(e) => { setEmail(e.target.value); setError(""); }}
           placeholder="you@example.com"
-          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-500/50 transition-all"
+          className="w-full nm-inset rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all"
           autoFocus
         />
         {error && <p className="text-red-400 text-xs text-left">{error}</p>}
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+          className="w-full py-3 nm-btn-primary rounded-xl text-xs uppercase tracking-widest disabled:opacity-50"
         >
           {loading ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Find My Alerts"}
         </button>
@@ -138,9 +138,9 @@ function AlertCard({
   const saving = savings(alert.current_price, alert.target_price);
 
   return (
-    <div className={`glass-card rounded-2xl p-5 flex gap-4 transition-opacity ${!alert.is_active ? "opacity-50" : ""}`}>
+    <div className={`nm-raised rounded-2xl p-5 flex gap-4 transition-opacity ${!alert.is_active ? "opacity-50" : ""}`}>
       {/* Product image */}
-      <div className="w-14 h-14 rounded-xl bg-white/5 flex-shrink-0 overflow-hidden">
+      <div className="w-14 h-14 rounded-xl nm-inset flex-shrink-0 overflow-hidden">
         {alert.product_image
           ? <img src={alert.product_image} alt="" className="w-full h-full object-contain p-1" />
           : <div className="w-full h-full flex items-center justify-center text-white/20"><ShoppingCart size={24} /></div>
@@ -306,7 +306,7 @@ export default function AlertsPage() {
 
       {/* Error */}
       {email && fetchError && (
-        <div className="glass-card rounded-2xl p-5 flex items-center gap-3 text-red-400 text-sm">
+        <div className="nm-raised rounded-2xl p-5 flex items-center gap-3 text-red-400 text-sm">
           <AlertCircle size={18} />
           {fetchError}
           <button
@@ -344,7 +344,7 @@ export default function AlertsPage() {
 
           {/* Free tier limit banner */}
           {atLimit && (
-            <div className="mb-5 glass-card rounded-2xl p-4 border border-amber-500/20 flex items-center justify-between gap-4">
+            <div className="mb-5 nm-raised rounded-2xl p-4 border border-amber-500/20 flex items-center justify-between gap-4">
               <p className="text-sm text-amber-300/80">
                 Free tier: {FREE_LIMIT} active alerts maximum.
               </p>
@@ -389,7 +389,7 @@ export default function AlertsPage() {
           )}
 
           {/* How it works */}
-          <div className="mt-8 glass-card rounded-2xl p-6 border border-white/5">
+          <div className="mt-8 nm-raised rounded-2xl p-6">
             <h3 className="font-black font-outfit text-xs uppercase tracking-widest text-indigo-400 mb-4">
               How alerts work
             </h3>
@@ -401,7 +401,7 @@ export default function AlertsPage() {
                 { icon: "04", text: `Free: ${FREE_LIMIT} active alerts · Premium: unlimited` },
               ].map((s, i) => (
                 <div key={i} className="flex items-center gap-3 text-sm text-white/50">
-                  <span className="w-6 h-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-mono text-white/80 shrink-0">{s.icon}</span>
+                  <span className="w-6 h-6 nm-raised rounded-full flex items-center justify-center text-[10px] font-mono text-white/80 shrink-0">{s.icon}</span>
                   <span>{s.text}</span>
                 </div>
               ))}

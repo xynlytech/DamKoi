@@ -211,3 +211,86 @@
   outline: 2px solid hsl(var(--ring));
   outline-offset: 3px;
 }
+
+/* ─── Light Mode ────────────────────────────────────────────────
+ * Applied via `.light` class on <html>.
+ * L=92% navy-tinted base → proper light neumorphism dual-shadow contrast.
+ */
+.light {
+  color-scheme: light;
+
+  /* Color vars — light palette */
+  --background: 220 28% 93%;
+  --foreground: 220 40% 12%;
+  --card: 220 28% 93%;
+  --card-foreground: 220 40% 12%;
+  --popover: 220 28% 93%;
+  --popover-foreground: 220 40% 12%;
+  --primary: 239 84% 58%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 28% 87%;
+  --secondary-foreground: 220 40% 12%;
+  --muted: 220 28% 87%;
+  --muted-foreground: 220 20% 42%;
+  --accent: 239 84% 58%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 55%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 28% 82%;
+  --input: 220 28% 88%;
+  --ring: 239 84% 58%;
+
+  /* Light neumorphism shadow tokens */
+  --nm-light:    rgba(255, 255, 255, 0.90);
+  --nm-dark:     rgba(163, 177, 198, 0.70);
+  --nm-light-sm: rgba(255, 255, 255, 0.70);
+  --nm-dark-sm:  rgba(163, 177, 198, 0.48);
+}
+
+/* nm-header in light mode */
+.light .nm-header {
+  background-color: hsla(220, 28%, 93%, 0.92);
+  border-color: rgba(163, 177, 198, 0.35);
+  box-shadow:
+    -6px  -6px 20px rgba(255, 255, 255, 0.85),
+     6px   6px 20px rgba(163, 177, 198, 0.65),
+     0    16px 48px  rgba(163, 177, 198, 0.25);
+}
+
+/* nm-inset in light mode — slightly darker concave surface */
+.light .nm-inset {
+  background-color: hsl(220 28% 88%);
+  border-color: rgba(163, 177, 198, 0.30);
+  box-shadow:
+    inset  6px  6px 16px rgba(163, 177, 198, 0.55),
+    inset -6px -6px 16px rgba(255, 255, 255, 0.85);
+}
+
+/* ── Remap white-opacity text classes to dark equivalents in light mode ─ */
+.light .text-white    { color: hsl(220 40% 12%) !important; }
+.light .text-white\/90 { color: rgba(15, 25, 45, 0.90) !important; }
+.light .text-white\/80 { color: rgba(15, 25, 45, 0.82) !important; }
+.light .text-white\/70 { color: rgba(15, 25, 45, 0.72) !important; }
+.light .text-white\/60 { color: rgba(15, 25, 45, 0.65) !important; }
+.light .text-white\/50 { color: rgba(15, 25, 45, 0.55) !important; }
+.light .text-white\/45 { color: rgba(15, 25, 45, 0.50) !important; }
+.light .text-white\/40 { color: rgba(15, 25, 45, 0.45) !important; }
+.light .text-white\/38 { color: rgba(15, 25, 45, 0.42) !important; }
+.light .text-white\/35 { color: rgba(15, 25, 45, 0.40) !important; }
+.light .text-white\/30 { color: rgba(15, 25, 45, 0.38) !important; }
+.light .text-white\/25 { color: rgba(15, 25, 45, 0.32) !important; }
+.light .text-white\/20 { color: rgba(15, 25, 45, 0.30) !important; }
+.light .text-white\/10 { color: rgba(15, 25, 45, 0.18) !important; }
+
+/* ── Remap white-opacity bg classes ─ */
+.light .bg-white\/5  { background-color: rgba(15, 25, 45, 0.04) !important; }
+.light .bg-white\/3  { background-color: rgba(15, 25, 45, 0.02) !important; }
+.light .bg-white\/8  { background-color: rgba(15, 25, 45, 0.06) !important; }
+.light .bg-white\/10 { background-color: rgba(15, 25, 45, 0.08) !important; }
+
+/* ── Remap white-opacity border classes ─ */
+.light .border-white\/5  { border-color: rgba(15, 25, 45, 0.08) !important; }
+.light .border-white\/8  { border-color: rgba(15, 25, 45, 0.10) !important; }
+.light .border-white\/10 { border-color: rgba(15, 25, 45, 0.13) !important; }
+.light .border-white\/15 { border-color: rgba(15, 25, 45, 0.16) !important; }
+.light .border-white\/20 { border-color: rgba(15, 25, 45, 0.20) !important; }

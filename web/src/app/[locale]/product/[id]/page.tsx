@@ -270,7 +270,7 @@ export default async function ProductPage({
           </div>
 
           {/* Verdict card */}
-          <div className="glass-card rounded-[2.5rem] p-8 relative overflow-hidden border-indigo-500/10">
+          <div className="nm-raised rounded-2xl p-8 relative overflow-hidden">
             <div className="flex flex-col sm:flex-row items-center gap-8">
               {verdict && <ScoreRing score={verdict.deal_score} />}
               <div className="flex-1 text-center sm:text-left">
@@ -300,7 +300,7 @@ export default async function ProductPage({
               { label: "All-Time Low", val: fmt(verdict?.all_time_low)          },
               { label: "Discount", val: product.platform_discount_pct ? `${product.platform_discount_pct}%` : "—" },
             ].map((m) => (
-              <div key={m.label} className="glass-card rounded-2xl p-4">
+              <div key={m.label} className="nm-raised rounded-2xl p-4">
                 <p className="text-[9px] font-black uppercase tracking-widest text-white/20 mb-1">{m.label}</p>
                 <p className={`text-sm font-black font-mono ${m.hi ? "text-indigo-400" : "text-white"}`}>{m.val}</p>
               </div>
@@ -309,7 +309,7 @@ export default async function ProductPage({
 
           {/* AI Product Lens */}
           {lens && (
-            <div className="glass-card rounded-[2.5rem] p-8 border-indigo-500/20 relative overflow-hidden">
+            <div className="nm-raised rounded-2xl p-8 relative overflow-hidden">
               <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
                 <Sparkles className="w-24 h-24 text-indigo-400" />
               </div>
@@ -357,9 +357,9 @@ export default async function ProductPage({
 
           {/* Cross-platform alternatives */}
           {compare && compare.alternatives.length > 1 && (
-            <div className="glass-card rounded-[2.5rem] p-8">
+            <div className="nm-raised rounded-2xl p-8">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-9 h-9 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 text-indigo-400">
+                <div className="w-9 h-9 nm-raised rounded-xl flex items-center justify-center text-indigo-400">
                   <Layers size={16} />
                 </div>
                 <div>
@@ -371,10 +371,10 @@ export default async function ProductPage({
                 {compare.alternatives.map((alt) => (
                   <div
                     key={alt.id}
-                    className={`flex items-center gap-4 p-4 rounded-2xl border ${
+                    className={`flex items-center gap-4 p-4 rounded-2xl transition-all ${
                       alt.is_original_request
-                        ? "bg-white/5 border-white/10"
-                        : "bg-black/20 border-white/5 hover:border-white/10 transition-colors"
+                        ? "nm-inset"
+                        : "nm-raised nm-interactive"
                     }`}
                   >
                     {alt.image_url ? (
@@ -415,7 +415,7 @@ export default async function ProductPage({
         <div className="lg:col-span-5 flex flex-col gap-6">
 
           {product.image_url && (
-            <div className="glass-card rounded-[2.5rem] p-4 border-white/5 aspect-square overflow-hidden">
+            <div className="nm-raised rounded-2xl p-4 aspect-square overflow-hidden">
               <img
                 src={product.image_url}
                 alt={product.title}
@@ -428,7 +428,7 @@ export default async function ProductPage({
           <AlertFormClient productId={id} currentPrice={product.current_price} />
 
           {/* Market stats */}
-          <div className="glass-card rounded-2xl p-6">
+          <div className="nm-raised rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-5">
               <TrendingDown size={13} className="text-indigo-400" />
               <span className="text-[10px] font-black uppercase tracking-widest text-white/30">Market Stats</span>

@@ -75,11 +75,11 @@ export default function DealsLoadMore({ initialDeals, platform, category, minSco
           <Link
             key={deal.product.id}
             href={`/product/${deal.product.id}`}
-            className="glass-card rounded-2xl p-5 flex flex-col gap-3 hover:-translate-y-1 transition-transform duration-300 group"
+            className="nm-raised nm-interactive rounded-2xl p-5 flex flex-col gap-3 group"
           >
             <div className="flex items-start gap-3">
               {deal.product.image_url && (
-                <div className="w-14 h-14 rounded-xl bg-white/5 flex-shrink-0 overflow-hidden">
+                <div className="w-14 h-14 rounded-xl nm-inset flex-shrink-0 overflow-hidden">
                   <img src={deal.product.image_url} alt="" className="w-full h-full object-contain p-1" />
                 </div>
               )}
@@ -119,7 +119,7 @@ export default function DealsLoadMore({ initialDeals, platform, category, minSco
           <button
             onClick={loadMore}
             disabled={loading}
-            className="flex items-center gap-2 px-8 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-sm uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95"
+            className="flex items-center gap-2 px-8 py-3 nm-btn-primary rounded-2xl disabled:opacity-50 text-sm uppercase tracking-widest"
           >
             {loading ? (
               <><Loader2 size={16} className="animate-spin" /> Loading…</>

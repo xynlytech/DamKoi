@@ -54,7 +54,7 @@ export default function AlertFormClient({
 
   if (status === "ok") {
     return (
-      <div className="glass-card rounded-2xl p-6 border border-emerald-500/20 bg-emerald-500/5 text-center">
+      <div className="nm-raised rounded-2xl p-6 border border-emerald-500/20 text-center">
         <div className="flex justify-center mb-2 text-emerald-400">
           <CheckCircle2 size={32} />
         </div>
@@ -70,9 +70,9 @@ export default function AlertFormClient({
   }
 
   return (
-    <div className="glass-card rounded-2xl p-6 border border-white/5">
+    <div className="nm-raised rounded-2xl p-6">
       <div className="flex items-center gap-3 mb-5">
-        <div className="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
+        <div className="w-8 h-8 nm-raised rounded-xl flex items-center justify-center">
           <Bell size={14} className="text-indigo-400" />
         </div>
         <span className="text-sm font-black font-outfit uppercase tracking-wider text-white/80">
@@ -87,7 +87,7 @@ export default function AlertFormClient({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-500/50 transition-all"
+          className="w-full nm-inset rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all"
         />
         <div className="relative">
           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30 font-mono text-sm">৳</span>
@@ -98,7 +98,7 @@ export default function AlertFormClient({
             onChange={(e) => setPrice(e.target.value)}
             required
             min="1"
-            className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-3 text-sm font-mono outline-none focus:border-indigo-500/50 transition-all"
+            className="w-full nm-inset rounded-xl pl-9 pr-4 py-3 text-sm font-mono outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all"
           />
         </div>
         {currentPrice && (
@@ -110,7 +110,7 @@ export default function AlertFormClient({
         <button
           type="submit"
           disabled={status === "loading"}
-          className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full py-3 nm-btn-primary rounded-xl text-xs uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {status === "loading" ? (
             <><Loader2 size={14} className="animate-spin" /> Setting Alert…</>

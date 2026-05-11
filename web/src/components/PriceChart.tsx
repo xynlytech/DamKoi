@@ -51,7 +51,7 @@ export function PriceChart({ productId, data, currentPrice, originalPrice, produ
   const isGoodDeal = currentPrice <= lowestPrice * 1.05;
 
   return (
-    <div className="glass-card rounded-xl border border-white/5 p-6 overflow-hidden relative group">
+    <div className="nm-raised rounded-xl p-6 overflow-hidden relative group">
       {/* Background glow */}
       <div className="absolute -inset-2bg-primary/20 blur-2xl opacity-0 group-hover:opacity-30 transition-opacity duration-700 pointer-events-none" />
 
