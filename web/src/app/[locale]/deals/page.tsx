@@ -65,10 +65,10 @@ export default async function DealsPage({
           <Link
             key={p}
             href={`/deals?platform=${p}&category=${category}&score=${minScore}`}
-            className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest border transition-all ${
+            className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all duration-200 ${
               platform === p
-                ? "bg-indigo-600 border-indigo-500 text-white"
-                : "bg-white/5 border-white/10 text-white/40 hover:border-white/20"
+                ? "nm-btn-primary"
+                : "nm-pill text-white/40 hover:text-white/70"
             }`}
           >
             {p || "All Platforms"}
@@ -79,10 +79,10 @@ export default async function DealsPage({
             <Link
               key={s}
               href={`/deals?platform=${platform}&category=${category}&score=${s}`}
-              className={`px-3 py-2 rounded-full text-xs font-black border transition-all ${
+              className={`px-3 py-2 rounded-full text-xs font-black transition-all duration-200 ${
                 minScore === s
-                  ? "bg-indigo-600 border-indigo-500 text-white"
-                  : "bg-white/5 border-white/10 text-white/40 hover:border-white/20"
+                  ? "nm-btn-primary"
+                  : "nm-pill text-white/40 hover:text-white/70"
               }`}
             >
               Score ≥{s}
@@ -97,10 +97,10 @@ export default async function DealsPage({
           <Link
             key={c}
             href={`/deals?platform=${platform}&category=${c}&score=${minScore}`}
-            className={`px-3 py-1.5 rounded-full text-[11px] font-bold capitalize border transition-all ${
+            className={`px-3 py-1.5 rounded-full text-[11px] font-bold capitalize transition-all duration-200 ${
               category === c
-                ? "bg-emerald-600 border-emerald-500 text-white"
-                : "bg-white/5 border-white/10 text-white/30 hover:border-white/20"
+                ? "nm-btn-primary"
+                : "nm-pill text-white/30 hover:text-white/60"
             }`}
           >
             {c || "All Categories"}
@@ -110,12 +110,14 @@ export default async function DealsPage({
 
       {/* Deals grid + Load More */}
       {deals.length === 0 ? (
-        <div className="text-center py-20 text-white/20">
-          <div className="flex justify-center mb-4 text-white/20">
-            <Search size={48} strokeWidth={1.5} />
+        <div className="text-center py-20">
+          <div className="nm-raised w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white/20">
+            <Search size={36} strokeWidth={1.5} />
           </div>
-          <p className="font-black uppercase tracking-widest text-sm">No deals matched your filters</p>
-          <Link href="/deals" className="mt-4 inline-block text-indigo-400 text-sm hover:text-indigo-300">
+          <p className="font-black uppercase tracking-widest text-sm text-white/30 mb-4">
+            No deals matched your filters
+          </p>
+          <Link href="/deals" className="nm-pill inline-block px-5 py-2.5 rounded-xl text-indigo-400 text-sm font-bold hover:text-indigo-300 transition-colors">
             Reset filters
           </Link>
         </div>
