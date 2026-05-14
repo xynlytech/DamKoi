@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Bell, Mail, Trash2, PauseCircle, PlayCircle,
@@ -188,21 +189,25 @@ function AlertCard({
 // ── Main Page ─────────────────────────────────────────────────
 
 export default function AlertsPage() {
+  const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState("");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      setEmail(data.session?.user?.email ?? null);
+      if (!data.session) { router.replace("/login"); return; }
+      setEmail(data.session.user.email ?? null);
+      setAuthChecked(true);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setEmail(session?.user?.email ?? null);
-      if (!session) setAlerts([]);
+      if (!session) { router.replace("/login"); return; }
+      setEmail(session.user.email ?? null);
     });
     return () => subscription.unsubscribe();
-  }, []);
+  }, [router]);
 
   const fetchAlerts = useCallback(async (e: string) => {
     setLoading(true);
@@ -240,6 +245,14 @@ export default function AlertsPage() {
   const activeCount = alerts.filter((a) => a.is_active).length;
   const atLimit = activeCount >= FREE_LIMIT;
 
+  if (!authChecked) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <Loader2 size={28} className="animate-spin text-indigo-400" />
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 max-w-3xl">
       {/* Header */}
@@ -267,9 +280,6 @@ export default function AlertsPage() {
           </div>
         )}
       </div>
-
-      {/* Auth gate */}
-      {!email && <SignInGate />}
 
       {/* Loading */}
       {email && loading && (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowUpRight, Bell, TrendingDown, TrendingUp,
@@ -140,22 +141,27 @@ function AlertsSignInPrompt() {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [email, setEmail] = useState<string | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadingAlerts, setLoadingAlerts] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      setEmail(data.session?.user?.email ?? null);
+      if (!data.session) { router.replace("/login"); return; }
+      setEmail(data.session.user.email ?? null);
+      setAuthChecked(true);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setEmail(session?.user?.email ?? null);
+      if (!session) { router.replace("/login"); return; }
+      setEmail(session.user.email ?? null);
     });
     return () => subscription.unsubscribe();
-  }, []);
+  }, [router]);
 
   const fetchProducts = useCallback(async () => {
     setLoadingProducts(true);
@@ -193,6 +199,14 @@ export default function DashboardPage() {
 
   const activeAlerts = alerts.filter((a) => a.is_active);
   const hitAlerts = alerts.filter((a) => a.current_price !== null && a.current_price <= a.target_price);
+
+  if (!authChecked) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <Loader2 size={28} className="animate-spin text-indigo-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 max-w-5xl">
@@ -283,9 +297,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="nm-raised rounded-2xl p-4">
-            {!email ? (
-              <AlertsSignInPrompt />
-            ) : loadingAlerts ? (
+            {loadingAlerts ? (
               <div className="flex justify-center py-8">
                 <Loader2 size={20} className="animate-spin text-indigo-400" />
               </div>
