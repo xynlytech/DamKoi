@@ -1,6 +1,6 @@
 # 🚀 DamKoi Launch Status — April 21, 2026
 
-## Current Status: 🟡 95% Ready — Telegram Config Issue Only
+## Current Status: 🟡 95% Ready — Production Cron Wiring + Chrome Web Store Submission
 
 ---
 
@@ -10,7 +10,7 @@
 - **API:** Production-ready, all endpoints tested
 - **Database:** Supabase PostgreSQL configured
 - **Verdict Engine:** 100% accuracy verified (8/8 test products)
-- **Scraper Tasks:** Integrated with APScheduler
+- **Scheduled Tasks:** Local APScheduler exists; production uses authenticated `/cron/*` routes with Vercel Cron/Supabase scheduled jobs
 - **Sentry Integration:** Configured with DSN, ready to monitor errors
 - **Email Alerts:** Resend API configured
 - **Price Snapshots:** Append-only pattern working
@@ -27,36 +27,26 @@
 - ✅ Sentry DSN added to .env
 - ✅ Redis (Upstash) configured
 - ✅ Email service (Resend) configured
-- 🟡 Telegram bot token valid, but needs group verification
+- ✅ Telegram bot/chat verified locally
+- 🟡 Confirm Sentry/Telegram/Admin/Cron env vars in Vercel
 
 ---
 
-## 🟡 Blocking Issue: Telegram Group Configuration
+## 🟡 Blocking Issue: Production Scheduled Jobs
 
-**Problem:** Bot can't send messages to group (Chat ID issue)
-
-**Solution Steps:**
-1. Open Telegram app → "DamKoi Alerts" group
-2. Check group info → Members
-3. If `@damkoi_alerts_bot` is NOT listed, add it:
-   - Tap "Add Member"
-   - Search "damkoi_alerts_bot"
-   - Add to group
-4. Once added, run this to verify:
-   ```bash
-   cd backend && source venv/bin/activate && python3 test_telegram.py
-   ```
-
-**Why:** The bot needs to be a member of the group to send messages. The Chat ID (-5251260013) is correct, but the bot isn't in that group yet.
+Vercel serverless skips APScheduler. The code now exposes authenticated `/cron/*`
+endpoints and `backend/vercel.json` schedules them, but production is only covered
+after `CRON_SECRET` is configured in Vercel and each cron path has returned 200 at
+least once.
 
 ---
 
 ## 📋 Immediate Next Steps (This Week)
 
-### 1. Verify Telegram Setup (5 minutes)
-- [ ] Add bot to "DamKoi Alerts" group
-- [ ] Run `test_telegram.py` to verify
-- **Result:** ✅ Scraper alerts will work
+### 1. Verify Vercel Env + Cron Setup (15 minutes)
+- [ ] Add `SENTRY_DSN`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `ADMIN_TOKEN`, `CRON_SECRET` in Vercel
+- [ ] Trigger `/cron/daily-digest`, `/cron/alerts`, `/cron/matching` once
+- **Result:** ✅ Production jobs and monitoring work
 
 ### 2. Create Privacy Policy (15 minutes)
 - [ ] Write simple 1-page policy
@@ -93,7 +83,8 @@
 | Extension | ✅ READY | Critical |
 | Manifest (prod) | ✅ READY | Critical |
 | Sentry monitoring | ✅ READY (needs DSN restart) | High |
-| Telegram alerts | 🟡 NEEDS FIX | High |
+| Telegram alerts | ✅ LOCAL VERIFIED | High |
+| Production cron routes | 🟡 NEEDS VERCEL CONFIRMATION | Critical |
 | Privacy policy | ❌ TODO | Required |
 | Chrome Web Store upload | ❌ TODO | Required |
 | Icons | ✅ OK (placeholder) | Nice-to-have |
@@ -124,7 +115,7 @@
 
 **If you do these 5 things TODAY:**
 
-1. **Fix Telegram** (5 min): Add bot to group + run test
+1. **Confirm Vercel env + cron** (15 min): add secrets and trigger cron routes
 2. **Create privacy policy** (15 min): Simple 1-page covering data usage
 3. **Upload to Chrome Web Store** (15 min): Use CHROME_WEBSTORE_SUBMISSION.md
 4. **Post 2 social posts** (10 min): Use SOFT_LAUNCH_CONTENT.md templates
@@ -144,7 +135,8 @@
 ✅ SUPABASE keys (Auth)
 ✅ SENTRY_DSN (Error monitoring)
 ✅ TELEGRAM_BOT_TOKEN (Valid bot)
-🟡 TELEGRAM_CHAT_ID (Bot not in group)
+✅ TELEGRAM_CHAT_ID (Local test passed)
+🟡 ADMIN_TOKEN / CRON_SECRET (Set in Vercel before production admin/cron use)
 ✅ RESEND_API_KEY (Email)
 ```
 
@@ -152,7 +144,7 @@
 
 ## 🚀 Ready to Launch?
 
-**YES, with one caveat:** Fix the Telegram group issue first. Once the bot is added to the "DamKoi Alerts" group, you're 100% ready.
+**YES, with one caveat:** confirm Vercel environment variables and cron routes first.
 
 **Estimated time to full launch:** 1-2 hours (if doing all tasks today)
 

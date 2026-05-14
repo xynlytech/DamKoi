@@ -113,6 +113,7 @@ class CouponResponse(BaseModel):
     min_spend: Optional[int] = None
     expires_at: Optional[datetime] = None
     display_discount: str
+    payment_method: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -729,14 +730,13 @@ async def get_alternatives(
 @router.get("/{product_id}/coupons", response_model=list[CouponResponse], tags=["Products"])
 async def get_product_coupons(
     product_id: UUID,
+    payment_method: Optional[str] = Query(None, description="Filter by payment method, e.g. 'bkash', 'nagad'. Omit for all."),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Return all active coupon codes applicable to a product.
-    Includes product-specific coupons and platform-wide vouchers.
-    Coupons are refreshed every 2 hours by the background scheduler.
+    Return active coupons for a product. Optionally filter by payment_method
+    to surface bKash/Nagad-specific codes at checkout.
     """
-    # Verify product exists
     result = await db.execute(select(Product).where(Product.id == product_id))
     product = result.scalar_one_or_none()
     if not product:
@@ -744,7 +744,11 @@ async def get_product_coupons(
 
     coupons = await get_coupons_for_product(product_id, db, include_platform=True)
 
-    # Serialize — include computed display_discount
+    # Filter: keep coupons valid for requested method OR with no method restriction
+    if payment_method:
+        pm = payment_method.strip().lower()
+        coupons = [c for c in coupons if c.payment_method is None or c.payment_method == pm]
+
     return [
         CouponResponse(
             id=c.id,
@@ -755,6 +759,7 @@ async def get_product_coupons(
             min_spend=c.min_spend,
             expires_at=c.expires_at,
             display_discount=c.display_discount,
+            payment_method=c.payment_method,
         )
         for c in coupons
     ]

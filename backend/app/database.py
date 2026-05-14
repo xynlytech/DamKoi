@@ -11,7 +11,7 @@ from app.config import settings
 
 
 def _async_db_url(url: str) -> str:
-    """Normalize Supabase/Render postgresql:// URLs to postgresql+asyncpg://.
+    """Normalize managed Postgres URLs to postgresql+asyncpg://.
     Falls back to local SQLite when DATABASE_URL is not set (dev/CI only)."""
     if not url:
         return "sqlite+aiosqlite:///./damkoi_local.db"

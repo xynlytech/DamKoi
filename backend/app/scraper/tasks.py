@@ -776,6 +776,20 @@ async def _send_alert_notification(
             else:
                 print(f"   [ERROR] Telegram DM failed -> chat_id={tg_chat_id}")
 
+    # ── Web Push channel ───────────────────────────────────────
+    if "push" in channels:
+        to_email = (user.email if user else None) or getattr(alert, "email", None)
+        if not to_email:
+            print(f"   [WARN] Alert {alert.id}: 'push' in notify_via but no email -- skipping.")
+        else:
+            await _send_push_notifications(
+                email=to_email,
+                product_title=product.title,
+                product_url=product.url,
+                current_price=current_price_bdt,
+                db=db,
+            )
+
 
 # ── Coupon Refresh Task ───────────────────────────────────────
 
@@ -887,4 +901,67 @@ async def run_continuous_backfill(batch_size: int = 50):
         print("[OK] Continuous backfill batch complete.")
     except Exception as e:
         logger.error(f"Continuous backfill failed: {e}")
+
+
+# ── Web Push Helper ───────────────────────────────────────────
+
+async def _send_push_notifications(
+    email: str,
+    product_title: str,
+    product_url: str,
+    current_price: float,
+    db: AsyncSession,
+) -> None:
+    """Send Web Push to all active subscriptions for this email."""
+    import json
+    from app.models.push_subscription import PushSubscription
+    from app.config import settings
+
+    if not settings.VAPID_PRIVATE_KEY or not settings.VAPID_PUBLIC_KEY:
+        print("   [WARN] VAPID keys not configured — skipping push channel.")
+        return
+
+    try:
+        from pywebpush import webpush, WebPushException
+    except ImportError:
+        print("   [WARN] pywebpush not installed — skipping push channel.")
+        return
+
+    result = await db.execute(
+        select(PushSubscription).where(
+            PushSubscription.email == email,
+            PushSubscription.is_active == True,
+        )
+    )
+    subs = result.scalars().all()
+    if not subs:
+        return
+
+    payload = json.dumps({
+        "title": "DamKoi Price Drop!",
+        "body": f"{product_title[:60]} is now ৳{current_price:,.0f}",
+        "url": product_url,
+        "icon": "/icons/dk_logo.png",
+    })
+
+    for sub in subs:
+        try:
+            subscription_info = json.loads(sub.subscription_json)
+            webpush(
+                subscription_info=subscription_info,
+                data=payload,
+                vapid_private_key=settings.VAPID_PRIVATE_KEY,
+                vapid_claims={"sub": settings.VAPID_EMAIL},
+            )
+            print(f"   [OK] Push sent -> {email}")
+        except WebPushException as e:
+            status = getattr(e.response, "status_code", None)
+            if status in (404, 410):
+                # Subscription expired — deactivate
+                sub.is_active = False
+                print(f"   [INFO] Push sub expired ({status}), deactivated: {email}")
+            else:
+                print(f"   [ERROR] Push failed for {email}: {e}")
+        except Exception as e:
+            print(f"   [ERROR] Push unexpected error for {email}: {e}")
         logger.exception("Backfill exception")

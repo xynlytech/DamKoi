@@ -74,7 +74,7 @@ export default async function ComparePage({
       <div className="container mx-auto px-4 max-w-4xl py-20 text-center">
         <Search size={48} className="text-white/20 mx-auto mb-4" />
         <h1 className="text-2xl font-black mb-2">Product not found</h1>
-        <p className="text-white/40 mb-6 text-sm">This product doesn't exist or was removed.</p>
+        <p className="text-white/40 mb-6 text-sm">This product does not exist or was removed.</p>
         <Link href="/" className="text-indigo-400 hover:text-indigo-300 text-sm">← Back to homepage</Link>
       </div>
     );
@@ -111,7 +111,7 @@ export default async function ComparePage({
           <AlertTriangle size={32} className="mx-auto text-amber-400 mb-4" />
           <h2 className="font-black text-lg mb-2">No cross-platform matches yet</h2>
           <p className="text-white/40 text-sm max-w-xs mx-auto">
-            Our matching engine hasn't clustered this product across platforms yet.
+            Our matching engine has not clustered this product across platforms yet.
             Check back in a few hours.
           </p>
           <Link href={`/product/${slug}`} className="mt-6 inline-block text-indigo-400 text-sm hover:text-indigo-300">

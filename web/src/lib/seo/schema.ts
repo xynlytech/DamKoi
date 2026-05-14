@@ -8,11 +8,29 @@ export type SchemaConfig = {
   baseUrl: string;
 };
 
+type ProductSchemaInput = {
+  id: string;
+  title: string;
+  image_url?: string | null;
+  platform: string;
+  brand?: string | null;
+  deal_score?: number | null;
+  external_id: string;
+  current_price?: number | null;
+  in_stock?: boolean | null;
+  url: string;
+};
+
+type PriceHistorySchemaInput = {
+  price: number;
+  scraped_at: string;
+};
+
 export const SchemaEngine = {
   /**
    * Generates Product Schema with Price History
    */
-  product(product: any, history: any[], config: SchemaConfig) {
+  product(product: ProductSchemaInput, history: PriceHistorySchemaInput[], config: SchemaConfig) {
     const prices = history.map(h => ({
       "@type": "PriceSpecification",
       "price": h.price / 100,

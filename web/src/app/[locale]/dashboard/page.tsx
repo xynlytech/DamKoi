@@ -5,11 +5,11 @@ import Link from "next/link";
 import {
   ArrowUpRight, Bell, TrendingDown, TrendingUp,
   Minus, LayoutDashboard, RefreshCw, Loader2,
-  ShoppingCart, Activity, BellOff
+  ShoppingCart, Activity, BellOff, User
 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
-const EMAIL_KEY = "damkoi_alert_email";
 
 type Product = {
   id: string;
@@ -120,6 +120,25 @@ function AlertRow({ a }: { a: Alert }) {
   );
 }
 
+function AlertsSignInPrompt() {
+  return (
+    <div className="py-6 text-center">
+      <div className="flex justify-center mb-3 text-white/20">
+        <User size={32} strokeWidth={1.5} />
+      </div>
+      <p className="text-xs text-white/40 mb-4 leading-relaxed">
+        Sign in to see your price alerts.
+      </p>
+      <Link
+        href="/login"
+        className="inline-block py-2.5 px-5 nm-btn-primary rounded-xl text-[10px] uppercase tracking-widest font-black"
+      >
+        Sign In
+      </Link>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -129,8 +148,13 @@ export default function DashboardPage() {
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   useEffect(() => {
-    const stored = localStorage.getItem(EMAIL_KEY);
-    if (stored) setEmail(stored);
+    supabase.auth.getSession().then(({ data }) => {
+      setEmail(data.session?.user?.email ?? null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setEmail(session?.user?.email ?? null);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   const fetchProducts = useCallback(async () => {
@@ -260,20 +284,7 @@ export default function DashboardPage() {
 
           <div className="nm-raised rounded-2xl p-4">
             {!email ? (
-              <div className="text-center py-6">
-                <div className="flex justify-center mb-3 text-white/20">
-                  <Bell size={40} strokeWidth={1.5} />
-                </div>
-                <p className="text-sm text-white/40 mb-4 leading-relaxed">
-                  Sign in with your email to see your alerts here.
-                </p>
-                <Link
-                  href="/alerts"
-                  className="text-xs text-indigo-400 hover:text-indigo-300 underline transition-colors"
-                >
-                  Go to Alerts →
-                </Link>
-              </div>
+              <AlertsSignInPrompt />
             ) : loadingAlerts ? (
               <div className="flex justify-center py-8">
                 <Loader2 size={20} className="animate-spin text-indigo-400" />

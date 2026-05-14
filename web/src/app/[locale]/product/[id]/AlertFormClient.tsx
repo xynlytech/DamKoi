@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Bell, Loader2, CheckCircle2 } from "lucide-react";
+import { Bell, Loader2, CheckCircle2, Smartphone } from "lucide-react";
+import { isPushSupported, subscribeToPush, getPushState } from "@/lib/push";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
 const EMAIL_KEY = "damkoi_alert_email";
@@ -17,10 +18,17 @@ export default function AlertFormClient({
   const [price, setPrice] = useState(currentPrice ? String((currentPrice / 100) * 0.9 | 0) : "");
   const [status, setStatus] = useState<"idle" | "loading" | "ok" | "err">("idle");
   const [msg, setMsg] = useState("");
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushState, setPushState] = useState<"unsupported" | "denied" | "subscribed" | "idle">("idle");
 
   useEffect(() => {
     const stored = localStorage.getItem(EMAIL_KEY);
     if (stored) setEmail(stored);
+    if (isPushSupported()) {
+      getPushState().then(setPushState);
+    } else {
+      setPushState("unsupported");
+    }
   }, []);
 
   const submit = async (e: React.FormEvent) => {
@@ -29,6 +37,14 @@ export default function AlertFormClient({
     if (!trimmed.includes("@") || !price) return;
     setStatus("loading");
     try {
+      const notifyVia: string[] = ["email"];
+      if (pushEnabled && pushState !== "subscribed") {
+        const ok = await subscribeToPush(trimmed);
+        if (ok) notifyVia.push("push");
+      } else if (pushState === "subscribed") {
+        notifyVia.push("push");
+      }
+
       const res = await fetch(`${API}/alerts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -36,7 +52,7 @@ export default function AlertFormClient({
           product_id: productId,
           target_price: Math.round(parseFloat(price) * 100),
           email: trimmed,
-          notify_via: ["email"],
+          notify_via: notifyVia,
         }),
       });
       if (!res.ok) {
@@ -45,7 +61,8 @@ export default function AlertFormClient({
       }
       localStorage.setItem(EMAIL_KEY, trimmed);
       setStatus("ok");
-      setMsg("Alert set! We'll email you when the price drops.");
+      const pushMsg = notifyVia.includes("push") ? " + browser push" : "";
+      setMsg(`Alert set! We'll notify you via email${pushMsg} when the price drops.`);
     } catch (e: unknown) {
       setStatus("err");
       setMsg(e instanceof Error ? e.message : "Something went wrong. Try again.");
@@ -105,6 +122,26 @@ export default function AlertFormClient({
           <p className="text-[10px] text-white/20 -mt-2">
             Current price: ৳{(currentPrice / 100).toLocaleString("en-BD")} · Suggested: ৳{((currentPrice / 100) * 0.9).toFixed(0)}
           </p>
+        )}
+
+        {pushState !== "unsupported" && pushState !== "denied" && (
+          <label className="flex items-center gap-3 cursor-pointer nm-inset rounded-xl px-4 py-3">
+            <div className="relative flex-shrink-0">
+              <input
+                type="checkbox"
+                className="sr-only"
+                checked={pushEnabled || pushState === "subscribed"}
+                disabled={pushState === "subscribed"}
+                onChange={(e) => setPushEnabled(e.target.checked)}
+              />
+              <div className={`w-10 h-5 rounded-full transition-colors ${(pushEnabled || pushState === "subscribed") ? "bg-indigo-500" : "bg-white/10"}`} />
+              <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${(pushEnabled || pushState === "subscribed") ? "translate-x-5" : ""}`} />
+            </div>
+            <div className="flex items-center gap-2 text-xs text-white/60">
+              <Smartphone size={12} />
+              {pushState === "subscribed" ? "Browser push enabled" : "Also notify via browser"}
+            </div>
+          </label>
         )}
 
         <button

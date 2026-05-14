@@ -5,12 +5,12 @@ import Link from "next/link";
 import {
   Bell, Mail, Trash2, PauseCircle, PlayCircle,
   Plus, ArrowUpRight, AlertCircle, Loader2, CheckCircle2,
-  Mailbox, ShoppingCart, BellOff
+  ShoppingCart, BellOff, User
 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
 const FREE_LIMIT = 3;
-const EMAIL_KEY = "damkoi_alert_email";
 
 type Alert = {
   id: string;
@@ -34,57 +34,32 @@ function savings(current: number | null, target: number) {
   return current - target;
 }
 
-// ── Email Gate ────────────────────────────────────────────────
+// ── Sign-in Gate ──────────────────────────────────────────────
 
-function EmailGate({ onSubmit }: { onSubmit: (email: string) => void }) {
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = email.trim().toLowerCase();
-    if (!trimmed.includes("@")) {
-      setError("Enter a valid email address.");
-      return;
-    }
-    setLoading(true);
-    setError("");
-    // Just save email and fetch — no password needed
-    localStorage.setItem(EMAIL_KEY, trimmed);
-    onSubmit(trimmed);
-  };
-
+function SignInGate() {
   return (
     <div className="nm-raised rounded-2xl p-8 text-center max-w-sm mx-auto">
       <div className="flex justify-center mb-5 text-indigo-400">
-        <Mailbox size={48} strokeWidth={1.5} />
+        <User size={48} strokeWidth={1.5} />
       </div>
-      <h2 className="text-xl font-black font-outfit mb-2">Find your alerts</h2>
+      <h2 className="text-xl font-black font-outfit mb-2">Sign in to view alerts</h2>
       <p className="text-white/40 text-sm mb-7 leading-relaxed">
-        Enter the email you used when setting up alerts. No password needed.
+        Create an account or sign in to manage your price alerts.
       </p>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => { setEmail(e.target.value); setError(""); }}
-          placeholder="you@example.com"
-          className="w-full nm-inset rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all"
-          autoFocus
-        />
-        {error && <p className="text-red-400 text-xs text-left">{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-3 nm-btn-primary rounded-xl text-xs uppercase tracking-widest disabled:opacity-50"
+      <div className="flex flex-col gap-3">
+        <Link
+          href="/login"
+          className="w-full py-3 nm-btn-primary rounded-xl text-xs uppercase tracking-widest font-black text-center block"
         >
-          {loading ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Find My Alerts"}
-        </button>
-      </form>
-      <p className="text-white/20 text-xs mt-5 leading-relaxed">
-        No account required. Alerts created from any product page are linked to your email.
-      </p>
+          Sign In
+        </Link>
+        <Link
+          href="/register"
+          className="w-full py-3 rounded-xl text-xs uppercase tracking-widest font-black text-center text-white/40 hover:text-white transition-colors"
+        >
+          Create Account
+        </Link>
+      </div>
     </div>
   );
 }
@@ -218,12 +193,15 @@ export default function AlertsPage() {
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState("");
 
-  // Rehydrate email from localStorage on mount
   useEffect(() => {
-    const stored = localStorage.getItem(EMAIL_KEY);
-    if (stored) {
-      setEmail(stored);
-    }
+    supabase.auth.getSession().then(({ data }) => {
+      setEmail(data.session?.user?.email ?? null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setEmail(session?.user?.email ?? null);
+      if (!session) setAlerts([]);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   const fetchAlerts = useCallback(async (e: string) => {
@@ -245,10 +223,6 @@ export default function AlertsPage() {
     if (email) fetchAlerts(email);
   }, [email, fetchAlerts]);
 
-  const handleEmailSubmit = (e: string) => {
-    setEmail(e);
-  };
-
   const handleUpdate = (id: string, patch: Partial<Alert>) => {
     setAlerts((prev) => prev.map((a) => (a.id === id ? { ...a, ...patch } : a)));
   };
@@ -257,8 +231,8 @@ export default function AlertsPage() {
     setAlerts((prev) => prev.filter((a) => a.id !== id));
   };
 
-  const handleSignOut = () => {
-    localStorage.removeItem(EMAIL_KEY);
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
     setEmail(null);
     setAlerts([]);
   };
@@ -288,14 +262,14 @@ export default function AlertsPage() {
               onClick={handleSignOut}
               className="text-[10px] text-white/20 hover:text-red-400 transition-colors mt-1"
             >
-              Use different email
+              Sign out
             </button>
           </div>
         )}
       </div>
 
-      {/* Email gate */}
-      {!email && <EmailGate onSubmit={handleEmailSubmit} />}
+      {/* Auth gate */}
+      {!email && <SignInGate />}
 
       {/* Loading */}
       {email && loading && (

@@ -196,7 +196,7 @@ export default async function ProductPage({
         <AlertCircle size={48} className="text-rose-500 mx-auto mb-6" />
         <h2 className="text-2xl font-black font-outfit mb-4">Product Not Found</h2>
         <p className="text-white/40 mb-10">
-          This product isn't in our database yet. Paste its URL on the homepage to start tracking.
+          This product is not in our database yet. Paste its URL on the homepage to start tracking.
         </p>
         <Link href="/" className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white font-black text-xs uppercase tracking-widest transition-all">
           Track a Product
@@ -346,7 +346,7 @@ export default async function ProductPage({
               </div>
               {lens.verdict && (
                 <div className="mt-6 pt-5 border-t border-indigo-500/20 relative z-10">
-                  <p className="text-sm text-indigo-200 leading-relaxed">"{lens.verdict}"</p>
+                  <p className="text-sm text-indigo-200 leading-relaxed">&quot;{lens.verdict}&quot;</p>
                 </div>
               )}
             </div>

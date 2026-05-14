@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { RefreshCw, CheckCircle, AlertTriangle, XCircle, HelpCircle } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
-const ADMIN_TOKEN = process.env.NEXT_PUBLIC_ADMIN_TOKEN || "damkoi-admin-secret-dev";
+const ADMIN_TOKEN_STORAGE_KEY = "damkoi_admin_token";
 
 type PlatformHealth = {
   platform: string;
@@ -53,8 +53,14 @@ export default function ScraperHealthPage() {
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     try {
-      const res = await fetch(`${API}/admin/scrapers/health`, {
-        headers: { "x-admin-token": ADMIN_TOKEN },
+      let token = sessionStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
+      if (!token) {
+        token = window.prompt("Admin token") || "";
+        if (token) sessionStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token);
+      }
+
+      const res = await fetch(`${API.replace(/\/v1$/, "")}/admin/scrapers/health`, {
+        headers: { "x-admin-token": token },
       });
       if (!res.ok) throw new Error("Unauthorized or server error");
       const json = await res.json();

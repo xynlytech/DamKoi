@@ -17,7 +17,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     'FETCH_HISTORY':      () => fetchApi(`/v1/products/${message.productId}/price-history?days=${message.days || 90}`),
     'FETCH_ALTERNATIVES': () => fetchApi(`/v1/products/${message.productId}/compare`),
     'FETCH_COMPARE':      () => fetchApi(`/v1/products/${message.productId}/compare`),
-    'FETCH_COUPONS':      () => fetchApi(`/v1/coupons/${message.platform || 'daraz'}${message.cartTotal ? `?cart_total=${message.cartTotal}` : ''}`),
+    'FETCH_COUPONS':      () => {
+                               const params = new URLSearchParams();
+                               if (message.cartTotal) params.set('cart_total', message.cartTotal);
+                               if (message.paymentMethod) params.set('payment_method', message.paymentMethod);
+                               const qs = params.toString();
+                               return fetchApi(`/v1/coupons/${message.platform || 'daraz'}${qs ? `?${qs}` : ''}`);
+                             },
     'LOG_COUPON':         () => fetchApi(`/v1/telemetry/coupon`, {
                                method: 'POST',
                                headers: { 'Content-Type': 'application/json' },

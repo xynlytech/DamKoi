@@ -18,5 +18,31 @@
   "env": {
     "APP_ENV": "production",
     "APP_DEBUG": "false"
-  }
+  },
+  "crons": [
+    {
+      "path": "/cron/alerts",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/cron/coupons",
+      "schedule": "15 */2 * * *"
+    },
+    {
+      "path": "/cron/matching",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/cron/daily-digest",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/cron/backfill",
+      "schedule": "30 */6 * * *"
+    },
+    {
+      "path": "/cron/cleanup",
+      "schedule": "0 23 * * *"
+    }
+  ]
 }

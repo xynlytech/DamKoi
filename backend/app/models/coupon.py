@@ -34,6 +34,9 @@ class Coupon(Base):
     min_spend = Column(Integer, nullable=True)        # paisa — minimum cart value to apply
     max_uses  = Column(Integer, nullable=True)        # null = unlimited
 
+    # NULL = valid for any payment method; 'bkash', 'nagad', 'card', 'cod', etc.
+    payment_method = Column(String(50), nullable=True)
+
     expires_at = Column(DateTime(timezone=True), nullable=True)
     is_active  = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)

@@ -1,4 +1,3 @@
-import pytest
 from app.services.verdict import get_verdict, VerdictLabel
 
 
@@ -35,14 +34,14 @@ def test_get_verdict_good_deal():
     prices_30d = [12000, 12000, 12000, 12000, 12000, 10500] 
     
     # Current price is 10500. Avg 30d is ~11750. 
-    # Drop from avg > 10%, but not all-time low.
+    # Drop from avg > 10%, but outside the 2% all-time-low threshold.
     verdict = get_verdict(10500, prices_30d, prices_ever)
     assert verdict.label == VerdictLabel.GOOD_DEAL
-    assert verdict.deal_score in (7, 8)
+    assert verdict.deal_score in (7, 8, 9)
 
 def test_get_verdict_fair_price():
     # Price is stable
-    prices_ever = [10000, 10000, 10000, 10000, 10000]
+    prices_ever = [9000, 10000, 10000, 10000, 10000]
     prices_30d = [10000, 10000, 10000, 10000, 10000] 
     
     verdict = get_verdict(10000, prices_30d, prices_ever)

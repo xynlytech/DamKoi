@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Shield, GitMerge, GitBranch, AlertCircle, CheckCircle, RefreshCw } from "lucide-react";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/admin";
-const ADMIN_TOKEN = "damkoi-admin-secret-dev"; // MVP Security
+const API = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1").replace(/\/v1$/, "");
+const ADMIN_TOKEN_STORAGE_KEY = "damkoi_admin_token";
 
 type Product = {
   id: string;
@@ -30,15 +30,12 @@ export default function AdminComparePage() {
   const [mergeTargetGroup, setMergeTargetGroup] = useState<string | null>(null);
   const [mergeProductId, setMergeProductId] = useState("");
 
-  useEffect(() => {
-    fetchGroups();
-  }, []);
-
-  const fetchGroups = async () => {
+  const fetchGroups = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/match-groups`, {
-        headers: { "x-admin-token": ADMIN_TOKEN }
+      const token = getAdminToken();
+      const res = await fetch(`${API}/admin/match-groups`, {
+        headers: { "x-admin-token": token }
       });
       if (res.ok) {
         setGroups(await res.json());
@@ -47,14 +44,21 @@ export default function AdminComparePage() {
       console.error(e);
     }
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      fetchGroups();
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [fetchGroups]);
 
   const handleSplit = async (productId: string) => {
     try {
       setActionStatus(null);
-      const res = await fetch(`${API}/match-groups/split`, {
+      const res = await fetch(`${API}/admin/match-groups/split`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-admin-token": ADMIN_TOKEN },
+        headers: { "Content-Type": "application/json", "x-admin-token": getAdminToken() },
         body: JSON.stringify({ product_ids: [productId] })
       });
       if (res.ok) {
@@ -72,9 +76,9 @@ export default function AdminComparePage() {
     if (!mergeProductId) return;
     try {
       setActionStatus(null);
-      const res = await fetch(`${API}/match-groups/${groupId}/merge`, {
+      const res = await fetch(`${API}/admin/match-groups/${groupId}/merge`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-admin-token": ADMIN_TOKEN },
+        headers: { "Content-Type": "application/json", "x-admin-token": getAdminToken() },
         body: JSON.stringify({ product_ids: [mergeProductId] })
       });
       if (res.ok) {
@@ -192,4 +196,13 @@ export default function AdminComparePage() {
       </div>
     </div>
   );
+}
+
+function getAdminToken() {
+  let token = sessionStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
+  if (!token) {
+    token = window.prompt("Admin token") || "";
+    if (token) sessionStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token);
+  }
+  return token;
 }

@@ -117,18 +117,85 @@ class DamKoiExtension {
 
   // ── Coupon Magic (Auto-Apply) ────────────────────────────────
   
+  // ── Payment method detection ───────────────────────────────
+  // Daraz checkout: payment method radio/tab items contain provider name in
+  // text content or image alt. We watch for mutations + clicks.
+  detectPaymentMethod() {
+    const METHODS = ['bkash', 'nagad', 'rocket', 'upay', 'tap', 'card', 'cod'];
+    const scan = () => {
+      // Look for the selected/active payment item
+      const candidates = [
+        ...document.querySelectorAll('[class*="payment"][class*="active"], [class*="payment"][class*="selected"], [class*="cashier"][class*="active"], [aria-checked="true"][class*="payment"]'),
+        ...document.querySelectorAll('.cashier-active, .payment-method-active, .pay-method--active'),
+      ];
+      for (const el of candidates) {
+        const text = (el.textContent || '').toLowerCase();
+        const imgAlt = [...el.querySelectorAll('img')].map(i => (i.alt || '').toLowerCase()).join(' ');
+        const combined = text + ' ' + imgAlt;
+        for (const m of METHODS) {
+          if (combined.includes(m)) return m;
+        }
+      }
+      return null;
+    };
+
+    this._paymentMethod = scan();
+
+    // Watch DOM for payment method changes
+    const observer = new MutationObserver(() => {
+      const detected = scan();
+      if (detected !== this._paymentMethod) {
+        this._paymentMethod = detected;
+        this._updateCouponWidgetLabel();
+      }
+    });
+    observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class', 'aria-checked'] });
+
+    // Also listen for clicks on payment options
+    document.addEventListener('click', (e) => {
+      const target = e.target.closest('[class*="payment"], [class*="cashier"], [class*="pay-method"]');
+      if (!target) return;
+      setTimeout(() => {
+        const detected = scan();
+        if (detected !== this._paymentMethod) {
+          this._paymentMethod = detected;
+          this._updateCouponWidgetLabel();
+        }
+      }, 300);
+    }, true);
+  }
+
+  _updateCouponWidgetLabel() {
+    const label = document.getElementById('dk-payment-label');
+    if (!label) return;
+    const pm = this._paymentMethod;
+    if (pm) {
+      const NAME = { bkash: 'bKash', nagad: 'Nagad', rocket: 'Rocket', upay: 'Upay', card: 'Card', cod: 'Cash on Delivery' };
+      label.textContent = `Showing ${NAME[pm] || pm} codes`;
+      label.style.color = pm === 'bkash' ? '#e91e8c' : pm === 'nagad' ? '#f97316' : '#a78bfa';
+    } else {
+      label.textContent = 'Showing all codes';
+      label.style.color = 'rgba(255,255,255,0.4)';
+    }
+  }
+
   async initCouponMagic() {
-    // Inject floating UI
+    this._paymentMethod = null;
+    this.detectPaymentMethod();
+
     const widget = document.createElement('div');
     widget.id = 'damkoi-coupon-widget';
     widget.innerHTML = `
       <div style="background: rgba(10,10,12,0.95); border: 1px solid rgba(99,102,241,0.3); border-radius: 12px; padding: 16px; width: 300px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); backdrop-filter: blur(12px); color: white; font-family: system-ui, sans-serif; z-index: 999999; position: fixed; bottom: 20px; right: 20px;">
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-          <img src="${chrome.runtime.getURL('icons/dk_logo.svg')}" style="width: 20px; height: 20px;" />
-          <span style="font-weight: 800; font-size: 14px;">DamKoi Magic</span>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <img src="${chrome.runtime.getURL('icons/dk_logo.svg')}" style="width: 20px; height: 20px;" />
+            <span style="font-weight: 800; font-size: 14px;">DamKoi Magic</span>
+          </div>
+          <span id="dk-payment-label" style="font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.4);">Showing all codes</span>
         </div>
-        <p style="font-size: 13px; color: rgba(255,255,255,0.7); margin: 0 0 16px 0; line-height: 1.4;">
-          We found active coupons. Do you want to test them all to find the best discount?
+        <p style="font-size: 13px; color: rgba(255,255,255,0.7); margin: 8px 0 16px 0; line-height: 1.4;">
+          Found active coupons. Auto-test all to find best discount.
         </p>
         <button id="dk-apply-btn" style="width: 100%; background: #6366f1; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s;">
           Auto-Apply Coupons
@@ -136,6 +203,7 @@ class DamKoiExtension {
       </div>
     `;
     document.body.appendChild(widget);
+    this._updateCouponWidgetLabel();
 
     document.getElementById('dk-apply-btn').onclick = async () => {
       const btn = document.getElementById('dk-apply-btn');
@@ -145,59 +213,58 @@ class DamKoiExtension {
       btn.disabled = true;
 
       try {
-        const coupons = await safeFetch('FETCH_COUPONS', {});
+        const isDaraz = window.location.hostname.includes('daraz');
+        const coupons = await safeFetch('FETCH_COUPONS', {
+          platform: isDaraz ? 'daraz' : 'pickaboo',
+          paymentMethod: this._paymentMethod || undefined,
+        });
         if (!coupons || coupons.length === 0) {
           btn.innerText = 'No valid coupons found';
+          btn.disabled = false;
           return;
         }
 
-        // DOM sequence varies by platform
-        const isDaraz = window.location.hostname.includes('daraz');
-        const inputSelector = isDaraz ? '.next-input.next-medium input' : '.coupon-input-field'; 
-        const applyBtnSelector = isDaraz ? '.next-btn.next-btn-primary.next-btn-medium' : '.apply-coupon-btn';
-        
+        // DOM selectors by platform
+        const inputSelector = isDaraz
+          ? 'input[placeholder*="oupon" i], input[name*="coupon" i], .next-input.next-medium input'
+          : 'input[placeholder*="oupon" i], input[name*="coupon" i], .coupon-input input, #coupon-code';
+        const applyBtnSelector = isDaraz
+          ? 'button[data-spm*="coupon"], .next-btn.next-btn-primary.next-btn-medium, button[class*="couponApply"]'
+          : 'button[class*="coupon"], .apply-coupon-btn, button[id*="couponApply"]';
+        const discountSelector = isDaraz
+          ? '.checkout-order-total-discount, [class*="discount"][class*="total"], [class*="coupon"][class*="discount"]'
+          : '.order-summary .discount-amount, [class*="discount-amount"]';
+
         let bestDiscount = 0;
         let bestCode = null;
 
         for (let i = 0; i < coupons.length; i++) {
           const c = coupons[i];
-          btn.innerText = `Testing ${c.code} (${i+1}/${coupons.length})`;
-          
+          btn.innerText = `Testing ${c.code} (${i + 1}/${coupons.length})`;
+
           const input = document.querySelector(inputSelector);
           const applyBtn = document.querySelector(applyBtnSelector);
-          
+
           if (input && applyBtn) {
-            // Simulate typing
             input.value = c.code;
             input.dispatchEvent(new Event('input', { bubbles: true }));
             input.dispatchEvent(new Event('change', { bubbles: true }));
-            
-            // Simulate click
             applyBtn.click();
-            
-            // Wait for network/DOM update (crude wait for MVP)
             await new Promise(r => setTimeout(r, 2000));
-            
-            // Read success toast or discount line
-            const discountSelector = isDaraz ? '.checkout-order-total-discount' : '.order-summary .discount-amount';
+
             const discountLine = document.querySelector(discountSelector);
             if (discountLine) {
-              const text = discountLine.innerText;
-              const match = text.match(/[\d,]+/);
+              const match = discountLine.innerText.match(/[\d,]+/);
               if (match) {
                 const val = parseInt(match[0].replace(/,/g, ''));
-                if (val > bestDiscount) {
-                  bestDiscount = val;
-                  bestCode = c.code;
-                }
+                if (val > bestDiscount) { bestDiscount = val; bestCode = c.code; }
               }
             }
           }
         }
 
         if (bestCode) {
-          // Re-apply the best code
-          btn.innerText = `Applying best code: ${bestCode}`;
+          btn.innerText = `Applying best: ${bestCode}`;
           const input = document.querySelector(inputSelector);
           const applyBtn = document.querySelector(applyBtnSelector);
           if (input && applyBtn) {
@@ -206,15 +273,18 @@ class DamKoiExtension {
             applyBtn.click();
             await new Promise(r => setTimeout(r, 1000));
           }
-          btn.innerText = `Saved ৳${bestDiscount}!`;
+          btn.innerText = `Saved ৳${bestDiscount.toLocaleString('en-BD')}!`;
           btn.style.background = '#10b981';
+          btn.disabled = false;
         } else {
-          btn.innerText = 'No coupons worked 😔';
+          btn.innerText = 'No coupons worked';
           btn.style.background = '#3f3f46';
+          btn.disabled = false;
         }
       } catch (e) {
-        console.error(e);
+        console.error('[DamKoi]', e);
         btn.innerText = 'Error trying coupons';
+        btn.disabled = false;
       }
     };
   }

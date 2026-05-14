@@ -85,6 +85,11 @@ npm run dev
 # - Select ./extension folder
 ```
 
+Note: `manifest.json` is now production-tight and only allows `https://api.damkoi.com`.
+For local API testing, temporarily add `http://127.0.0.1:8000/*` to
+`host_permissions` and `connect-src`, then remove it before packaging for Chrome
+Web Store.
+
 ### Part 2: Test Cases
 
 #### Test 1: Extension on Daraz Product Page

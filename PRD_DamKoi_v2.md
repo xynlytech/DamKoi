@@ -260,7 +260,7 @@ For Bangladeshi online shoppers tired of being misled by fake discounts and tire
            └────────────────────────┼────────────────────────┘
                                     │
                 ┌───────────────────▼───────────────────┐
-                │     FastAPI on Render                  │
+                │     FastAPI on Vercel                  │
                 │     (api.damkoi.com)                   │
                 └────────────────────────────────────────┘
 ```
@@ -582,18 +582,18 @@ Paste a product image, find cheaper visual matches across BD platforms. Hardest 
            └──────────────────┼──────────────┘
                               │
 ┌─────────────────────────────▼─────────────────────────────────┐
-│         FastAPI on Render — api.damkoi.com                    │
+│         FastAPI on Vercel — api.damkoi.com                    │
 │   SlowAPI rate limiting · Sentry · CORS · Supabase JWT auth   │
 └──────┬─────────────────────┬────────────────┬─────────────────┘
        │                     │                │
 ┌──────▼──────┐   ┌──────────▼──────┐  ┌─────▼──────────┐
-│ Products &  │   │  Alerts Service │  │  Auth (Supabase)│
-│ Verdicts    │   │  (APScheduler)  │  │                │
+│ Products &  │   │  Scheduled Jobs │  │ Auth (Supabase)│
+│ Verdicts    │   │ (Cron-triggered)│  │                │
 └──────┬──────┘   └──────────┬──────┘  └────────────────┘
        │                     │
 ┌──────▼─────────────────────▼─────────────────────────────────┐
 │                    DATA LAYER                                 │
-│   PostgreSQL (Render)   ·   Redis (cache, optional)           │
+│   PostgreSQL (Supabase) ·   Redis/Upstash (cache, optional)   │
 └──────────────────────────────┬───────────────────────────────┘
                                │
 ┌──────────────────────────────▼───────────────────────────────┐
@@ -613,18 +613,18 @@ Paste a product image, find cheaper visual matches across BD platforms. Hardest 
 
 | Decision | Choice | Why this, why not the alternative |
 |---|---|---|
-| Hosting | **Render** | Docker-native, $7–25/mo, fast deploy. Not Railway (less reliable free tier), not AWS (overkill for current scale). |
+| Hosting | **Vercel** | Current deployment target for web + FastAPI serverless. Keep API handlers short; long-running scrape/match work must be triggered out-of-band. |
 | Backend | **FastAPI (Python)** | Same language as scraper; async-native; fast. Not Node (scraper Python ecosystem stronger). |
 | Scraper | **Playwright + stealth plugin** | Daraz is a JS-heavy SPA behind Akamai; Scrapy alone can't render. Stealth defeats most bot fingerprints. |
 | **Backfill** | **Wayback Machine + Archive.org CDX** | Months of historical prices at zero cost. This is a moat — see §15.2 and §26. |
-| DB | **PostgreSQL** | Time-series price data + relational users/alerts. Not InfluxDB (extra ops surface). |
-| Cache | **Redis (optional, graceful fallback)** | Sub-10ms reads; also queue. App degrades if Redis missing rather than failing. |
+| DB | **Supabase PostgreSQL** | Time-series price data + relational users/alerts, with managed auth in the same platform. Not InfluxDB (extra ops surface). |
+| Cache | **Redis/Upstash (optional, graceful fallback)** | Sub-10ms reads; also queue. App degrades if Redis missing rather than failing. |
 | Auth | **Supabase** | Free 50K MAU; managed; fast integration. Not roll-our-own (security cost too high). |
 | Email | **Resend** | Free 100/day; better DX than SendGrid; reliable transactional. |
 | Errors | **Sentry** | Free 5K events/mo. Worth it for scraper diagnostic data. |
 | Ops | **Telegram bot** | Already where founders + community live. Pages on scraper failures + posts curated deals. |
-| Web | **Next.js on Vercel/Render** | SSR for SEO on `/product/[id]` pages (programmatic SEO is part of the moat). |
-| Scheduler | **APScheduler in-process** | Simpler than Celery + Redis broker for current scale. Migrate to Celery if scraper count > 50/min. |
+| Web | **Next.js on Vercel** | SSR for SEO on `/product/[id]` pages (programmatic SEO is part of the moat). |
+| Scheduler | **Vercel Cron / Supabase scheduled jobs** | Vercel serverless does not keep APScheduler alive. Use authenticated HTTP-triggered jobs for matching, alerts, coupon refresh, daily digest, cleanup, and lightweight backfill; move browser-based scraper batches to a dedicated Playwright-capable worker. |
 
 ### Multi-Platform Scraper Plane
 
@@ -815,7 +815,9 @@ async def fetch(url: str) -> ScrapedProduct:
 
 The adapter is the only platform-specific code. Verdict engine, alert engine, alternatives engine, and the entire data pipeline downstream are unchanged.
 
-### 15.5 Scrape Scheduling (APScheduler)
+### 15.5 Scrape Scheduling (Vercel/Supabase Cron)
+
+Production runs on Vercel serverless, so in-process APScheduler does not stay alive between requests. Non-browser jobs are exposed through authenticated `/cron/*` HTTP endpoints and scheduled in `backend/vercel.json`. Browser-based scraper batches still require a Playwright-capable worker/runtime. APScheduler can still be used locally for development.
 
 ```python
 SCHEDULE = {
@@ -826,6 +828,8 @@ SCHEDULE = {
     "refresh-coupons":          every_2_hours,
     "wayback-backfill":         every_6_hours,     # for newly tracked products
     "deals-feed-rebuild":       every_30_minutes,
+    "matching-engine":          every_6_hours,
+    "daily-telegram-digest":    daily_at_08_00_BD,
 }
 ```
 

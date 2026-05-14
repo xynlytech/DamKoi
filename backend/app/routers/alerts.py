@@ -544,3 +544,74 @@ async def unlink_telegram(
 
     return {"linked": False, "message": "Telegram unlinked. Alerts will be sent via email only."}
 
+
+# ── Web Push ──────────────────────────────────────────────────
+
+
+class PushSubscribeRequest(BaseModel):
+    email: str
+    subscription: dict  # raw PushSubscription.toJSON() from browser
+
+
+@router.post("/push-subscribe", status_code=201)
+async def push_subscribe(body: PushSubscribeRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Save a Web Push subscription for an email address.
+    Called client-side after the browser grants push permission.
+    Idempotent: upserts by (email, endpoint) to avoid duplicate rows.
+    """
+    import json
+    from app.models.push_subscription import PushSubscription
+
+    endpoint = body.subscription.get("endpoint", "")
+    if not endpoint:
+        raise HTTPException(status_code=422, detail="subscription.endpoint is required")
+
+    email = body.email.strip().lower()
+    if not email or "@" not in email:
+        raise HTTPException(status_code=422, detail="Valid email required")
+
+    sub_json = json.dumps(body.subscription)
+
+    # Check if subscription for this endpoint already exists
+    from sqlalchemy import text
+    existing = await db.execute(
+        select(PushSubscription).where(
+            PushSubscription.email == email,
+            PushSubscription.subscription_json.contains(endpoint[:100]),
+        )
+    )
+    row = existing.scalar_one_or_none()
+    if row:
+        row.is_active = True
+        row.subscription_json = sub_json
+    else:
+        db.add(PushSubscription(email=email, subscription_json=sub_json))
+
+    await db.commit()
+    return {"subscribed": True}
+
+
+@router.delete("/push-unsubscribe", status_code=200)
+async def push_unsubscribe(email: str = Query(...), endpoint: str = Query(...), db: AsyncSession = Depends(get_db)):
+    """Mark a push subscription inactive (user revoked permission)."""
+    import json
+    from app.models.push_subscription import PushSubscription
+
+    result = await db.execute(
+        select(PushSubscription).where(
+            PushSubscription.email == email.strip().lower(),
+            PushSubscription.is_active == True,
+        )
+    )
+    rows = result.scalars().all()
+    for row in rows:
+        try:
+            sub = json.loads(row.subscription_json)
+            if sub.get("endpoint") == endpoint:
+                row.is_active = False
+        except Exception:
+            pass
+    await db.commit()
+    return {"unsubscribed": True}
+

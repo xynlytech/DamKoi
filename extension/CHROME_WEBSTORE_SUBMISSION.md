@@ -32,14 +32,13 @@
 
 ---
 
-## Pre-Submission Fixes Needed
+## Pre-Submission Checks
 
-### Fix 1: Update manifest.json for Production
+### Check 1: manifest.json Production Hosts
 ```json
 "host_permissions": [
   "https://api.damkoi.com/*"
 ]
-// REMOVE: "http://localhost:8000/*"
 ```
 
 ### Fix 2: Ensure Icons are Real PNG Files
@@ -50,11 +49,11 @@ Current icons are 77 bytes (likely invalid). Need to create proper icons:
 
 **Quick fix:** Use any online icon generator or create a simple DK logo.
 
-### Fix 3: Remove Debug Endpoints
-Search for any `http://localhost` references and ensure they're not in production code:
+### Check 3: Remove Debug Endpoints
+Search for any active `http://localhost` references before packaging:
 ```bash
-grep -r "localhost" extension/ --include="*.js"
-# Should only find comments, not active code
+grep -r "localhost" extension/ --include="*.js" --exclude="*.bundle.js"
+# Should only find comments or development fallback code, not production bundle constants
 ```
 
 ### Fix 4: Add Privacy Policy
@@ -95,10 +94,9 @@ cd /Volumes/T7\ Shield/Xynly/Products/DamKoi/DamKoi\ Codebase/extension
 # Create a zip file (Chrome Web Store requirement)
 zip -r DamKoi-v1.0.0.zip \
   manifest.json \
-  popup.html popup.js popup.css \
-  content.js content.css \
-  background.js \
-  utils.js visualizer.js icons.js \
+  popup.html popup.bundle.js popup.css \
+  content.bundle.js content.css \
+  background.bundle.js cart_detector.bundle.js \
   icons/
 ```
 
@@ -203,7 +201,7 @@ Why DamKoi?
 
 ---
 
-**Current Status:** ⏳ READY for submission
-**Blockers:** Update manifest.json to remove localhost, create proper icons, write privacy policy
+**Current Status:** ⏳ READY for final packaging check
+**Blockers:** Verify real PNG icons, confirm privacy policy URL, confirm production bundle points to `https://api.damkoi.com`
 **Estimated Time to Fix:** 30 minutes
 **Estimated Review Time:** 48-72 hours

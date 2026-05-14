@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { Outfit, Inter, JetBrains_Mono } from "next/font/google";
 import Link from "next/link";
 import "../globals.css";
-import { Activity, Flame, Zap } from "lucide-react";
+import { Flame, Zap } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
+import NavAuthButton from "@/components/NavAuthButton";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -62,8 +63,8 @@ export default async function RootLayout({
             <div className="mx-auto px-5 h-16 flex items-center justify-between gap-4">
               {/* Logo */}
               <Link href="/" className="flex items-center gap-3 group flex-shrink-0">
-                <div className="w-9 h-9 rounded-xl nm-raised flex items-center justify-center text-indigo-400 group-hover:text-indigo-300 transition-colors duration-300">
-                  <Activity size={20} />
+                <div className="w-9 h-9 rounded-xl nm-raised flex items-center justify-center overflow-hidden">
+                  <img src="/dk-logo.svg" alt="DamKoi" className="w-full h-full object-contain" />
                 </div>
                 <span className="text-xl font-black font-outfit tracking-tighter bg-gradient-to-r from-white via-white to-indigo-400 bg-clip-text text-transparent">
                   DamKoi
@@ -103,6 +104,8 @@ export default async function RootLayout({
                   <Zap size={13} /> Premium
                 </Link>
 
+                <NavAuthButton />
+
                 <ThemeToggle />
 
                 <Link
@@ -135,8 +138,8 @@ export default async function RootLayout({
             <div className="container mx-auto px-4 max-w-5xl">
               <div className="nm-raised rounded-2xl px-6 py-6 flex flex-col md:flex-row justify-between items-center gap-5">
                 <div className="flex items-center gap-2.5">
-                  <div className="nm-raised w-8 h-8 rounded-lg flex items-center justify-center text-indigo-400">
-                    <Activity size={16} />
+                  <div className="nm-raised w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
+                    <img src="/dk-logo.svg" alt="DamKoi" className="w-full h-full object-contain" />
                   </div>
                   <span className="font-black font-outfit text-white tracking-tight">DamKoi</span>
                   <span className="text-white/20 text-[10px] uppercase tracking-widest ml-3 font-bold border-l border-white/10 pl-3 hidden sm:block">

@@ -21,7 +21,7 @@ load_dotenv()
 config = context.config
 
 # Overwrite sqlalchemy.url with env var dynamically.
-# Supabase/Render provide postgresql:// — async_engine_from_config needs postgresql+asyncpg://
+# Supabase and some managed Postgres URLs use postgresql:// — async_engine_from_config needs postgresql+asyncpg://
 _db_url = os.environ.get("DATABASE_URL", "")
 if _db_url.startswith("postgresql://"):
     _db_url = _db_url.replace("postgresql://", "postgresql+asyncpg://", 1)

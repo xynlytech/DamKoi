@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { PartyPopper, CheckCircle } from 'lucide-react';
 
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
+
 export default function PremiumPage() {
   const t = useTranslations();
   const [loading, setLoading] = useState(false);
@@ -15,7 +17,7 @@ export default function PremiumPage() {
       // Mock user_id for demonstration (normally fetched from auth state)
       const mockUserId = "00000000-0000-0000-0000-000000000000";
       
-      const res = await fetch("http://localhost:8000/v1/payments/create-checkout", {
+      const res = await fetch(`${API}/payments/create-checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: mockUserId })
@@ -24,7 +26,7 @@ export default function PremiumPage() {
       const data = await res.json();
       
       // Simulate webhook fulfillment immediately for MVP
-      await fetch("http://localhost:8000/v1/payments/webhook", {
+      await fetch(`${API}/payments/webhook`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: mockUserId, status: "success", amount: 199 })

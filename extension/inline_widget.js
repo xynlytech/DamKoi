@@ -842,8 +842,8 @@ async function injectWidget(data) {
   // Fetch alternatives + coupons concurrently
   const productId = data.product.id;
   const [altsResult, couponsResult] = await Promise.allSettled([
-    fetch(`${API_BASE}/products/${productId}/alternatives`).then(r => r.ok ? r.json() : []),
-    fetch(`${API_BASE}/products/${productId}/coupons`).then(r => r.ok ? r.json() : []),
+    fetch(`${API_BASE}/v1/products/${productId}/alternatives`).then(r => r.ok ? r.json() : []),
+    fetch(`${API_BASE}/v1/products/${productId}/coupons`).then(r => r.ok ? r.json() : []),
   ]);
   const alts    = altsResult.status    === 'fulfilled' ? (altsResult.value || [])    : [];
   const coupons = couponsResult.status === 'fulfilled' ? (couponsResult.value || []) : [];

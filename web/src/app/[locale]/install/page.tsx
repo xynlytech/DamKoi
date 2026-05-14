@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Download, Globe, Star, Shield, Zap, Bell, BarChart3, Search, ArrowRight, CheckCircle, Activity } from "lucide-react";
+import { Download, Globe, Star, Shield, Zap, Bell, BarChart3, Search, ArrowRight, CheckCircle } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Install DamKoi — Free Chrome Extension for BD Shoppers",
@@ -139,8 +139,8 @@ export default function InstallPage() {
           {/* Mock sidebar widget */}
           <div className="nm-raised rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-5">
-              <div className="nm-raised w-7 h-7 rounded-lg flex items-center justify-center text-indigo-400">
-                <Activity size={14} />
+              <div className="nm-raised w-7 h-7 rounded-lg flex items-center justify-center overflow-hidden">
+                <img src="/dk-logo.svg" alt="DamKoi" className="w-full h-full object-contain" />
               </div>
               <span className="font-black font-outfit text-indigo-400">DamKoi</span>
               <span className="ml-auto text-[9px] font-black uppercase tracking-widest text-white/20 nm-pill rounded-full px-2 py-0.5">

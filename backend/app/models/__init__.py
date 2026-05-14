@@ -13,6 +13,7 @@ from app.models.alert import Alert
 from app.models.alert_event import AlertEvent
 from app.models.coupon import Coupon
 from app.models.match_group import MatchGroup
+from app.models.push_subscription import PushSubscription
 
 __all__ = [
     "Product",
@@ -23,5 +24,6 @@ __all__ = [
     "AlertEvent",
     "Coupon",
     "MatchGroup",
+    "PushSubscription",
 ]
 

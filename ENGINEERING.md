@@ -5,7 +5,7 @@ Quick-start for developing on the DamKoi codebase.
 ## Architecture
 
 ```
-backend/          FastAPI (Python 3.11+) on Render
+backend/          FastAPI (Python 3.11+) on Vercel serverless
   app/
     routers/      API endpoints (products, alerts, tracking, auth)
     services/     Business logic (verdict, coupons, alternatives, mailer, flags)
@@ -26,6 +26,11 @@ web/              Next.js 16 + React 19 + Tailwind 4
   src/components/ Shared components (PriceChart, PriceAlertModal)
   src/lib/        API client, utils
 ```
+
+Production note: Vercel serverless does not keep in-process schedulers alive.
+Use the authenticated `/cron/*` routes plus Vercel Cron/Supabase scheduled jobs
+for alerts, coupons, matching, digest, cleanup, and backfill. Browser-based
+scrapers need a Playwright-capable worker/runtime.
 
 ## Running Locally
 
@@ -88,6 +93,8 @@ See `backend/.env.example` for the full list. Key vars:
 - `REDIS_URL` — Redis for caching
 - `ENABLED_PLATFORMS` — comma-separated: `daraz,cartup,rokomari`
 - `SENTRY_DSN`, `TELEGRAM_BOT_TOKEN`, `RESEND_API_KEY`
+- `ADMIN_TOKEN` — protects `/admin/*`
+- `CRON_SECRET` — protects `/cron/*`
 
 ## Conventions
 

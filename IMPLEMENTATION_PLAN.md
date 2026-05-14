@@ -15,21 +15,21 @@
 
 ### Priority 1 — Unblock Operations (30 min, no code)
 
-Add these to Render environment variables:
+Add these to Vercel project environment variables for the backend deployment:
 - `SENTRY_DSN` — get from sentry.io (create a FastAPI project)
 - `TELEGRAM_BOT_TOKEN` — from @BotFather
 - `TELEGRAM_CHAT_ID` — your ops group chat ID
 
-Without these, the Telegram daily digest and Sentry error tracking are dead. Everything else in ops is already coded.
+Local `backend/.env` is configured and smoke-tested as of 2026-05-14. Production is only covered once the same values exist in Vercel and a production Sentry event + Telegram test message succeed.
 
-### Priority 2 — Verify Production Matching (1h, Render shell)
+### Priority 2 — Verify Production Matching (1h, Supabase SQL Editor)
 
 ```sql
 SELECT COUNT(*) FROM match_groups;
 SELECT COUNT(*) FROM match_groups WHERE created_at > NOW() - INTERVAL '7 days';
 ```
 
-If both are 0, the `run_matching_engine_job` APScheduler job is silently failing. Fix it before announcing cross-platform compare.
+If both are 0, verify `/cron/matching` is running successfully in Vercel. On Vercel/serverless, in-process APScheduler does not stay alive; non-browser jobs now run through authenticated `/cron/*` routes, while browser-based scraper batches still need a Playwright-capable worker/runtime.
 
 ### Priority 3 — SEO: OG Images for Product Pages (~4h)
 
@@ -76,7 +76,7 @@ These two files are missing and block the entire premium tier:
 | Matching engine V2 (rapidfuzz) | ✅ Built | services/matching.py + `cluster_ungrouped_products()` confirmed at line 58 |
 | Match groups model + migration | ✅ Built | match_group.py, alembic migration exists |
 | All 10 routers | ✅ Built | products, alerts, auth, compare, ai, coupons, payments, admin, tracking, telemetry |
-| APScheduler (all jobs including matching + digest) | ✅ Built | Daily digest, 6-platform scrapes, alert checks, backfill, coupon refresh |
+| Scheduled jobs | ⚠️ Wired for Vercel Cron | `/cron/*` routes + `backend/vercel.json` schedules exist for alerts, coupons, matching, digest, backfill, cleanup; browser-based scraper batches still need a Playwright-capable worker/runtime |
 | Wayback backfill + sitemap harvester | ✅ Built | |
 | Email alerts (Resend) | ✅ Built | |
 | Deals pagination + platform filter fix | ✅ Built | Backend /deals offset + platform bug fixed; web Load More client component |
@@ -149,15 +149,15 @@ Everything here is non-code or config-only. **Nothing ships to users until this 
 
 | # | Task | File / Action | Done When | Status |
 |---|---|---|---|---|
-| 0.1 | **Configure Sentry** | `backend/.env` → `SENTRY_DSN=...` | Errors appear in Sentry dashboard on test throw | ❌ Pending |
-| 0.2 | **Configure Telegram bot** | `backend/.env` → `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Test digest message arrives in group | ❌ Pending |
+| 0.1 | **Configure Sentry** | `backend/.env` + Vercel env → `SENTRY_DSN=...` | Errors appear in Sentry dashboard on test throw | ⚠️ Local verified; confirm Vercel env |
+| 0.2 | **Configure Telegram bot** | `backend/.env` + Vercel env → `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Test digest message arrives in group | ⚠️ Local verified; confirm Vercel env |
 | 0.3 | **Write privacy policy** | `web/src/app/[locale]/privacy/page.tsx` | Published at `damkoi.xynly.com/privacy`; covers anon_id, emails, prices | ✅ Done |
 | 0.4 | **Professional icons** | `extension/icons/` | 16×16, 48×48, 128×128 PNG from DK logo | ⚠️ Verify PNGs exist |
 | 0.5 | **Submit extension to Chrome Web Store** | ZIP of `extension/dist/` | Item submitted; pending review | ❌ Deferred (local testing first) |
-| 0.6 | **Confirm production is live** | Render + Vercel dashboards | `api.damkoi.com/health` → 200; `damkoi.xynly.com` loads | ✅ Done (deployed 2026-05-07) |
+| 0.6 | **Confirm production is live** | Vercel + Supabase dashboards | `api.damkoi.com/health` → 200; `damkoi.xynly.com` loads | ✅ Done (deployed 2026-05-07) |
 | 0.7 | **Post first 3 Facebook + 1 Telegram** | `SOFT_LAUNCH_CONTENT.md` templates | Posts live in Daraz Deals BD + 2 uni groups | ❌ Not started |
 
-**Phase 0 blocker:** Only 0.1 and 0.2 are blocking operations monitoring — add `SENTRY_DSN`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` to Render environment variables.
+**Phase 0 blocker:** Local Sentry and Telegram config is verified. Confirm the same `SENTRY_DSN`, `TELEGRAM_BOT_TOKEN`, and `TELEGRAM_CHAT_ID` exist in Vercel, then verify a production Sentry event and Telegram message.
 
 ---
 
@@ -256,7 +256,7 @@ INSUFFICIENT_DATA → "⏳ তথ্য সংগ্রহ হচ্ছে"
 
 `cluster_ungrouped_products()` confirmed at [backend/app/services/matching.py](backend/app/services/matching.py) line 58. Run it against production DB; verify match groups exist.
 
-Check: `SELECT COUNT(*) FROM match_groups;` via Render shell. If 0, the APScheduler job is not running or silently failing.
+Check: `SELECT COUNT(*) FROM match_groups;` via Supabase SQL Editor. If 0, trigger `/cron/matching` and inspect Vercel logs; the cron route is wired but still depends on `CRON_SECRET` and production DB access.
 
 **Acceptance:** ≥ 100 match groups in production; `/compare/{id}` returns real data for a multi-platform product.
 
@@ -437,7 +437,7 @@ Per-platform: last scrape time, success rate (today), last error, queue depth. A
 | 2 | Bengali translations populated | ✅ Confirmed — 100+ strings in bn.json |
 | 3 | `Product.last_backfilled_at` column in DB | ✅ Migration `d5e6f7a8b9c0` created and deployed 2026-05-07 |
 | 4 | Web pages connected to real API | ✅ Confirmed — all routes have real API calls |
-| 5 | CORS for `damkoi.xynly.com` | ✅ Confirmed — render.yaml has correct origins incl. damkoi.xynly.com |
+| 5 | CORS for `damkoi.xynly.com` | ✅ Confirmed — backend config includes production origins / Vercel env controls deployed origins |
 | 6 | `users.is_premium` + `users.premium_expires_at` columns | ✅ Migration `e6f7a8b9c0d1` created and deployed 2026-05-07 |
 | 7 | `backend/app/models/subscription.py` | ❌ Missing — Phase 3 only, deferred |
 | 8 | Extension popup Daraz-only detection | ✅ Fixed 2026-05-07 — all 6 platforms now detected |
@@ -506,11 +506,9 @@ Apply migrations idempotently. Never drop columns; never rename in a single migr
 
 | Resource | Tier | Phase 1 cost | Phase 3 cost |
 |---|---|---|---|
-| Render (FastAPI) | Starter $7/mo | $7 | $25 (upgrade if 5K MAU) |
-| Render Postgres | Starter $7/mo | $7 | $20 (10GB at 5K products) |
-| Render Redis | Starter $10/mo | $10 | $10 |
-| Vercel (web) | Free → Pro $20/mo | $0 | $20 |
-| Supabase | Free | $0 | $25 (Pro at 50K MAU) |
+| Vercel (web + FastAPI serverless) | Free → Pro $20/mo | $0 | $20 |
+| Supabase Postgres + Auth | Free | $0 | $25 (Pro at 50K MAU / DB growth) |
+| Redis / Upstash (optional cache) | Free → paid | $0 | $10 |
 | Resend | Free 100/day | $0 | $20 (Pro at 1K alerts/day) |
 | Sentry | Free 5K events/mo | $0 | $26 (Team) |
 | Anthropic API | Pay-per-use | $0 | ~$50/mo (top 100 products weekly) |
@@ -575,7 +573,7 @@ Phase 3: SSLCommerz real + subscription gating → Real Claude AI → Pickaboo a
 | Coupon injection breaks Daraz cart | Medium | High | Defensive rollback in D.2; always test on sandbox/test cart before production |
 | Anthropic API cost exceeds budget | Low | Medium | Use Haiku-only; cache 7 days; batch processing |
 | Web SEO slow to compound | High | Low | Expected; SEO is months-long; keep publishing product pages |
-| Render free tier hits memory limits | Medium | Medium | Upgrade to Starter+ at first 5xx spike (~$50/mo increase) |
+| Vercel serverless limits block long scrapes/jobs | High | High | Keep request-time API lightweight; run non-browser jobs via Vercel Cron and move browser scrapers to a dedicated Playwright-capable worker when needed |
 
 ---
 

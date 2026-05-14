@@ -111,7 +111,6 @@ export default function PriceChartClient({ productId }: { productId: string }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
     fetch(`${API}/products/${productId}/price-history?days=${days}`)
       .then((r) => r.ok ? r.json() : null)
       .then((data) => { if (data?.prices) setPoints(data.prices); })

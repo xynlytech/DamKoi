@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     API_BASE_URL: str = "http://localhost:8000"
     FRONTEND_URL: str = "http://localhost:3000"
     CORS_ORIGINS: str = '["http://localhost:3000"]'
+    ADMIN_TOKEN: str = ""
+    CRON_SECRET: str = ""
 
     # ── Production ─────────────────────────────────────────
     # Set ALLOWED_EXTENSION_ID to your published Chrome extension's stable ID
@@ -50,6 +52,12 @@ class Settings(BaseSettings):
     # ── Telegram Bot (Free: Unlimited) ────────────────────
     TELEGRAM_BOT_TOKEN: str = ""
     TELEGRAM_CHAT_ID: str = ""
+
+    # ── Web Push (VAPID) ──────────────────────────────────────
+    # Generate keys: npx web-push generate-vapid-keys
+    VAPID_PRIVATE_KEY: str = ""
+    VAPID_PUBLIC_KEY: str = ""
+    VAPID_EMAIL: str = "mailto:alerts@damkoi.com"
 
     # ── Rate Limiting ─────────────────────────────────────
     RATE_LIMIT_ANONYMOUS: str = "30/minute"

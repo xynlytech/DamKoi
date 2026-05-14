@@ -59,8 +59,7 @@ uvicorn app.main:app --reload --port 8000
 | Service | Purpose | Free Tier |
 |---|---|---|
 | Supabase | Database + Auth | 500MB, 50K MAU |
-| Render | API hosting | 750 hrs/month |
-| Vercel | Web hosting | 100GB bandwidth |
+| Vercel | Web + FastAPI serverless hosting | 100GB bandwidth |
 | Upstash | Redis cache | 10K cmds/day |
 | Resend | Email alerts | 100 emails/day |
 | Sentry | Error monitoring | 5K events/month |

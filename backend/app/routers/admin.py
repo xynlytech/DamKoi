@@ -23,7 +23,11 @@ router = APIRouter()
 
 # Simple MVP security dependency
 async def verify_admin_token(x_admin_token: str = Header(None)):
-    expected = getattr(settings, "ADMIN_TOKEN", "damkoi-admin-secret-dev")
+    expected = settings.ADMIN_TOKEN
+    if not expected:
+        if settings.is_production:
+            raise HTTPException(status_code=500, detail="ADMIN_TOKEN is not configured")
+        expected = "damkoi-admin-secret-dev"
     if not x_admin_token or x_admin_token != expected:
         raise HTTPException(status_code=403, detail="Forbidden: Invalid or missing Admin Token")
 

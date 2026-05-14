@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { X, Mail, Bell, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
+
 interface PriceAlertModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -44,7 +46,7 @@ export function PriceAlertModal({
     setError(null);
 
     try {
-      const response = await fetch("http://localhost:8000/v1/alerts", {
+      const response = await fetch(`${API}/alerts`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
