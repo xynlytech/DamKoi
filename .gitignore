@@ -59,3 +59,4 @@ scratch/
 extension/background.bundle.js
 extension/content.bundle.js
 extension/popup.bundle.js
+.superpowers/
