@@ -1,9 +1,16 @@
 """
 DamKoi — Daraz Category Harvester
 
-Discovers product URLs by scraping Daraz BD category listing pages via HTTP.
-No Playwright needed. Each page yields 30-40 product URLs.
-50 categories × 5 pages = ~7,500 fresh product URLs per daily harvest run.
+Scrapes Daraz category listing pages via HTTP and extracts FULL product data
+(price, title, image, stock) from __NEXT_DATA__ in one pass.
+
+Technique: each listing page embeds __NEXT_DATA__ with 30-40 products including
+current prices — same approach used by top-ranked Daraz scrapers on Apify.
+
+55 categories × 5 pages = 275 HTTP requests → ~9,000 products with live prices.
+vs old approach: 275 requests for URLs only, then 9,000 more for individual prices.
+
+Falls back to URL-only seeding if __NEXT_DATA__ parsing yields nothing.
 """
 
 import asyncio
@@ -84,6 +91,22 @@ BD_CATEGORIES = [
     "stationery/",
 ]
 
+# Search keyword URLs — same __NEXT_DATA__ structure as category pages.
+# Popular BD search terms that return high-volume product listings.
+BD_SEARCH_KEYWORDS = [
+    "smartphone", "laptop", "headphone", "speaker", "smartwatch",
+    "t-shirt", "saree", "shoes", "bag", "wallet",
+    "rice cooker", "blender", "electric-fan", "iron",
+    "face wash", "shampoo", "moisturizer",
+    "cricket bat", "football", "exercise mat",
+    "baby diaper", "baby formula",
+    "motor oil", "helmet",
+]
+
+BD_SEARCH_URLS = [
+    f"catalog/?q={kw.replace(' ', '+')}&" for kw in BD_SEARCH_KEYWORDS
+]
+
 _PRODUCT_URL_RE = re.compile(
     r'(https?://www\.daraz\.com\.bd/products/[^\s"\'<>]*i\d+-s\d+\.html)',
     re.IGNORECASE,
@@ -99,70 +122,116 @@ _HEADERS = {
 
 
 class CategoryHarvester:
-    """Harvest Daraz product URLs from category listing pages (HTTP only)."""
+    """
+    Scrape Daraz category listing pages and extract full product data
+    (price, title, image) from __NEXT_DATA__ — one request per page,
+    ~35 products per page with live prices.
+    """
 
     BASE = "https://www.daraz.com.bd/"
 
-    def __init__(self, max_pages_per_cat: int = 5, concurrency: int = 5):
+    def __init__(self, max_pages_per_cat: int = 5, concurrency: int = 8):
         self.max_pages = max_pages_per_cat
         self.concurrency = concurrency
 
-    async def _fetch_page(
-        self, client: httpx.AsyncClient, url: str, sem: asyncio.Semaphore
-    ) -> Set[str]:
-        async with sem:
-            await asyncio.sleep(random.uniform(0.5, 1.5))
-            try:
-                headers = {**_HEADERS, "User-Agent": random.choice(USER_AGENTS)}
-                resp = await client.get(url, headers=headers, follow_redirects=True)
-                if resp.status_code != 200:
-                    return set()
-                found = set(_PRODUCT_URL_RE.findall(resp.text))
-                log.debug("  %s → %d products", url, len(found))
-                return found
-            except Exception as e:
-                log.debug("Fetch error %s: %s", url, e)
-                return set()
+    async def _scrape_category(
+        self,
+        client: httpx.AsyncClient,
+        slug: str,
+        sem: asyncio.Semaphore,
+    ) -> tuple[list, Set[str]]:
+        """
+        Fetch up to max_pages pages for one category.
+        Returns (scraped_products_with_prices, fallback_url_set).
+        """
+        from app.scraper.daraz_http import scrape_listing_page
 
-    async def _harvest_category(
-        self, client: httpx.AsyncClient, slug: str, sem: asyncio.Semaphore
-    ) -> Set[str]:
-        urls: Set[str] = set()
+        products = []
+        fallback_urls: Set[str] = set()
+
         for page in range(1, self.max_pages + 1):
             page_url = f"{self.BASE}{slug}" + (f"?page={page}" if page > 1 else "")
-            found = await self._fetch_page(client, page_url, sem)
-            if not found:
+            page_products = await scrape_listing_page(client, page_url, sem)
+
+            if page_products:
+                products.extend(page_products)
+            else:
+                # Fallback: extract URLs from raw HTML for stub seeding
+                async with sem:
+                    await asyncio.sleep(random.uniform(0.5, 1.5))
+                    try:
+                        headers = {**_HEADERS, "User-Agent": random.choice(USER_AGENTS)}
+                        resp = await client.get(page_url, headers=headers, follow_redirects=True)
+                        if resp.status_code == 200:
+                            fallback_urls.update(_PRODUCT_URL_RE.findall(resp.text))
+                        else:
+                            break
+                    except Exception:
+                        break
+
+            # Stop early if last page returned nothing (end of results)
+            if not page_products and not fallback_urls:
                 break
-            urls.update(found)
-        return urls
+
+        return products, fallback_urls
 
     async def harvest_all(self) -> int:
-        log.info("CategoryHarvester: scanning %d categories...", len(BD_CATEGORIES))
+        all_slugs = BD_CATEGORIES + BD_SEARCH_URLS
+        log.info("CategoryHarvester: scanning %d slugs (%d categories + %d searches, %d pages each)...",
+                 len(all_slugs), len(BD_CATEGORIES), len(BD_SEARCH_URLS), self.max_pages)
         sem = asyncio.Semaphore(self.concurrency)
 
         try:
             import h2  # noqa: F401
-            kw = {"timeout": 20, "http2": True}
+            kw = {"timeout": 25, "http2": True}
         except ImportError:
-            kw = {"timeout": 20}
+            kw = {"timeout": 25}
 
         async with httpx.AsyncClient(**kw) as client:
             results = await asyncio.gather(
-                *[self._harvest_category(client, slug, sem) for slug in BD_CATEGORIES]
+                *[self._scrape_category(client, slug, sem) for slug in all_slugs]
             )
 
-        all_urls: Set[str] = set()
-        for r in results:
-            all_urls.update(r)
+        all_products = []
+        all_fallback_urls: Set[str] = set()
+        for prods, urls in results:
+            all_products.extend(prods)
+            all_fallback_urls.update(urls)
 
-        log.info("CategoryHarvester: found %d unique product URLs", len(all_urls))
-        if not all_urls:
-            return 0
+        # De-duplicate by external_id (keep first occurrence — latest category page)
+        seen: Set[str] = set()
+        unique_products = []
+        for p in all_products:
+            if p.external_id not in seen:
+                seen.add(p.external_id)
+                unique_products.append(p)
 
-        return await self._seed_db(all_urls)
+        log.info(
+            "CategoryHarvester: %d unique products with prices; %d fallback URLs",
+            len(unique_products), len(all_fallback_urls),
+        )
 
-    async def _seed_db(self, urls: Set[str]) -> int:
-        from datetime import datetime
+        saved = 0
+
+        # Save products with prices (the main path)
+        if unique_products:
+            from app.scraper.tasks import ScrapeAgent
+            agent = ScrapeAgent(batch_name="CategoryHarvest", platform="daraz")
+            await agent._save_results(unique_products)
+            saved += len(unique_products)
+            log.info("CategoryHarvester: saved %d products with prices", len(unique_products))
+
+        # Seed any remaining stubs from fallback URL extraction
+        fallback_new = all_fallback_urls - {p.url for p in unique_products}
+        if fallback_new:
+            stub_count = await self._seed_stubs(fallback_new)
+            saved += stub_count
+            log.info("CategoryHarvester: seeded %d stub URLs (no price yet)", stub_count)
+
+        return saved
+
+    async def _seed_stubs(self, urls: Set[str]) -> int:
+        """Seed URL-only stubs for products where __NEXT_DATA__ parsing failed."""
         from sqlalchemy.dialects.postgresql import insert
 
         to_insert = []
@@ -194,5 +263,4 @@ class CategoryHarvester:
                 seeded += result.rowcount or 0
                 await db.commit()
 
-        log.info("CategoryHarvester: seeded %d new products into DB", seeded)
         return seeded

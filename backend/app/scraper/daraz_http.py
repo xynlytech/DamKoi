@@ -46,6 +46,151 @@ _HEADERS_BASE = {
 }
 
 
+def _find_listing_items(data: dict) -> list[dict]:
+    """
+    Walk known __NEXT_DATA__ paths to find the product list on a category/
+    search listing page. Returns the raw item list (may be empty).
+    """
+    # Path 1: most common — mods.listItems
+    try:
+        items = data["props"]["pageProps"]["mods"]["listItems"]
+        if isinstance(items, list) and items:
+            return items
+    except (KeyError, TypeError):
+        pass
+    # Path 2: data.modules.listItems
+    try:
+        items = data["props"]["pageProps"]["data"]["modules"]["listItems"]
+        if isinstance(items, list) and items:
+            return items
+    except (KeyError, TypeError):
+        pass
+    # Path 3: initialProps variant
+    try:
+        items = data["props"]["initialProps"]["mods"]["listItems"]
+        if isinstance(items, list) and items:
+            return items
+    except (KeyError, TypeError):
+        pass
+    # Path 4: deep search for any list that looks like product items
+    def _deep(obj, depth=0):
+        if depth > 6 or not isinstance(obj, (dict, list)):
+            return []
+        if isinstance(obj, list) and len(obj) >= 3:
+            if all(isinstance(x, dict) and ("itemId" in x or "nid" in x or "name" in x) for x in obj[:3]):
+                return obj
+        if isinstance(obj, dict):
+            for v in obj.values():
+                r = _deep(v, depth + 1)
+                if r:
+                    return r
+        return []
+
+    return _deep(data)
+
+
+def _parse_listing_item(item: dict) -> Optional["ScrapedProduct"]:
+    """Convert a single listing-page item dict to ScrapedProduct."""
+    from app.scraper.daraz_scraper import _parse_price_to_paisa
+
+    # External ID — itemId, nid, or from URL
+    ext_id = str(item.get("itemId") or item.get("nid") or "").strip()
+
+    # Try extracting from productUrl if id not present
+    item_url = item.get("itemUrl") or item.get("productUrl") or ""
+    if not ext_id:
+        m = _EXT_ID_RE.search(item_url)
+        ext_id = m.group(1) if m else ""
+    if not ext_id:
+        return None
+
+    # Full URL
+    if item_url.startswith("//"):
+        item_url = "https:" + item_url
+    elif item_url.startswith("/"):
+        item_url = "https://www.daraz.com.bd" + item_url
+    elif not item_url.startswith("http"):
+        item_url = f"https://www.daraz.com.bd/products/i{ext_id}.html"
+
+    # Title
+    title = (item.get("name") or item.get("title") or "").strip()
+    if not title:
+        return None
+
+    # Price — listing pages store prices as strings like "1,299" or ints
+    price = _parse_price_to_paisa(item.get("price")) or _parse_price_to_paisa(item.get("currentPrice"))
+    if not price:
+        return None
+    original_price = _parse_price_to_paisa(item.get("originalPrice")) or _parse_price_to_paisa(item.get("beforePrice"))
+
+    discount_pct = None
+    if original_price and original_price > price:
+        discount_pct = int((original_price - price) / original_price * 100)
+
+    # Stock
+    in_stock_raw = item.get("inStock", item.get("stock", True))
+    if isinstance(in_stock_raw, str):
+        in_stock = in_stock_raw.lower() not in ("false", "0", "out_of_stock", "outofstock")
+    else:
+        in_stock = bool(in_stock_raw)
+
+    # Image
+    image_url = item.get("image") or item.get("imageUrl") or item.get("img") or ""
+    if image_url.startswith("//"):
+        image_url = "https:" + image_url
+    if not image_url.startswith("http"):
+        image_url = None
+
+    brand = item.get("brandName") or item.get("brand") or None
+    if isinstance(brand, dict):
+        brand = brand.get("name")
+    category = item.get("categoryName") or item.get("category") or None
+
+    return ScrapedProduct(
+        external_id=ext_id,
+        url=item_url,
+        title=title,
+        price=price,
+        original_price=original_price,
+        discount_pct=discount_pct,
+        in_stock=in_stock,
+        category=category,
+        brand=brand or None,
+        image_url=image_url,
+        platform="daraz",
+    )
+
+
+async def scrape_listing_page(
+    client: httpx.AsyncClient,
+    url: str,
+    sem: asyncio.Semaphore,
+) -> list[ScrapedProduct]:
+    """
+    Fetch a Daraz category/search listing page and extract ALL product prices
+    from __NEXT_DATA__. One page ≈ 30-40 products. Returns empty list on failure.
+    """
+    async with sem:
+        await asyncio.sleep(random.uniform(0.5, 1.5))
+        try:
+            headers = {**_HEADERS_BASE, "User-Agent": random.choice(USER_AGENTS)}
+            resp = await client.get(url, headers=headers, follow_redirects=True)
+            if resp.status_code != 200:
+                logger.debug("Listing page %s → HTTP %s", url, resp.status_code)
+                return []
+            m = _NEXT_DATA_RE.search(resp.text)
+            if not m:
+                logger.debug("Listing page %s → no __NEXT_DATA__", url)
+                return []
+            data = json.loads(m.group(1))
+            items = _find_listing_items(data)
+            products = [_parse_listing_item(i) for i in items]
+            return [p for p in products if p is not None]
+        except Exception as exc:
+            logger.debug("Listing page fetch error %s: %s", url, exc)
+            return []
+
+
 def _find_product(data: dict) -> Optional[dict]:
     """Walk known __NEXT_DATA__ paths to find the product object."""
     try:
