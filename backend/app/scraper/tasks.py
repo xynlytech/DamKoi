@@ -269,7 +269,24 @@ async def scrape_tracked_products():
     await _run_scrape_batch(urls, "tracked")
 
 
-async def scrape_via_api(limit: int = 5000) -> int:
+async def harvest_from_categories() -> int:
+    """
+    Discover new Daraz products by scraping category listing pages (HTTP only).
+    Supplements sitemap harvesting with current, in-stock product URLs.
+    """
+    print(f"[HARVEST] [{datetime.now()}] Starting category harvest...")
+    try:
+        from app.scraper.category_harvester import CategoryHarvester
+        harvester = CategoryHarvester(max_pages_per_cat=5, concurrency=5)
+        count = await harvester.harvest_all()
+        print(f"[HARVEST] Category harvest done: {count} new products seeded.")
+        return count
+    except Exception as e:
+        logger.error("Category harvest failed: %s", e, exc_info=True)
+        return 0
+
+
+async def scrape_via_api(limit: int = 5000, offset: int = 0) -> int:
     """
     Fast path: fetch prices via Daraz Affiliate API (HTTP, no browser).
     ~100x faster than Playwright. Skipped if DARAZ_APP_KEY not set.
@@ -289,6 +306,7 @@ async def scrape_via_api(limit: int = 5000) -> int:
             select(Product.id, Product.external_id)
             .where(Product.is_active == True, Product.platform == "daraz")
             .order_by(Product.last_scraped_at.asc().nullsfirst())
+            .offset(offset)
             .limit(limit)
         )
         products = result.all()
@@ -317,7 +335,7 @@ async def scrape_via_api(limit: int = 5000) -> int:
     return len(scraped)
 
 
-async def scrape_via_http(limit: int = 3000) -> int:
+async def scrape_via_http(limit: int = 3000, offset: int = 0) -> int:
     """
     Medium path: fetch prices via plain HTTP (no Playwright).
     Extracts __NEXT_DATA__ JSON from Daraz SSR pages.
@@ -333,6 +351,7 @@ async def scrape_via_http(limit: int = 3000) -> int:
             select(Product.id, Product.url)
             .where(Product.is_active == True, Product.platform == "daraz")
             .order_by(Product.last_scraped_at.asc().nullsfirst())
+            .offset(offset)
             .limit(limit)
         )
         products = result.all()
@@ -356,39 +375,49 @@ async def scrape_via_http(limit: int = 3000) -> int:
     return len(scraped)
 
 
-async def scrape_longtail_products():
-    """Scrape all active products — API → HTTP → Playwright fallback chain."""
-    print(f"[SCRAPER] [{datetime.now()}] Starting long-tail product scrape...")
+async def scrape_longtail_products(shard_index: int = 0, total_shards: int = 1):
+    """
+    Scrape active products — API → HTTP → Playwright fallback chain.
+    shard_index / total_shards: splits the product list across parallel GH Actions jobs.
+    e.g. shard 0/3 → first 3,000 products, shard 1/3 → next 3,000, etc.
+    """
+    per_shard = 3000
+    offset = shard_index * per_shard
+    label = f"shard {shard_index}/{total_shards}"
+    print(f"[SCRAPER] [{datetime.now()}] Long-tail scrape — {label} (offset={offset})")
 
-    # 1. Fastest: Daraz Affiliate API (HTTP, no parsing needed)
-    api_count = await scrape_via_api(limit=5000)
+    # 1. Fastest: Daraz Affiliate API
+    api_count = await scrape_via_api(limit=per_shard, offset=offset)
     if api_count > 0:
-        print(f"   [OK] API path scraped {api_count} products. Skipping HTTP/Playwright.")
+        print(f"   [OK] API scraped {api_count} products ({label}).")
         return
 
-    # 2. Fast: plain HTTP, extract __NEXT_DATA__ from SSR pages
-    http_count = await scrape_via_http(limit=3000)
+    # 2. Fast: plain HTTP, __NEXT_DATA__ extraction
+    http_count = await scrape_via_http(limit=per_shard, offset=offset)
     if http_count > 0:
-        print(f"   [OK] HTTP path scraped {http_count} products. Skipping Playwright.")
+        print(f"   [OK] HTTP scraped {http_count} products ({label}).")
         return
 
-    # 3. Slowest fallback: Playwright (4 concurrent pages)
-    print("   [PLAYWRIGHT] Falling back to Playwright scraper...")
+    # 3. Playwright fallback (4 concurrent pages, ~1,500 products per shard)
+    pw_limit = 1500
+    pw_offset = shard_index * pw_limit
+    print(f"   [PLAYWRIGHT] Fallback — {label} (offset={pw_offset}, limit={pw_limit})")
     async with async_session_factory() as db:
         result = await db.execute(
             select(Product.id, Product.url)
             .where(Product.is_active == True)
             .order_by(Product.last_scraped_at.asc().nullsfirst())
-            .limit(1500)
+            .offset(pw_offset)
+            .limit(pw_limit)
         )
         products = result.all()
 
     if not products:
-        print("   No products to scrape.")
+        print(f"   No products for {label}.")
         return
 
     urls = [p.url for p in products]
-    await _run_scrape_batch(urls, "longtail")
+    await _run_scrape_batch(urls, f"longtail-{label}")
 
 
 async def scrape_platform_products(platform: str, limit: int = 200):

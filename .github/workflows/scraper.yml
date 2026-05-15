@@ -2,7 +2,7 @@ name: DamKoi Scraper
 
 on:
   schedule:
-    # Scrape every 6 hours (BD prime shopping hours: 8am, 2pm, 8pm, 2am BDT = 2am/8am/2pm/8pm UTC)
+    # Every 6 hours — 8am, 2pm, 8pm, 2am BDT (2am/8am/2pm/8pm UTC)
     - cron: '0 2,8,14,20 * * *'
   workflow_dispatch:
     inputs:
@@ -12,43 +12,91 @@ on:
         default: 'all'
         type: choice
         options: [all, harvest, scrape, alerts]
+      shards:
+        description: 'Number of parallel scrape shards (1-10)'
+        required: false
+        default: '3'
+
+# Shared environment for all jobs
+env:
+  DATABASE_URL: ${{ secrets.DATABASE_URL }}
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+  RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+  DARAZ_APP_KEY: ${{ secrets.DARAZ_APP_KEY }}
+  DARAZ_APP_SECRET: ${{ secrets.DARAZ_APP_SECRET }}
+  DARAZ_TRACKING_ID: ${{ secrets.DARAZ_TRACKING_ID }}
+  REDIS_URL: ''
 
 jobs:
-  scrape:
-    name: Scrape & Update Prices
+  # ── 1. Harvest: discover new product URLs ─────────────────────────
+  harvest:
+    name: Harvest New Products
+    if: ${{ github.event.inputs.job == 'harvest' || github.event.inputs.job == 'all' || github.event.inputs.job == '' || github.event_name == 'schedule' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 60
-
-    env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-      DARAZ_APP_KEY: ${{ secrets.DARAZ_APP_KEY }}
-      DARAZ_APP_SECRET: ${{ secrets.DARAZ_APP_SECRET }}
-      DARAZ_TRACKING_ID: ${{ secrets.DARAZ_TRACKING_ID }}
-      REDIS_URL: ''  # no Redis in CI — tasks degrade gracefully
-
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: backend
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
           cache-dependency-path: backend/requirements.txt
-
-      - name: Install Python deps
+      - name: Install deps
         run: pip install -r requirements.txt
+      - name: Harvest product URLs
+        run: python run_cron.py harvest
 
-      - name: Install Playwright browsers
+  # ── 2. Scrape: parallel price fetching across N shards ────────────
+  scrape:
+    name: Scrape Prices (Shard ${{ matrix.shard }})
+    if: ${{ github.event.inputs.job == 'scrape' || github.event.inputs.job == 'all' || github.event.inputs.job == '' || github.event_name == 'schedule' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        shard: [0, 1, 2]   # 3 parallel jobs × 3,000 products = 9,000 per run
+      fail-fast: false      # one shard failing doesn't cancel others
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+      - name: Install deps
+        run: pip install -r requirements.txt
+      - name: Install Playwright (Playwright fallback only)
         run: |
           pip install playwright playwright-stealth
           playwright install chromium --with-deps
+      - name: Scrape shard ${{ matrix.shard }}/3
+        run: python run_cron.py scrape ${{ matrix.shard }} 3
 
-      - name: Run cron job
-        run: python run_cron.py ${{ github.event.inputs.job || 'all' }}
+  # ── 3. Alerts: check prices and notify users ──────────────────────
+  alerts:
+    name: Check Alerts
+    if: ${{ github.event.inputs.job == 'alerts' || github.event.inputs.job == 'all' || github.event.inputs.job == '' || github.event_name == 'schedule' }}
+    needs: scrape
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+      - name: Install deps
+        run: pip install -r requirements.txt
+      - name: Check price alerts
+        run: python run_cron.py alerts
