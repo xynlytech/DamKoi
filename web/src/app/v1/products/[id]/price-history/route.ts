@@ -10,23 +10,30 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const days = parseInt(req.nextUrl.searchParams.get('days') ?? '90', 10);
-  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-
+  const daysParam = req.nextUrl.searchParams.get('days');
   const db = createServerClient();
-  const { data, error } = await db
+
+  let query = db
     .from('price_snapshots')
     .select('price, scraped_at')
     .eq('product_id', id)
-    .gte('scraped_at', since)
     .order('scraped_at', { ascending: true });
+
+  // days=0 means "all time" — no date filter
+  if (daysParam && daysParam !== '0') {
+    const days = parseInt(daysParam, 10);
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+    query = query.gte('scraped_at', since);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     return NextResponse.json({ detail: error.message }, { status: 500, headers: cors() });
   }
 
   return NextResponse.json(
-    { prices: (data ?? []).map((s: { price: number; scraped_at: string }) => ({ price: s.price, date: s.scraped_at })) },
+    { prices: (data ?? []).map((s: { price: number; scraped_at: string }) => ({ price: s.price, scraped_at: s.scraped_at })) },
     { headers: cors() },
   );
 }
