@@ -431,7 +431,7 @@ async def scrape_longtail_products(shard_index: int = 0, total_shards: int = 1):
     print(f"   [B] New product discovery — up to {pass_b_limit} stubs")
     urls_b = await _fetch_product_urls(
         where_clauses=[Product.is_active == True, Product.last_scraped_at.is_(None)],
-        order_by=Product.created_at.asc().nullsfirst(),   # oldest stub first
+        order_by=Product.first_seen_at.asc(),   # oldest stub first
         offset=0,   # all shards compete for stubs; duplicates are harmless
         limit=pass_b_limit,
     )
