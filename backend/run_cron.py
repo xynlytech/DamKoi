@@ -29,9 +29,27 @@ async def run_harvest():
     from app.scraper.tasks import harvest_new_products, harvest_from_categories
     print("[cron] Harvesting from Daraz sitemaps...")
     await harvest_new_products()
-    print("[cron] Harvesting from Daraz category pages...")
+    print("[cron] Harvesting from all category pages + platform sitemaps...")
     await harvest_from_categories()
     print("[cron] Harvest done.")
+
+
+async def run_platforms():
+    """Scrape prices for all non-Daraz enabled platforms."""
+    from app.scraper.tasks import scrape_platform_products
+    from app.services.flags import is_platform_enabled
+
+    NON_DARAZ = ["rokomari", "pickaboo", "cartup", "chaldal", "othoba"]
+    enabled = [p for p in NON_DARAZ if is_platform_enabled(p)]
+    if not enabled:
+        print("[cron] No non-Daraz platforms enabled — skipping.")
+        return
+
+    print(f"[cron] Scraping platforms: {enabled}")
+    for platform in enabled:
+        print(f"[cron] Starting {platform} scrape...")
+        await scrape_platform_products(platform, limit=200)
+    print("[cron] Platform scrapes done.")
 
 
 async def run_scrape(shard_index: int = 0, total_shards: int = 1):
@@ -69,11 +87,14 @@ async def main():
         shard_index = int(args[1]) if len(args) > 1 else 0
         total_shards = int(args[2]) if len(args) > 2 else 1
         await run_scrape(shard_index=shard_index, total_shards=total_shards)
+    elif cmd == "platforms":
+        await run_platforms()
     elif cmd == "alerts":
         await run_alerts()
     else:  # all
         await run_harvest()
         await run_scrape()
+        await run_platforms()
         await run_alerts()
 
 

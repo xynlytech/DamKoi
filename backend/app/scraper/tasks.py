@@ -271,19 +271,35 @@ async def scrape_tracked_products():
 
 async def harvest_from_categories() -> int:
     """
-    Discover new Daraz products by scraping category listing pages (HTTP only).
-    Supplements sitemap harvesting with current, in-stock product URLs.
+    Discover new products via:
+    - Daraz: category listing page scraping (HTTP)
+    - All other enabled platforms: sitemap + category page harvesting
     """
-    print(f"[HARVEST] [{datetime.now()}] Starting category harvest...")
+    print(f"[HARVEST] [{datetime.now()}] Starting category + platform harvest...")
+    total = 0
+
+    # Daraz category pages
     try:
         from app.scraper.category_harvester import CategoryHarvester
         harvester = CategoryHarvester(max_pages_per_cat=5, concurrency=5)
         count = await harvester.harvest_all()
-        print(f"[HARVEST] Category harvest done: {count} new products seeded.")
-        return count
+        print(f"[HARVEST] Daraz category harvest: {count} new products seeded.")
+        total += count
     except Exception as e:
-        logger.error("Category harvest failed: %s", e, exc_info=True)
-        return 0
+        logger.error("Daraz category harvest failed: %s", e, exc_info=True)
+
+    # All other enabled platforms
+    try:
+        from app.scraper.platform_harvesters import harvest_all_platforms
+        platform_counts = await harvest_all_platforms()
+        for platform, count in platform_counts.items():
+            print(f"[HARVEST] {platform}: {count} new products seeded.")
+            total += count
+    except Exception as e:
+        logger.error("Platform harvest failed: %s", e, exc_info=True)
+
+    print(f"[HARVEST] Total new products seeded this run: {total}")
+    return total
 
 
 async def scrape_via_api(limit: int = 5000, offset: int = 0) -> int:
