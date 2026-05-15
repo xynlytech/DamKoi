@@ -11,7 +11,7 @@ on:
         required: false
         default: 'all'
         type: choice
-        options: [all, scrape, alerts]
+        options: [all, harvest, scrape, alerts]
 
 jobs:
   scrape:

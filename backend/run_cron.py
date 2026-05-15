@@ -2,11 +2,12 @@
 DamKoi — Cron Scraper Entry Point
 
 Called by GitHub Actions on a schedule to:
-1. Re-scrape all active products and record new price snapshots
-2. Check alerts and send notifications
+1. Harvest new product URLs from Daraz sitemap (HTTP only, no Playwright)
+2. Scrape prices for all active products (Playwright)
+3. Check alerts and send notifications
 
 Usage:
-    python run_cron.py [scrape|alerts|all]
+    python run_cron.py [harvest|scrape|alerts|all]
 """
 
 import asyncio
@@ -16,12 +17,19 @@ import sys
 sys.path.insert(0, os.path.dirname(__file__))
 
 
+async def run_harvest():
+    from app.scraper.tasks import harvest_new_products
+    print("[cron] Harvesting new product URLs from sitemaps...")
+    await harvest_new_products()
+    print("[cron] Harvest done.")
+
+
 async def run_scrape():
-    from app.scraper.tasks import scrape_tracked_products, scrape_hot_products
+    from app.scraper.tasks import scrape_hot_products, scrape_longtail_products
     print("[cron] Scraping hot products...")
     await scrape_hot_products()
-    print("[cron] Scraping tracked products...")
-    await scrape_tracked_products()
+    print("[cron] Scraping all active products (longtail)...")
+    await scrape_longtail_products()
     print("[cron] Scrape done.")
 
 
@@ -35,11 +43,14 @@ async def run_alerts():
 async def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else "all"
 
-    if cmd == "scrape":
+    if cmd == "harvest":
+        await run_harvest()
+    elif cmd == "scrape":
         await run_scrape()
     elif cmd == "alerts":
         await run_alerts()
     else:  # all
+        await run_harvest()
         await run_scrape()
         await run_alerts()
 
