@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, ExternalLink, Trophy, AlertTriangle, Search } from "lucide-react";
 import ReportButtonClient from "./ReportButtonClient";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
+const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
 
 const PLATFORM_COLOR: Record<string, { color: string; bg: string; border: string }> = {
   daraz:    { color: "#f97316", bg: "rgba(249,115,22,0.1)",  border: "rgba(249,115,22,0.2)"  },

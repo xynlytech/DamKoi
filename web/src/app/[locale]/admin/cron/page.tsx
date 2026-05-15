@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Loader2, Play, CheckCircle2, AlertCircle, Clock, RefreshCw } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
+const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
 
 type JobInfo = {
   description: string;

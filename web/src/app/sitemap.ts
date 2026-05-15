@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 const BASE_URL = "https://damkoi.xynly.com";
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
+const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
 
 async function getAllProductIds(): Promise<string[]> {
   try {

@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     "Verified genuine price drops across Daraz, Cartup, Rokomari, Pickaboo, Chaldal, and Othoba — not inflated fake discounts. Updated every hour.",
 };
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
+const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
 const PAGE_SIZE = 50;
 
 const PLATFORMS = ["", "daraz", "cartup", "rokomari", "pickaboo", "chaldal", "othoba"];

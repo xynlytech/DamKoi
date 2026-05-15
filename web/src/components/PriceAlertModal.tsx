@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { X, Mail, Bell, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
+const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
 
 interface PriceAlertModalProps {
   isOpen: boolean;

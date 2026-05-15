@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Search, ArrowUpRight, Loader2, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
+const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
 
 const PLATFORMS = ["all", "daraz", "cartup", "rokomari", "pickaboo", "chaldal", "othoba"];
 const PLATFORM_COLOR: Record<string, string> = {

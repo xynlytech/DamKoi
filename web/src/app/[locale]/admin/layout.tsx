@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
+const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
 
 const NAV = [
   { href: "/admin",          label: "Overview",     icon: LayoutDashboard, exact: true },

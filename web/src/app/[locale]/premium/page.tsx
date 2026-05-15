@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { PartyPopper, CheckCircle, Loader2 } from "lucide-react";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
+const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
 
 export default function PremiumPage() {
   const [loading, setLoading] = useState(false);

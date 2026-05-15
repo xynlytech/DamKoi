@@ -8,7 +8,7 @@ import {
 import PriceChartClient from "./PriceChartClient";
 import AlertFormClient from "./AlertFormClient";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
+const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
 const BASE_URL = "https://damkoi.xynly.com";
 
 const PLATFORM_COLOR: Record<string, string> = {

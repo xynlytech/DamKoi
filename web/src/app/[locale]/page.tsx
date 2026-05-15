@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     "DamKoi shows you the real price history of products on Daraz, Cartup, Rokomari, and Pickaboo. Detect fake discounts, compare prices across platforms, and get alerted when prices drop.",
 };
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
+const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
 
 async function getTopDeals() {
   try {

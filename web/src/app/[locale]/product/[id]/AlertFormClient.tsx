@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Bell, Loader2, CheckCircle2, Smartphone } from "lucide-react";
 import { isPushSupported, subscribeToPush, getPushState } from "@/lib/push";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
+const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
 const EMAIL_KEY = "damkoi_alert_email";
 
 export default function AlertFormClient({

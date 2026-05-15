@@ -6,7 +6,7 @@ import { motion, useMotionValue, useSpring, useInView, animate } from "framer-mo
 import { Search, Clock, Info, ArrowRight, TrendingDown, ShieldAlert, Bell } from "lucide-react";
 import Link from "next/link";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
+const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
 const SUPPORTED_DOMAINS = ["daraz.com.bd", "cartup.com.bd", "rokomari.com", "pickaboo.com", "chaldal.com", "othoba.com"];
 
 type State = "idle" | "loading" | "tracking_started" | "error";

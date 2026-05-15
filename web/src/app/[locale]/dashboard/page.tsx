@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
+const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
 
 const PLATFORM_COLOR: Record<string, string> = {
   daraz: "#f97316", cartup: "#3b82f6", rokomari: "#ef4444",

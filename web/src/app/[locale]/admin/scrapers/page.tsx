@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { RefreshCw, CheckCircle, AlertTriangle, XCircle, HelpCircle, Activity } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
+const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
 
 type PlatformHealth = {
   platform: string;
