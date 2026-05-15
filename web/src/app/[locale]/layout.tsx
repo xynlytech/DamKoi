@@ -3,6 +3,7 @@ import { Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
 import Link from "next/link";
 import "../globals.css";
 import NavAuthButton from "@/components/NavAuthButton";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -54,9 +55,10 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
+      data-theme="dark"
       className={`${spaceGrotesk.variable} ${ibmPlexMono.variable}`}
     >
-      <body className="min-h-dvh flex flex-col" style={{ backgroundColor: "var(--bg)", color: "#fff", fontFamily: "var(--font-space-grotesk), system-ui, sans-serif" }}>
+      <body className="min-h-dvh flex flex-col" style={{ backgroundColor: "var(--bg)", color: "var(--text-primary)", fontFamily: "var(--font-space-grotesk), system-ui, sans-serif" }}>
         <NextIntlClientProvider messages={messages}>
           {/* ── Navbar ── */}
           <header className="fixed top-0 left-0 right-0 z-50 dk-nav">
@@ -66,27 +68,31 @@ export default async function RootLayout({
                 <div className="w-8 h-8 rounded-xl overflow-hidden flex items-center justify-center" style={{ background: "var(--bg2)", border: "1px solid var(--border-sm)" }}>
                   <img src="/dk-logo.svg" alt="DamKoi" className="w-full h-full object-contain" />
                 </div>
-                <span className="text-lg font-bold tracking-tight text-white">DamKoi</span>
+                <span className="text-lg font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>DamKoi</span>
               </Link>
 
               {/* Desktop Nav */}
-              <nav className="hidden md:flex items-center gap-6">
-                <Link href={`/${locale}/`}         className="text-xs font-medium text-white/40 hover:text-white/80 transition-colors uppercase tracking-widest dk-focus">Home</Link>
-                <Link href={`/${locale}/deals`}     className="text-xs font-medium text-white/40 hover:text-white/80 transition-colors uppercase tracking-widest dk-focus">Deals</Link>
-                <Link href={`/${locale}/dashboard`} className="text-xs font-medium text-white/40 hover:text-white/80 transition-colors uppercase tracking-widest dk-focus">Dashboard</Link>
-                <Link href={`/${locale}/alerts`}    className="text-xs font-medium text-white/40 hover:text-white/80 transition-colors uppercase tracking-widest dk-focus">Alerts</Link>
+              <nav className="hidden md:flex items-center gap-5">
+                <Link href={`/${locale}/`}         className="text-xs font-medium transition-colors uppercase tracking-widest dk-focus" style={{ color: "var(--text-muted)" }} onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "var(--text-secondary)")} onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "var(--text-muted)")}>Home</Link>
+                <Link href={`/${locale}/deals`}     className="text-xs font-medium transition-colors uppercase tracking-widest dk-focus" style={{ color: "var(--text-muted)" }} onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "var(--text-secondary)")} onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "var(--text-muted)")}>Deals</Link>
+                <Link href={`/${locale}/dashboard`} className="text-xs font-medium transition-colors uppercase tracking-widest dk-focus" style={{ color: "var(--text-muted)" }} onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "var(--text-secondary)")} onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "var(--text-muted)")}>Dashboard</Link>
+                <Link href={`/${locale}/alerts`}    className="text-xs font-medium transition-colors uppercase tracking-widest dk-focus" style={{ color: "var(--text-muted)" }} onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "var(--text-secondary)")} onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "var(--text-muted)")}>Alerts</Link>
                 <NavAuthButton />
+                <ThemeToggle />
                 <Link href={`/${locale}/install`} className="dk-btn-primary text-xs px-4 py-2.5 dk-focus">
                   Install Extension
                 </Link>
               </nav>
 
-              {/* Mobile menu */}
-              <button aria-label="Open menu" className="md:hidden p-2 rounded-lg dk-focus" style={{ border: "1px solid var(--border-sm)", background: "var(--bg2)" }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
-                </svg>
-              </button>
+              {/* Mobile: theme toggle + menu */}
+              <div className="md:hidden flex items-center gap-2">
+                <ThemeToggle />
+                <button aria-label="Open menu" className="p-2 rounded-lg dk-focus" style={{ border: "1px solid var(--border-sm)", background: "var(--bg2)", color: "var(--text-muted)" }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
+                  </svg>
+                </button>
+              </div>
             </div>
           </header>
 
@@ -103,19 +109,19 @@ export default async function RootLayout({
                   <div className="w-7 h-7 rounded-lg overflow-hidden flex items-center justify-center" style={{ background: "var(--bg2)", border: "1px solid var(--border-sm)" }}>
                     <img src="/dk-logo.svg" alt="DamKoi" className="w-full h-full object-contain" />
                   </div>
-                  <span className="font-bold text-white">DamKoi</span>
-                  <span className="text-white/20 text-[10px] uppercase tracking-widest ml-2 hidden sm:block" style={{ borderLeft: "1px solid var(--border-sm)", paddingLeft: "0.5rem" }}>
+                  <span className="font-bold" style={{ color: "var(--text-primary)" }}>DamKoi</span>
+                  <span className="text-[10px] uppercase tracking-widest ml-2 hidden sm:block" style={{ borderLeft: "1px solid var(--border-sm)", paddingLeft: "0.5rem", color: "var(--text-ghost)" }}>
                     Bangladesh Shopping Intelligence
                   </span>
                 </div>
 
                 <nav className="flex flex-wrap items-center justify-center gap-5">
                   {[["Deals", "/deals"], ["Dashboard", "/dashboard"], ["Alerts", "/alerts"], ["Extension", "/install"], ["Privacy", "/privacy"]].map(([label, href]) => (
-                    <Link key={href} href={href} className="text-xs text-white/30 hover:text-white/60 transition-colors dk-focus">{label}</Link>
+                    <Link key={href} href={href} className="text-xs transition-colors dk-focus" style={{ color: "var(--text-faint)" }}>{label}</Link>
                   ))}
                 </nav>
 
-                <p className="text-white/20 text-[10px]" style={{ fontFamily: "var(--font-ibm-plex-mono), monospace" }}>
+                <p className="text-[10px]" style={{ color: "var(--text-ghost)", fontFamily: "var(--font-ibm-plex-mono), monospace" }}>
                   &copy; {new Date().getFullYear()} DamKoi
                 </p>
               </div>

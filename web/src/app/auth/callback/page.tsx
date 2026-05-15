@@ -41,7 +41,7 @@ export default function AuthCallbackPage() {
 
   return (
     <div className="min-h-dvh flex items-center justify-center">
-      <Loader2 size={28} className="animate-spin text-indigo-400" />
+      <Loader2 size={28} className="animate-spin" style={{ color: "var(--lav)" }} />
     </div>
   );
 }

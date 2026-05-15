@@ -29,16 +29,16 @@ export default function NavAuthButton() {
   if (email) {
     return (
       <div className="flex items-center gap-2">
-        <span className="text-[10px] hidden lg:block max-w-[120px] truncate" style={{ color: "rgba(255,255,255,0.3)", fontFamily: "var(--font-ibm-plex-mono), monospace" }}>
+        <span className="text-[10px] hidden lg:block max-w-[120px] truncate" style={{ color: "var(--text-faint)", fontFamily: "var(--font-ibm-plex-mono), monospace" }}>
           {email}
         </span>
         <button
           onClick={async () => { await supabase.auth.signOut(); router.push("/"); }}
           title="Sign out"
           className="rounded-lg p-2 transition-colors dk-focus"
-          style={{ color: "rgba(255,255,255,0.3)", background: "var(--bg2)", border: "1px solid var(--border-sm)" }}
+          style={{ color: "var(--text-faint)", background: "var(--bg2)", border: "1px solid var(--border-sm)" }}
           onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--red)"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.3)"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-faint)"; }}
         >
           <LogOut size={13} />
         </button>
@@ -50,9 +50,9 @@ export default function NavAuthButton() {
     <Link
       href="/login"
       className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-widest transition-colors dk-focus"
-      style={{ color: "rgba(255,255,255,0.4)" }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#a78bfa"; }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.4)"; }}
+      style={{ color: "var(--text-muted)" }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--lav)"; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-muted)"; }}
     >
       <User size={13} />
       Sign In

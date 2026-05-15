@@ -5,13 +5,13 @@ import ReportButtonClient from "./ReportButtonClient";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
 
-const PLATFORM_COLOR: Record<string, string> = {
-  daraz:    "text-orange-400 bg-orange-500/10 border-orange-500/20",
-  cartup:   "text-blue-400 bg-blue-500/10 border-blue-500/20",
-  rokomari: "text-green-400 bg-green-500/10 border-green-500/20",
-  pickaboo: "text-purple-400 bg-purple-500/10 border-purple-500/20",
-  chaldal:  "text-teal-400 bg-teal-500/10 border-teal-500/20",
-  othoba:   "text-rose-400 bg-rose-500/10 border-rose-500/20",
+const PLATFORM_COLOR: Record<string, { color: string; bg: string; border: string }> = {
+  daraz:    { color: "#f97316", bg: "rgba(249,115,22,0.1)",  border: "rgba(249,115,22,0.2)"  },
+  cartup:   { color: "#3b82f6", bg: "rgba(59,130,246,0.1)",  border: "rgba(59,130,246,0.2)"  },
+  rokomari: { color: "#22c55e", bg: "rgba(34,197,94,0.1)",   border: "rgba(34,197,94,0.2)"   },
+  pickaboo: { color: "#8b5cf6", bg: "rgba(139,92,246,0.1)",  border: "rgba(139,92,246,0.2)"  },
+  chaldal:  { color: "#14b8a6", bg: "rgba(20,184,166,0.1)",  border: "rgba(20,184,166,0.2)"  },
+  othoba:   { color: "#ec4899", bg: "rgba(236,72,153,0.1)",  border: "rgba(236,72,153,0.2)"  },
 };
 
 function fmt(p: number | null) {
@@ -72,10 +72,10 @@ export default async function ComparePage({
   if (!data) {
     return (
       <div className="container mx-auto px-4 max-w-4xl py-20 text-center">
-        <Search size={48} className="text-white/20 mx-auto mb-4" />
+        <Search size={48} className="mx-auto mb-4" style={{ color: "var(--text-faint)" }} />
         <h1 className="text-2xl font-black mb-2">Product not found</h1>
-        <p className="text-white/40 mb-6 text-sm">This product does not exist or was removed.</p>
-        <Link href="/" className="text-indigo-400 hover:text-indigo-300 text-sm">← Back to homepage</Link>
+        <p className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>This product does not exist or was removed.</p>
+        <Link href="/" style={{ color: "var(--lav)" }} className="text-sm hover:opacity-80 transition-opacity">← Back to homepage</Link>
       </div>
     );
   }
@@ -94,39 +94,47 @@ export default async function ComparePage({
     <div className="container mx-auto px-4 max-w-4xl">
       <Link
         href={`/product/${slug}`}
-        className="inline-flex items-center gap-1 text-white/40 hover:text-white text-sm mb-8 transition-colors"
+        className="inline-flex items-center gap-1 text-sm mb-8 transition-opacity hover:opacity-80"
+        style={{ color: "var(--text-muted)" }}
       >
         <ArrowLeft size={14} /> Back to product
       </Link>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-black font-outfit mb-2">Cross-Platform Price Compare</h1>
+        <h1 className="text-3xl font-black mb-2">Cross-Platform Price Compare</h1>
         {original && (
-          <p className="text-white/50 text-sm line-clamp-2">{original.title}</p>
+          <p className="text-sm line-clamp-2" style={{ color: "var(--text-muted)" }}>{original.title}</p>
         )}
       </div>
 
       {noMatches ? (
-        <div className="nm-raised rounded-2xl p-10 text-center">
-          <AlertTriangle size={32} className="mx-auto text-amber-400 mb-4" />
+        <div className="dk-card p-10 text-center">
+          <AlertTriangle size={32} className="mx-auto mb-4" style={{ color: "var(--amber)" }} />
           <h2 className="font-black text-lg mb-2">No cross-platform matches yet</h2>
-          <p className="text-white/40 text-sm max-w-xs mx-auto">
+          <p className="text-sm max-w-xs mx-auto" style={{ color: "var(--text-muted)" }}>
             Our matching engine has not clustered this product across platforms yet.
             Check back in a few hours.
           </p>
-          <Link href={`/product/${slug}`} className="mt-6 inline-block text-indigo-400 text-sm hover:text-indigo-300">
+          <Link
+            href={`/product/${slug}`}
+            className="mt-6 inline-block text-sm hover:opacity-80 transition-opacity"
+            style={{ color: "var(--lav)" }}
+          >
             View price history instead →
           </Link>
         </div>
       ) : (
         <>
           {cheapest && (
-            <div className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-5 py-3 mb-6">
-              <Trophy size={18} className="text-emerald-400 shrink-0" />
-              <p className="text-sm text-emerald-300">
+            <div
+              className="flex items-center gap-3 rounded-2xl px-5 py-3 mb-6"
+              style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.2)" }}
+            >
+              <Trophy size={18} className="shrink-0" style={{ color: "var(--green)" }} />
+              <p className="text-sm" style={{ color: "rgba(34,197,94,0.9)" }}>
                 Cheapest on{" "}
                 <span className="font-black capitalize">{cheapest.platform}</span>{" "}
-                at <span className="font-black font-mono">{fmt(cheapest.current_price)}</span>
+                at <span className="font-black" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(cheapest.current_price)}</span>
               </p>
             </div>
           )}
@@ -139,56 +147,67 @@ export default async function ComparePage({
                 original?.current_price != null && item.current_price != null && !isOriginal
                   ? item.current_price - original.current_price
                   : null;
+              const pc = PLATFORM_COLOR[item.platform];
 
               return (
                 <div
                   key={item.id}
-                  className={`nm-raised rounded-2xl p-5 flex flex-col gap-4 relative ${
-                    isCheapest ? "ring-1 ring-emerald-500/40" : ""
-                  }`}
+                  className="dk-card p-5 flex flex-col gap-4 relative"
+                  style={isCheapest ? { border: "1px solid rgba(34,197,94,0.3)" } : undefined}
                 >
                   {isCheapest && (
-                    <div className="absolute -top-2.5 left-4 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest px-3 py-0.5 rounded-full">
+                    <div
+                      className="absolute -top-2.5 left-4 text-white text-[10px] font-black uppercase tracking-widest px-3 py-0.5 rounded-full"
+                      style={{ background: "#16a34a", color: "#ffffff" }}
+                    >
                       Cheapest
                     </div>
                   )}
                   {isOriginal && !isCheapest && (
-                    <div className="absolute -top-2.5 left-4 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest px-3 py-0.5 rounded-full">
+                    <div
+                      className="absolute -top-2.5 left-4 text-white text-[10px] font-black uppercase tracking-widest px-3 py-0.5 rounded-full"
+                      style={{ background: "var(--purple)", color: "#ffffff" }}
+                    >
                       You viewed
                     </div>
                   )}
 
                   <div className="flex items-start gap-3">
                     {item.image_url && (
-                      <div className="w-12 h-12 rounded-xl nm-inset flex-shrink-0 overflow-hidden">
+                      <div
+                        className="w-12 h-12 rounded-xl flex-shrink-0 overflow-hidden"
+                        style={{ background: "var(--bg3)", border: "1px solid var(--border-sm)" }}
+                      >
                         <img src={item.image_url} alt="" className="w-full h-full object-contain p-1" />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
                       <span
-                        className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${
-                          PLATFORM_COLOR[item.platform] ?? "text-white/40 bg-white/5 border-white/10"
-                        }`}
+                        className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
+                        style={pc
+                          ? { color: pc.color, background: pc.bg, border: `1px solid ${pc.border}` }
+                          : { color: "var(--text-muted)", background: "var(--surface-ghost)", border: "1px solid var(--border-sm)" }
+                        }
                       >
                         {item.platform}
                       </span>
-                      <p className="text-sm font-semibold text-white/80 mt-1 line-clamp-2 leading-snug">
+                      <p className="text-sm font-semibold mt-1 line-clamp-2 leading-snug" style={{ color: "var(--text-secondary)" }}>
                         {item.title}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-end justify-between">
-                    <span className="font-black text-xl font-mono text-white">
+                    <span className="font-black text-xl text-white" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
                       {fmt(item.current_price)}
                     </span>
                     {priceDelta !== null && (
                       <span
-                        className={`text-xs font-bold px-2 py-1 rounded-full ${
-                          priceDelta < 0
-                            ? "text-emerald-400 bg-emerald-500/10"
-                            : "text-red-400 bg-red-500/10"
-                        }`}
+                        className="text-xs font-bold px-2 py-1 rounded-full"
+                        style={priceDelta < 0
+                          ? { color: "var(--green)", background: "rgba(34,197,94,0.1)" }
+                          : { color: "var(--red)", background: "rgba(239,68,68,0.1)" }
+                        }
                       >
                         {priceDelta < 0 ? `Save ${fmt(Math.abs(priceDelta))}` : `+${fmt(priceDelta)}`}
                       </span>
@@ -199,7 +218,8 @@ export default async function ComparePage({
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 nm-raised nm-interactive rounded-xl py-2 text-xs font-black uppercase tracking-widest text-white/60 hover:text-white"
+                    className="flex items-center justify-center gap-2 rounded-xl py-2 text-xs font-black uppercase tracking-widest transition-opacity hover:opacity-80"
+                    style={{ background: "var(--bg3)", border: "1px solid var(--border-sm)", color: "var(--text-body)" }}
                   >
                     Buy on {item.platform} <ExternalLink size={11} />
                   </a>

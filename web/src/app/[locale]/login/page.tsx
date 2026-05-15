@@ -53,11 +53,11 @@ export default function LoginPage() {
 
         <div className="rounded-2xl p-8" style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)" }}>
           <h1 className="text-2xl font-bold text-center text-white mb-1">Sign In</h1>
-          <p className="text-sm text-center mb-8" style={{ color: "rgba(255,255,255,0.4)" }}>Welcome back to DamKoi.</p>
+          <p className="text-sm text-center mb-8" style={{ color: "var(--text-muted)" }}>Welcome back to DamKoi.</p>
 
           <form onSubmit={submit} className="flex flex-col gap-4">
             <div className="relative">
-              <Mail size={14} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "rgba(255,255,255,0.25)" }} />
+              <Mail size={14} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--text-faint)" }} />
               <input
                 type="email"
                 placeholder="Email"
@@ -69,7 +69,7 @@ export default function LoginPage() {
             </div>
 
             <div className="relative">
-              <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "rgba(255,255,255,0.25)" }} />
+              <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--text-faint)" }} />
               <input
                 type={showPw ? "text" : "password"}
                 placeholder="Password"
@@ -82,7 +82,7 @@ export default function LoginPage() {
                 type="button"
                 onClick={() => setShowPw((p) => !p)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 transition-colors dk-focus"
-                style={{ color: "rgba(255,255,255,0.25)" }}
+                style={{ color: "var(--text-faint)" }}
               >
                 {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
@@ -91,7 +91,7 @@ export default function LoginPage() {
             {status === "err" && <p className="text-xs -mt-1" style={{ color: "var(--red)" }}>{msg}</p>}
 
             <div className="flex justify-end -mt-1">
-              <Link href="/forgot-password" className="text-[11px] transition-colors dk-focus" style={{ color: "rgba(255,255,255,0.3)" }}>
+              <Link href="/forgot-password" className="text-[11px] transition-colors dk-focus" style={{ color: "var(--text-faint)" }}>
                 Forgot password?
               </Link>
             </div>
@@ -108,9 +108,9 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-center text-xs mt-6" style={{ color: "rgba(255,255,255,0.3)" }}>
+          <p className="text-center text-xs mt-6" style={{ color: "var(--text-faint)" }}>
             No account?{" "}
-            <Link href="/register" className="font-semibold transition-colors dk-focus" style={{ color: "#a78bfa" }}>Create one</Link>
+            <Link href="/register" className="font-semibold transition-colors dk-focus" style={{ color: "var(--lav)" }}>Create one</Link>
           </p>
         </div>
       </motion.div>

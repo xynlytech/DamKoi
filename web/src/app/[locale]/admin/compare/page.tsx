@@ -1,10 +1,15 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Shield, GitMerge, GitBranch, AlertCircle, CheckCircle, RefreshCw } from "lucide-react";
+import { GitMerge, GitBranch, AlertCircle, CheckCircle, RefreshCw, Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
-const API = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1").replace(/\/v1$/, "");
-const ADMIN_TOKEN_STORAGE_KEY = "damkoi_admin_token";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
+
+const PLATFORM_COLOR: Record<string, string> = {
+  daraz: "#f97316", cartup: "#3b82f6", rokomari: "#ef4444",
+  pickaboo: "#8b5cf6", chaldal: "#22c55e", othoba: "#ec4899",
+};
 
 type Product = {
   id: string;
@@ -21,25 +26,30 @@ type MatchGroup = {
   products: Product[];
 };
 
+async function adminFetch(path: string, opts?: RequestInit) {
+  const { data: { session } } = await supabase.auth.getSession();
+  return fetch(`${API}${path}`, {
+    ...opts,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session?.access_token}`,
+      ...((opts?.headers as Record<string, string>) ?? {}),
+    },
+  });
+}
+
 export default function AdminComparePage() {
   const [groups, setGroups] = useState<MatchGroup[]>([]);
   const [loading, setLoading] = useState(true);
-  const [actionStatus, setActionStatus] = useState<{msg: string, type: 'ok'|'err'} | null>(null);
-
-  // For merging
+  const [actionStatus, setActionStatus] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
   const [mergeTargetGroup, setMergeTargetGroup] = useState<string | null>(null);
   const [mergeProductId, setMergeProductId] = useState("");
 
   const fetchGroups = useCallback(async () => {
     setLoading(true);
     try {
-      const token = getAdminToken();
-      const res = await fetch(`${API}/admin/match-groups`, {
-        headers: { "x-admin-token": token }
-      });
-      if (res.ok) {
-        setGroups(await res.json());
-      }
+      const res = await adminFetch("/admin/match-groups");
+      if (res.ok) setGroups(await res.json());
     } catch (e) {
       console.error(e);
     }
@@ -47,162 +57,153 @@ export default function AdminComparePage() {
   }, []);
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      fetchGroups();
-    }, 0);
+    const timeout = window.setTimeout(() => { fetchGroups(); }, 0);
     return () => window.clearTimeout(timeout);
   }, [fetchGroups]);
 
   const handleSplit = async (productId: string) => {
+    setActionStatus(null);
     try {
-      setActionStatus(null);
-      const res = await fetch(`${API}/admin/match-groups/split`, {
+      const res = await adminFetch("/admin/match-groups/split", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-admin-token": getAdminToken() },
-        body: JSON.stringify({ product_ids: [productId] })
+        body: JSON.stringify({ product_ids: [productId] }),
       });
-      if (res.ok) {
-        setActionStatus({ msg: "Split successful", type: 'ok' });
-        fetchGroups();
-      } else {
-        setActionStatus({ msg: "Split failed", type: 'err' });
-      }
-    } catch (e) {
-      setActionStatus({ msg: "Network error during split", type: 'err' });
+      setActionStatus(res.ok
+        ? { msg: "Split successful", type: "ok" }
+        : { msg: "Split failed", type: "err" }
+      );
+      if (res.ok) fetchGroups();
+    } catch {
+      setActionStatus({ msg: "Network error during split", type: "err" });
     }
   };
 
   const handleMerge = async (groupId: string) => {
     if (!mergeProductId) return;
+    setActionStatus(null);
     try {
-      setActionStatus(null);
-      const res = await fetch(`${API}/admin/match-groups/${groupId}/merge`, {
+      const res = await adminFetch(`/admin/match-groups/${groupId}/merge`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-admin-token": getAdminToken() },
-        body: JSON.stringify({ product_ids: [mergeProductId] })
+        body: JSON.stringify({ product_ids: [mergeProductId] }),
       });
       if (res.ok) {
-        setActionStatus({ msg: "Merge successful", type: 'ok' });
-        setMergeProductId("");
-        setMergeTargetGroup(null);
+        setActionStatus({ msg: "Merge successful", type: "ok" });
+        setMergeProductId(""); setMergeTargetGroup(null);
         fetchGroups();
       } else {
-        setActionStatus({ msg: "Merge failed. Check product ID.", type: 'err' });
+        setActionStatus({ msg: "Merge failed. Check product ID.", type: "err" });
       }
-    } catch (e) {
-      setActionStatus({ msg: "Network error during merge", type: 'err' });
+    } catch {
+      setActionStatus({ msg: "Network error during merge", type: "err" });
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0c] text-white p-8 font-inter">
-      <div className="max-w-6xl mx-auto">
-        <header className="flex items-center justify-between mb-8 pb-8 border-b border-white/5">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
-              <Shield className="text-indigo-400" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-black font-outfit">DamKoi Admin</h1>
-              <p className="text-xs text-white/40 uppercase tracking-widest font-bold mt-1">Match Group Moderation</p>
-            </div>
-          </div>
-          <button 
-            onClick={fetchGroups} 
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-bold uppercase tracking-wider transition-all"
-          >
-            <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Refresh Data
-          </button>
-        </header>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+            <GitMerge size={22} style={{ color: "var(--lav)" }} />
+            Match Groups
+          </h1>
+          <p className="text-xs mt-0.5" style={{ color: "var(--text-faint)" }}>Cross-platform product matching moderation</p>
+        </div>
+        <button
+          onClick={fetchGroups}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition-all dk-focus"
+          style={{ background: "var(--bg2)", border: "1px solid var(--border-sm)", color: "var(--text-muted)" }}
+        >
+          <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Refresh Data
+        </button>
+      </div>
 
-        {actionStatus && (
-          <div className={`mb-8 p-4 rounded-xl flex items-center gap-3 border ${actionStatus.type === 'ok' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
-            {actionStatus.type === 'ok' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
-            <span className="font-bold text-sm">{actionStatus.msg}</span>
-          </div>
-        )}
+      {actionStatus && (
+        <div className="p-4 rounded-xl flex items-center gap-3" style={{
+          background: actionStatus.type === "ok" ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)",
+          border: `1px solid ${actionStatus.type === "ok" ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}`,
+          color: actionStatus.type === "ok" ? "var(--green)" : "var(--red)",
+        }}>
+          {actionStatus.type === "ok" ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+          <span className="font-semibold text-sm">{actionStatus.msg}</span>
+        </div>
+      )}
 
-        {loading ? (
-          <div className="animate-pulse space-y-4">
-            {[1,2,3].map(i => <div key={i} className="h-32 bg-white/5 rounded-2xl w-full" />)}
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {groups.map(group => (
-              <div key={group.id} className="nm-raised rounded-2xl overflow-hidden">
-                <div className="bg-white/5 p-4 flex items-center justify-between">
-                  <div>
-                    <h2 className="font-black font-outfit text-lg">{group.name}</h2>
-                    <p className="text-[10px] text-white/40 font-mono mt-1">ID: {group.id}</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-400 text-xs font-bold">
-                      {group.product_count} Products
-                    </span>
-                    <button 
-                      onClick={() => setMergeTargetGroup(mergeTargetGroup === group.id ? null : group.id)}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold transition-all"
-                    >
-                      <GitMerge size={14} /> Merge Into Group
-                    </button>
-                  </div>
+      {loading ? (
+        <div className="flex justify-center py-20">
+          <Loader2 size={24} className="animate-spin" style={{ color: "var(--lav)" }} />
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {groups.map((group) => (
+            <div key={group.id} className="dk-card overflow-hidden">
+              {/* Group header */}
+              <div className="p-4 flex items-center justify-between" style={{ background: "var(--bg2)", borderBottom: "1px solid var(--border-sm)" }}>
+                <div>
+                  <h2 className="font-bold text-base text-white">{group.name}</h2>
+                  <p className="text-[10px] mt-1" style={{ color: "var(--text-faint)", fontFamily: "'IBM Plex Mono', monospace" }}>ID: {group.id}</p>
                 </div>
-
-                {mergeTargetGroup === group.id && (
-                  <div className="p-4 bg-indigo-500/5 border-b border-white/5 flex items-center gap-3">
-                    <input 
-                      type="text" 
-                      placeholder="Paste internal Product ID to inject..." 
-                      className="flex-1 bg-black/50 border border-white/10 rounded-lg px-4 py-2 text-sm font-mono outline-none focus:border-indigo-500/50"
-                      value={mergeProductId}
-                      onChange={(e) => setMergeProductId(e.target.value)}
-                    />
-                    <button 
-                      onClick={() => handleMerge(group.id)}
-                      className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-bold uppercase tracking-wider transition-all"
-                    >
-                      Execute Merge
-                    </button>
-                  </div>
-                )}
-
-                <div className="p-4 space-y-3">
-                  {group.products.map(p => (
-                    <div key={p.id} className="flex items-center gap-4 p-3 rounded-xl bg-black/20 border border-white/5 hover:border-white/10 transition-all">
-                      {p.image_url ? (
-                        <img src={p.image_url} alt="" className="w-10 h-10 rounded-lg object-cover" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-lg bg-white/5" />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-1">{p.platform}</div>
-                        <p className="text-sm font-medium truncate">{p.title}</p>
-                        <p className="text-[9px] font-mono text-white/20 mt-1">{p.id}</p>
-                      </div>
-                      <button 
-                        onClick={() => handleSplit(p.id)}
-                        className="p-2 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-all group"
-                        title="Split from group"
-                      >
-                        <GitBranch size={16} className="group-hover:-rotate-90 transition-transform" />
-                      </button>
-                    </div>
-                  ))}
+                <div className="flex items-center gap-3">
+                  <span className="px-3 py-1 rounded-full text-xs font-semibold" style={{ background: "rgba(124,58,237,0.15)", color: "var(--lav)", border: "1px solid rgba(124,58,237,0.25)" }}>
+                    {group.product_count} Products
+                  </span>
+                  <button
+                    onClick={() => setMergeTargetGroup(mergeTargetGroup === group.id ? null : group.id)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all dk-focus"
+                    style={{ background: "var(--border-sm)", color: "var(--text-body)" }}
+                  >
+                    <GitMerge size={14} /> Merge Into Group
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+
+              {mergeTargetGroup === group.id && (
+                <div className="p-4 flex items-center gap-3" style={{ background: "rgba(124,58,237,0.05)", borderBottom: "1px solid var(--border-sm)" }}>
+                  <input
+                    type="text"
+                    placeholder="Paste internal Product ID to inject…"
+                    className="dk-input flex-1 font-mono text-sm"
+                    value={mergeProductId}
+                    onChange={(e) => setMergeProductId(e.target.value)}
+                    style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+                  />
+                  <button
+                    onClick={() => handleMerge(group.id)}
+                    className="dk-btn-primary text-xs uppercase tracking-widest"
+                  >
+                    Execute Merge
+                  </button>
+                </div>
+              )}
+
+              <div className="p-4 space-y-3">
+                {group.products.map((p) => (
+                  <div key={p.id} className="flex items-center gap-4 p-3 rounded-xl transition-all" style={{ background: "rgba(0,0,0,0.2)", border: "1px solid var(--border-sm)" }}>
+                    {p.image_url ? (
+                      <img src={p.image_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg flex-shrink-0" style={{ background: "var(--bg3)" }} />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[9px] font-semibold uppercase tracking-widest mb-1" style={{ color: PLATFORM_COLOR[p.platform] ?? "var(--text-muted)" }}>{p.platform}</div>
+                      <p className="text-sm font-medium truncate" style={{ color: "var(--text-secondary)" }}>{p.title}</p>
+                      <p className="text-[9px] mt-1" style={{ color: "var(--text-faint)", fontFamily: "'IBM Plex Mono', monospace" }}>{p.id}</p>
+                    </div>
+                    <button
+                      onClick={() => handleSplit(p.id)}
+                      className="p-2 rounded-lg transition-all dk-focus"
+                      style={{ color: "var(--red)" }}
+                      title="Split from group"
+                    >
+                      <GitBranch size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
-}
-
-function getAdminToken() {
-  let token = sessionStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
-  if (!token) {
-    token = window.prompt("Admin token") || "";
-    if (token) sessionStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token);
-  }
-  return token;
 }

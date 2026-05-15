@@ -11,6 +11,11 @@ import AlertFormClient from "./AlertFormClient";
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
 const BASE_URL = "https://damkoi.xynly.com";
 
+const PLATFORM_COLOR: Record<string, string> = {
+  daraz: "#f97316", cartup: "#3b82f6", rokomari: "#ef4444",
+  pickaboo: "#8b5cf6", chaldal: "#22c55e", othoba: "#ec4899",
+};
+
 // ── Types ──────────────────────────────────────────────────────
 
 type Product = {
@@ -143,11 +148,11 @@ function fmtDate(iso: string | null | undefined): string {
 }
 
 const VERDICT_CONFIG = {
-  FAKE_DISCOUNT:     { icon: <XCircle size={24} />, label: "Fake Discount",  color: "#ef4444" },
-  BEST_PRICE:        { icon: <CheckCircle size={24} />, label: "Best Price",      color: "#10b981" },
-  GOOD_DEAL:         { icon: <Flame size={24} />, label: "Good Deal",       color: "#6366f1" },
-  FAIR_PRICE:        { icon: <Circle size={24} />, label: "Fair Price",      color: "#f59e0b" },
-  INSUFFICIENT_DATA: { icon: <Clock size={24} />, label: "Tracking…",       color: "#94a3b8" },
+  FAKE_DISCOUNT:     { icon: <XCircle size={22} />,     label: "Fake Discount",      color: "#ef4444" },
+  BEST_PRICE:        { icon: <CheckCircle size={22} />, label: "Best Price",          color: "#22c55e" },
+  GOOD_DEAL:         { icon: <Flame size={22} />,       label: "Good Deal",           color: "var(--purple)" },
+  FAIR_PRICE:        { icon: <Circle size={22} />,      label: "Fair Price",          color: "#f59e0b" },
+  INSUFFICIENT_DATA: { icon: <Clock size={22} />,       label: "Tracking…",      color: "#94a3b8" },
 };
 
 // ── Sub-components (server) ────────────────────────────────────
@@ -155,11 +160,11 @@ const VERDICT_CONFIG = {
 function ScoreRing({ score }: { score: number }) {
   const r = 40, circ = Math.PI * 2 * r;
   const offset = circ * (1 - score / 10);
-  const color = score >= 8 ? "#10B981" : score >= 5 ? "#F59E0B" : "#EF4444";
+  const color = score >= 8 ? "#22c55e" : score >= 5 ? "#f59e0b" : "#ef4444";
   return (
     <div className="relative flex items-center justify-center w-28 h-28 flex-shrink-0">
       <svg className="w-full h-full -rotate-90" viewBox="0 0 128 128">
-        <circle cx="64" cy="64" r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8" />
+        <circle cx="64" cy="64" r={r} fill="none" stroke="var(--surface-ghost)" strokeWidth="8" />
         <circle cx="64" cy="64" r={r} fill="none" stroke={color} strokeWidth="8"
           strokeLinecap="round"
           strokeDasharray={circ}
@@ -167,8 +172,8 @@ function ScoreRing({ score }: { score: number }) {
         />
       </svg>
       <div className="absolute flex flex-col items-center">
-        <span className="text-3xl font-black font-outfit" style={{ color }}>{score}</span>
-        <span className="text-[8px] font-black uppercase tracking-widest text-white/20">Score</span>
+        <span className="text-3xl font-black" style={{ color, fontFamily: "'IBM Plex Mono', monospace" }}>{score}</span>
+        <span className="text-[8px] font-bold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Score</span>
       </div>
     </div>
   );
@@ -193,12 +198,12 @@ export default async function ProductPage({
   if (!product) {
     return (
       <div className="max-w-4xl mx-auto px-6 py-20 text-center">
-        <AlertCircle size={48} className="text-rose-500 mx-auto mb-6" />
-        <h2 className="text-2xl font-black font-outfit mb-4">Product Not Found</h2>
-        <p className="text-white/40 mb-10">
+        <AlertCircle size={48} className="mx-auto mb-6" style={{ color: "var(--red)" }} />
+        <h2 className="text-2xl font-bold mb-4 text-white">Product Not Found</h2>
+        <p className="mb-10" style={{ color: "var(--text-muted)" }}>
           This product is not in our database yet. Paste its URL on the homepage to start tracking.
         </p>
-        <Link href="/" className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white font-black text-xs uppercase tracking-widest transition-all">
+        <Link href="/" className="dk-btn-primary inline-flex text-xs uppercase tracking-widest dk-focus">
           Track a Product
         </Link>
       </div>
@@ -206,6 +211,7 @@ export default async function ProductPage({
   }
 
   const vc = verdict ? VERDICT_CONFIG[verdict.label] : VERDICT_CONFIG.INSUFFICIENT_DATA;
+  const platformColor = PLATFORM_COLOR[product.platform] ?? "var(--text-muted)";
 
   const jsonLd = {
     "@context": "https://schema.org/",
@@ -235,7 +241,9 @@ export default async function ProductPage({
 
       <Link
         href="/dashboard"
-        className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.25em] text-white/30 hover:text-indigo-400 transition-all mb-12"
+        className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.25em] transition-all mb-12 dk-focus"
+        style={{ color: "var(--text-faint)" }}
+        onMouseEnter={undefined}
       >
         <ArrowLeft size={12} /> All Products
       </Link>
@@ -248,43 +256,42 @@ export default async function ProductPage({
           {/* Title block */}
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">
+              <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: platformColor }}>
                 {product.platform}
               </span>
-              <span className="w-1 h-1 rounded-full bg-white/10" />
-              <span className={`text-[10px] font-black uppercase tracking-widest ${product.in_stock ? "text-emerald-400" : "text-rose-400"}`}>
+              <span className="w-1 h-1 rounded-full" style={{ background: "var(--text-ghost)" }} />
+              <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: product.in_stock === false ? "var(--red)" : "var(--green)" }}>
                 {product.in_stock === false ? "Out of Stock" : "In Stock"}
               </span>
             </div>
-            <h1 className="text-3xl md:text-4xl font-black font-outfit tracking-tight leading-tight mb-5 text-white">
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight leading-tight mb-5 text-white">
               {product.title}
             </h1>
             <a
               href={product.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-xs font-bold text-white/30 hover:text-indigo-400 transition-colors"
+              className="inline-flex items-center gap-2 text-xs font-medium transition-colors dk-focus"
+              style={{ color: "var(--text-faint)" }}
             >
               View on {product.platform} <ExternalLink size={12} />
             </a>
           </div>
 
           {/* Verdict card */}
-          <div className="nm-raised rounded-2xl p-8 relative overflow-hidden">
+          <div className="dk-card p-8 relative overflow-hidden">
             <div className="flex flex-col sm:flex-row items-center gap-8">
               {verdict && <ScoreRing score={verdict.deal_score} />}
               <div className="flex-1 text-center sm:text-left">
-                <div className="flex items-center justify-center sm:justify-start gap-2 mb-3">
-                  <span className="text-2xl" style={{ color: vc.color }}>{vc.icon}</span>
-                  <span className="text-2xl font-black font-outfit" style={{ color: vc.color }}>
-                    {vc.label}
-                  </span>
+                <div className="flex items-center justify-center sm:justify-start gap-2 mb-3" style={{ color: vc.color }}>
+                  {vc.icon}
+                  <span className="text-2xl font-bold">{vc.label}</span>
                 </div>
-                <p className="text-white/50 leading-relaxed text-sm">
+                <p className="text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>
                   {verdict?.explanation ?? "We're collecting price data — check back soon."}
                 </p>
                 {verdict && verdict.confidence < 0.6 && (
-                  <div className="mt-4 flex items-center justify-center sm:justify-start gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-400/60">
+                  <div className="mt-4 flex items-center justify-center sm:justify-start gap-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "rgba(167,139,250,0.6)" }}>
                     <Clock size={12} /> {verdict.data_points} data points so far
                   </div>
                 )}
@@ -295,58 +302,58 @@ export default async function ProductPage({
           {/* Price metrics */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: "Current",  val: fmt(product.current_price),    hi: true },
-              { label: "30D Avg",  val: fmt(verdict?.avg_30d)                   },
-              { label: "All-Time Low", val: fmt(verdict?.all_time_low)          },
-              { label: "Discount", val: product.platform_discount_pct ? `${product.platform_discount_pct}%` : "—" },
+              { label: "Current",      val: fmt(product.current_price),          hi: true },
+              { label: "30D Avg",      val: fmt(verdict?.avg_30d)                         },
+              { label: "All-Time Low", val: fmt(verdict?.all_time_low)                    },
+              { label: "Discount",     val: product.platform_discount_pct ? `${product.platform_discount_pct}%` : "—" },
             ].map((m) => (
-              <div key={m.label} className="nm-raised rounded-2xl p-4">
-                <p className="text-[9px] font-black uppercase tracking-widest text-white/20 mb-1">{m.label}</p>
-                <p className={`text-sm font-black font-mono ${m.hi ? "text-indigo-400" : "text-white"}`}>{m.val}</p>
+              <div key={m.label} className="dk-card p-4">
+                <p className="text-[9px] font-semibold uppercase tracking-widest mb-1" style={{ color: "var(--text-faint)" }}>{m.label}</p>
+                <p className="text-sm font-semibold" style={{ color: m.hi ? "var(--lav)" : "var(--text-secondary)", fontFamily: "'IBM Plex Mono', monospace" }}>{m.val}</p>
               </div>
             ))}
           </div>
 
           {/* AI Product Lens */}
           {lens && (
-            <div className="nm-raised rounded-2xl p-8 relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-                <Sparkles className="w-24 h-24 text-indigo-400" />
+            <div className="dk-card p-8 relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+                <Sparkles className="w-24 h-24" style={{ color: "var(--lav)" }} />
               </div>
               <div className="flex items-center gap-3 mb-6 relative z-10">
-                <div className="w-10 h-10 rounded-xl bg-indigo-500 flex items-center justify-center text-white">
-                  <Sparkles size={18} />
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(124,58,237,0.15)", border: "1px solid rgba(124,58,237,0.25)" }}>
+                  <Sparkles size={18} style={{ color: "var(--lav)" }} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black font-outfit">Product Lens</h3>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-400">AI Analysis</p>
+                  <h3 className="text-base font-bold text-white">Product Lens</h3>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--lav)" }}>AI Analysis</p>
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 gap-6 relative z-10">
                 <div>
-                  <h4 className="text-xs font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2 mb-3">
+                  <h4 className="text-xs font-semibold uppercase tracking-widest flex items-center gap-2 mb-3" style={{ color: "var(--green)" }}>
                     <CheckCircle size={12} /> Pros
                   </h4>
                   <ul className="space-y-2">
                     {lens.pros.map((pro, i) => (
-                      <li key={i} className="text-sm text-white/60 pl-3 border-l-2 border-emerald-500/30 leading-snug">{pro}</li>
+                      <li key={i} className="text-sm pl-3 leading-snug" style={{ color: "var(--text-body)", borderLeft: "2px solid rgba(34,197,94,0.3)" }}>{pro}</li>
                     ))}
                   </ul>
                 </div>
                 <div>
-                  <h4 className="text-xs font-black uppercase tracking-widest text-rose-400 flex items-center gap-2 mb-3">
+                  <h4 className="text-xs font-semibold uppercase tracking-widest flex items-center gap-2 mb-3" style={{ color: "var(--red)" }}>
                     <AlertCircle size={12} /> Cons
                   </h4>
                   <ul className="space-y-2">
                     {lens.cons.map((con, i) => (
-                      <li key={i} className="text-sm text-white/60 pl-3 border-l-2 border-rose-500/30 leading-snug">{con}</li>
+                      <li key={i} className="text-sm pl-3 leading-snug" style={{ color: "var(--text-body)", borderLeft: "2px solid rgba(239,68,68,0.3)" }}>{con}</li>
                     ))}
                   </ul>
                 </div>
               </div>
               {lens.verdict && (
-                <div className="mt-6 pt-5 border-t border-indigo-500/20 relative z-10">
-                  <p className="text-sm text-indigo-200 leading-relaxed">&quot;{lens.verdict}&quot;</p>
+                <div className="mt-6 pt-5 relative z-10" style={{ borderTop: "1px solid rgba(124,58,237,0.2)" }}>
+                  <p className="text-sm leading-relaxed" style={{ color: "rgba(196,181,253,0.8)" }}>&quot;{lens.verdict}&quot;</p>
                 </div>
               )}
             </div>
@@ -357,55 +364,59 @@ export default async function ProductPage({
 
           {/* Cross-platform alternatives */}
           {compare && compare.alternatives.length > 1 && (
-            <div className="nm-raised rounded-2xl p-8">
+            <div className="dk-card p-8">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-9 h-9 nm-raised rounded-xl flex items-center justify-center text-indigo-400">
-                  <Layers size={16} />
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "var(--bg2)", border: "1px solid var(--border-sm)" }}>
+                  <Layers size={16} style={{ color: "var(--lav)" }} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black font-outfit">Compare Prices</h3>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">Across platforms</p>
+                  <h3 className="text-base font-bold text-white">Compare Prices</h3>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Across platforms</p>
                 </div>
               </div>
               <div className="space-y-3">
-                {compare.alternatives.map((alt) => (
-                  <div
-                    key={alt.id}
-                    className={`flex items-center gap-4 p-4 rounded-2xl transition-all ${
-                      alt.is_original_request
-                        ? "nm-inset"
-                        : "nm-raised nm-interactive"
-                    }`}
-                  >
-                    {alt.image_url ? (
-                      <img src={alt.image_url} alt="" className="w-12 h-12 rounded-xl object-contain bg-white/5 p-1 flex-shrink-0" />
-                    ) : (
-                      <div className="w-12 h-12 rounded-xl bg-white/5 flex-shrink-0" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-[9px] font-black uppercase tracking-widest text-indigo-400">{alt.platform}</span>
-                        {alt.is_original_request && (
-                          <span className="text-[8px] bg-white/10 px-2 py-0.5 rounded-full text-white/40">current</span>
+                {compare.alternatives.map((alt) => {
+                  const altColor = PLATFORM_COLOR[alt.platform] ?? "var(--text-muted)";
+                  return (
+                    <div
+                      key={alt.id}
+                      className="flex items-center gap-4 p-4 rounded-2xl transition-all"
+                      style={alt.is_original_request
+                        ? { background: "var(--bg3)", border: "1px solid var(--border-sm)" }
+                        : { background: "var(--bg2)", border: "1px solid var(--border-sm)" }
+                      }
+                    >
+                      {alt.image_url ? (
+                        <img src={alt.image_url} alt="" className="w-12 h-12 rounded-xl object-contain p-1 flex-shrink-0" style={{ background: "var(--bg3)" }} />
+                      ) : (
+                        <div className="w-12 h-12 rounded-xl flex-shrink-0" style={{ background: "var(--bg3)" }} />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: altColor }}>{alt.platform}</span>
+                          {alt.is_original_request && (
+                            <span className="text-[8px] px-2 py-0.5 rounded-full" style={{ background: "var(--border-sm)", color: "var(--text-faint)" }}>current</span>
+                          )}
+                        </div>
+                        <p className="text-sm font-medium truncate" style={{ color: "var(--text-body)" }}>{alt.title}</p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-base font-semibold text-white" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(alt.current_price)}</p>
+                        {!alt.is_original_request && (
+                          <a
+                            href={alt.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] font-medium transition-colors dk-focus"
+                            style={{ color: "rgba(167,139,250,0.7)" }}
+                          >
+                            View →
+                          </a>
                         )}
                       </div>
-                      <p className="text-sm font-semibold text-white/70 truncate">{alt.title}</p>
                     </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-base font-black font-mono text-white">{fmt(alt.current_price)}</p>
-                      {!alt.is_original_request && (
-                        <a
-                          href={alt.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[10px] font-bold text-indigo-400/70 hover:text-indigo-400 transition-colors"
-                        >
-                          View →
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -415,11 +426,11 @@ export default async function ProductPage({
         <div className="lg:col-span-5 flex flex-col gap-6">
 
           {product.image_url && (
-            <div className="nm-raised rounded-2xl p-4 aspect-square overflow-hidden">
+            <div className="dk-card p-4 aspect-square overflow-hidden">
               <img
                 src={product.image_url}
                 alt={product.title}
-                className="w-full h-full object-contain rounded-[2rem]"
+                className="w-full h-full object-contain rounded-2xl"
               />
             </div>
           )}
@@ -428,21 +439,21 @@ export default async function ProductPage({
           <AlertFormClient productId={id} currentPrice={product.current_price} />
 
           {/* Market stats */}
-          <div className="nm-raised rounded-2xl p-6">
+          <div className="dk-card p-6">
             <div className="flex items-center gap-2 mb-5">
-              <TrendingDown size={13} className="text-indigo-400" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-white/30">Market Stats</span>
+              <TrendingDown size={13} style={{ color: "var(--lav)" }} />
+              <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Market Stats</span>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-0">
               {[
                 { label: "Data Points", val: String(verdict?.data_points ?? 0) },
                 { label: "Last Updated", val: fmtDate(product.last_updated) },
                 { label: "Confidence",   val: `${Math.round((verdict?.confidence ?? 0) * 100)}%` },
                 ...(verdict?.all_time_low_date ? [{ label: "ATL Date", val: fmtDate(verdict.all_time_low_date) }] : []),
               ].map((row) => (
-                <div key={row.label} className="flex justify-between items-center py-2.5 border-b border-white/5 last:border-0">
-                  <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest">{row.label}</span>
-                  <span className="text-xs font-mono font-bold text-white/50">{row.val}</span>
+                <div key={row.label} className="flex justify-between items-center py-2.5 last:border-0" style={{ borderBottom: "1px solid var(--border-sm)" }}>
+                  <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>{row.label}</span>
+                  <span className="text-xs font-medium" style={{ color: "var(--text-muted)", fontFamily: "'IBM Plex Mono', monospace" }}>{row.val}</span>
                 </div>
               ))}
             </div>

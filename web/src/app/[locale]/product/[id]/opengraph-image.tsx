@@ -80,10 +80,10 @@ export default async function OgImage({
             </div>
             {platform && (
               <div style={{
-                background: "rgba(255,255,255,0.05)",
+                background: "var(--surface-ghost)",
                 borderRadius: 10,
                 padding: "6px 14px",
-                color: "rgba(255,255,255,0.4)",
+                color: "var(--text-muted)",
                 fontSize: 13,
                 fontWeight: 700,
                 letterSpacing: "0.1em",
@@ -93,7 +93,7 @@ export default async function OgImage({
               </div>
             )}
           </div>
-          <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 13, fontWeight: 600 }}>
+          <div style={{ color: "var(--text-faint)", fontSize: 13, fontWeight: 600 }}>
             Bangladesh Price Intelligence
           </div>
         </div>
@@ -107,7 +107,7 @@ export default async function OgImage({
           gap: 24,
         }}>
           <div style={{
-            color: "rgba(255,255,255,0.9)",
+            color: "var(--text-secondary)",
             fontSize: title.length > 80 ? 32 : title.length > 50 ? 40 : 46,
             fontWeight: 900,
             lineHeight: 1.15,
@@ -140,7 +140,7 @@ export default async function OgImage({
             {/* Price */}
             {price && (
               <div style={{
-                color: "rgba(255,255,255,0.9)",
+                color: "var(--text-secondary)",
                 fontSize: 28,
                 fontWeight: 900,
                 fontFamily: "monospace",
@@ -158,8 +158,8 @@ export default async function OgImage({
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.08)",
+              background: "var(--surface-ghost)",
+              border: "1px solid var(--border-sm)",
               borderRadius: 20,
               width: 90,
               height: 90,
@@ -172,7 +172,7 @@ export default async function OgImage({
               }}>
                 {score}
               </span>
-              <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", marginTop: 4 }}>
+              <span style={{ color: "var(--text-faint)", fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", marginTop: 4 }}>
                 /10
               </span>
             </div>

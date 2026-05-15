@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Loader2 } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
 
@@ -27,7 +29,7 @@ function PriceSparkline({ points, days, setDays }: {
 
   if (sorted.length < 2) {
     return (
-      <div className="text-center py-10 text-white/20 font-medium italic text-sm">
+      <div className="text-center py-10 text-sm italic" style={{ color: "var(--text-faint)" }}>
         Not enough data yet ({sorted.length} point{sorted.length !== 1 ? "s" : ""} tracked)
       </div>
     );
@@ -64,41 +66,71 @@ function PriceSparkline({ points, days, setDays }: {
           <button
             key={d}
             onClick={() => setDays(d)}
-            className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all ${
-              days === d
-                ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-400"
-                : "bg-white/5 border-white/5 text-white/20 hover:border-white/10"
-            }`}
+            className="px-4 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-widest transition-all dk-focus"
+            style={days === d
+              ? { background: "rgba(124,58,237,0.1)", border: "1px solid rgba(124,58,237,0.3)", color: "var(--lav)" }
+              : { background: "var(--surface-ghost)", border: "1px solid var(--border-sm)", color: "var(--text-faint)" }
+            }
           >
             {d}D
           </button>
         ))}
       </div>
       <div className="overflow-x-auto">
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto min-w-[500px] select-none">
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          className="w-full h-auto min-w-[500px] select-none"
+          key={`${days}-${sorted.length}`}
+        >
           <defs>
             <linearGradient id="chartGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="rgba(99, 102, 241, 0.2)" />
-              <stop offset="100%" stopColor="rgba(99, 102, 241, 0)" />
+              <stop offset="0%" stopColor="rgba(124,58,237,0.18)" />
+              <stop offset="100%" stopColor="rgba(124,58,237,0)" />
             </linearGradient>
           </defs>
           {yTicks.map((t, i) => (
             <g key={i}>
-              <line x1={PAD.l} y1={t.y} x2={W - PAD.r} y2={t.y} stroke="rgba(255,255,255,0.03)" strokeWidth={1} />
-              <text x={PAD.l - 12} y={t.y + 4} textAnchor="end" className="fill-white/20 font-mono" fontSize={10}>
+              <line x1={PAD.l} y1={t.y} x2={W - PAD.r} y2={t.y} stroke="var(--surface-ghost)" strokeWidth={1} />
+              <text x={PAD.l - 12} y={t.y + 4} textAnchor="end" fill="var(--text-faint)" fontSize={10} fontFamily="'IBM Plex Mono', monospace">
                 {fmt(Math.round(t.val))}
               </text>
             </g>
           ))}
           {xTicks.map((t, i) => (
-            <text key={i} x={t.x} y={H - 10} textAnchor="middle" className="fill-white/20 font-mono" fontSize={10}>
+            <text key={i} x={t.x} y={H - 10} textAnchor="middle" fill="var(--text-faint)" fontSize={10} fontFamily="'IBM Plex Mono', monospace">
               {t.label}
             </text>
           ))}
           <path d={areaPath} fill="url(#chartGrad)" />
-          <path d={linePath} fill="none" stroke="#6366F1" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
-          <circle cx={cx(sorted.length - 1)} cy={cy(sorted[sorted.length - 1].price)} r={6} fill="#818cf8" />
-          <circle cx={cx(sorted.length - 1)} cy={cy(sorted[sorted.length - 1].price)} r={10} fill="rgba(129,140,248,0.2)" />
+          <motion.path
+            d={linePath}
+            fill="none"
+            stroke="#7c3aed"
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            initial={{ pathLength: 0, opacity: 0 }}
+            animate={{ pathLength: 1, opacity: 1 }}
+            transition={{ pathLength: { duration: 1.5, ease: "easeInOut" }, opacity: { duration: 0.3 } }}
+          />
+          <motion.circle
+            cx={cx(sorted.length - 1)}
+            cy={cy(sorted[sorted.length - 1].price)}
+            r={6}
+            style={{ fill: "var(--lav)" }}
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 1.4, duration: 0.3, ease: "backOut" }}
+          />
+          <motion.circle
+            cx={cx(sorted.length - 1)}
+            cy={cy(sorted[sorted.length - 1].price)}
+            r={12}
+            fill="rgba(167,139,250,0.15)"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 1.4, duration: 0.4, ease: "backOut" }}
+          />
         </svg>
       </div>
     </div>
@@ -111,6 +143,7 @@ export default function PriceChartClient({ productId }: { productId: string }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
     fetch(`${API}/products/${productId}/price-history?days=${days}`)
       .then((r) => r.ok ? r.json() : null)
       .then((data) => { if (data?.prices) setPoints(data.prices); })
@@ -118,13 +151,15 @@ export default function PriceChartClient({ productId }: { productId: string }) {
   }, [productId, days]);
 
   return (
-    <div className="nm-raised rounded-2xl p-8">
+    <div className="dk-card p-8">
       <div className="flex items-center justify-between mb-8">
-        <h3 className="text-sm font-black uppercase tracking-widest font-outfit">Price History</h3>
-        <span className="text-[10px] font-bold text-white/20">Updated every 6h</span>
+        <h3 className="text-sm font-semibold uppercase tracking-widest" style={{ color: "var(--text-body)" }}>Price History</h3>
+        <span className="text-[10px] font-medium" style={{ color: "var(--text-faint)" }}>Updated every 6h</span>
       </div>
       {loading ? (
-        <div className="h-40 flex items-center justify-center text-white/20 text-sm">Loading chart…</div>
+        <div className="h-40 flex items-center justify-center">
+          <Loader2 size={20} className="animate-spin" style={{ color: "var(--lav)" }} />
+        </div>
       ) : (
         <PriceSparkline points={points} days={days} setDays={setDays} />
       )}

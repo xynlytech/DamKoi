@@ -65,21 +65,21 @@ function AlertCard({ alert, email, onUpdate, onDelete }: {
       <div className="flex-shrink-0 overflow-hidden rounded-xl" style={{ width: 52, height: 52, background: "var(--bg2)", border: "1px solid var(--border-sm)" }}>
         {alert.product_image
           ? <img src={alert.product_image} alt="" className="w-full h-full object-contain p-1" />
-          : <div className="w-full h-full flex items-center justify-center"><ShoppingCart size={20} style={{ color: "rgba(255,255,255,0.2)" }} /></div>
+          : <div className="w-full h-full flex items-center justify-center"><ShoppingCart size={20} style={{ color: "var(--text-faint)" }} /></div>
         }
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium line-clamp-2 leading-snug mb-1.5" style={{ color: "rgba(255,255,255,0.8)" }}>
+        <p className="text-sm font-medium line-clamp-2 leading-snug mb-1.5" style={{ color: "var(--text-secondary)" }}>
           {alert.product_title ?? "Unknown product"}
         </p>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-          <span style={{ color: "rgba(255,255,255,0.4)" }}>
+          <span style={{ color: "var(--text-muted)" }}>
             Target: <span className="text-white font-semibold">{fmt(alert.target_price)}</span>
           </span>
           {alert.current_price && (
-            <span style={{ color: "rgba(255,255,255,0.4)" }}>
-              Now: <span style={{ color: hit ? "var(--green)" : "rgba(255,255,255,0.6)", fontWeight: hit ? 600 : 400 }}>
+            <span style={{ color: "var(--text-muted)" }}>
+              Now: <span style={{ color: hit ? "var(--green)" : "var(--text-body)", fontWeight: hit ? 600 : 400 }}>
                 {fmt(alert.current_price)}
               </span>
             </span>
@@ -91,7 +91,7 @@ function AlertCard({ alert, email, onUpdate, onDelete }: {
           )}
         </div>
         {alert.last_triggered && (
-          <p className="text-[10px] mt-1" style={{ color: "#a78bfa" }}>
+          <p className="text-[10px] mt-1" style={{ color: "var(--lav)" }}>
             Last triggered: {new Date(alert.last_triggered).toLocaleDateString("en-BD")}
           </p>
         )}
@@ -100,19 +100,19 @@ function AlertCard({ alert, email, onUpdate, onDelete }: {
       <div className="flex flex-col gap-1.5 items-center justify-center flex-shrink-0">
         <Link href={`/product/${alert.product_id}`} title="View product"
           className="p-1.5 rounded-lg transition-colors dk-focus"
-          style={{ color: "rgba(255,255,255,0.3)" }}
+          style={{ color: "var(--text-faint)" }}
         >
           <ArrowUpRight size={14} />
         </Link>
         <button onClick={toggle} disabled={busy} title={alert.is_active ? "Pause" : "Resume"}
           className="p-1.5 rounded-lg transition-colors dk-focus disabled:opacity-40"
-          style={{ color: "rgba(255,255,255,0.3)" }}
+          style={{ color: "var(--text-faint)" }}
         >
           {busy ? <Loader2 size={14} className="animate-spin" /> : alert.is_active ? <PauseCircle size={14} /> : <PlayCircle size={14} />}
         </button>
         <button onClick={remove} disabled={busy} title="Delete alert"
           className="p-1.5 rounded-lg transition-colors dk-focus disabled:opacity-40"
-          style={{ color: "rgba(255,255,255,0.3)" }}
+          style={{ color: "var(--text-faint)" }}
         >
           <Trash2 size={14} />
         </button>
@@ -166,7 +166,7 @@ export default function AlertsPage() {
   if (!authChecked) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 size={26} className="animate-spin" style={{ color: "#a78bfa" }} />
+        <Loader2 size={26} className="animate-spin" style={{ color: "var(--lav)" }} />
       </div>
     );
   }
@@ -177,22 +177,22 @@ export default function AlertsPage() {
       <div className="flex items-start justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-white flex items-center gap-3 mb-1">
-            <Bell size={26} style={{ color: "#a78bfa" }} />
+            <Bell size={26} style={{ color: "var(--lav)" }} />
             My Alerts
           </h1>
-          <p className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>
+          <p className="text-sm" style={{ color: "var(--text-muted)" }}>
             Get an email the instant any tracked product hits your target price.
           </p>
         </div>
         {email && (
           <div className="text-right">
-            <p className="text-xs flex items-center gap-1 justify-end" style={{ color: "rgba(255,255,255,0.4)" }}>
+            <p className="text-xs flex items-center gap-1 justify-end" style={{ color: "var(--text-muted)" }}>
               <Mail size={11} /> {email}
             </p>
             <button
               onClick={async () => { await supabase.auth.signOut(); setEmail(null); setAlerts([]); }}
               className="text-[10px] mt-1 transition-colors dk-focus"
-              style={{ color: "rgba(255,255,255,0.2)" }}
+              style={{ color: "var(--text-faint)" }}
             >
               Sign out
             </button>
@@ -202,7 +202,7 @@ export default function AlertsPage() {
 
       {loading && (
         <div className="flex justify-center py-16">
-          <Loader2 size={26} className="animate-spin" style={{ color: "#a78bfa" }} />
+          <Loader2 size={26} className="animate-spin" style={{ color: "var(--lav)" }} />
         </div>
       )}
 
@@ -223,7 +223,7 @@ export default function AlertsPage() {
                 <div className="w-32 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--bg2)" }}>
                   <div className="h-full rounded-full transition-all" style={{ width: `${Math.min((activeCount / FREE_LIMIT) * 100, 100)}%`, background: atLimit ? "var(--amber)" : "var(--purple)" }} />
                 </div>
-                <span className="text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
+                <span className="text-sm" style={{ color: "var(--text-muted)" }}>
                   <span className="text-white font-semibold">{activeCount}</span>
                   <span> / {FREE_LIMIT}</span>
                 </span>
@@ -246,9 +246,9 @@ export default function AlertsPage() {
 
           {alerts.length === 0 ? (
             <div className="text-center py-20">
-              <BellOff size={44} strokeWidth={1.5} className="mx-auto mb-5" style={{ color: "rgba(255,255,255,0.2)" }} />
+              <BellOff size={44} strokeWidth={1.5} className="mx-auto mb-5" style={{ color: "var(--text-faint)" }} />
               <h2 className="text-xl font-bold text-white mb-3">No alerts yet</h2>
-              <p className="text-sm mb-7" style={{ color: "rgba(255,255,255,0.4)" }}>
+              <p className="text-sm mb-7" style={{ color: "var(--text-muted)" }}>
                 Go to any product page and set a target price to get started.
               </p>
               <Link href="/" className="dk-btn-primary inline-flex items-center gap-2 text-xs uppercase tracking-widest dk-focus">Browse products</Link>
@@ -265,7 +265,7 @@ export default function AlertsPage() {
 
           {/* How it works */}
           <div className="mt-8 rounded-2xl p-6" style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)" }}>
-            <h3 className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: "#a78bfa" }}>How alerts work</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: "var(--lav)" }}>How alerts work</h3>
             <div className="space-y-2.5">
               {[
                 "Set a target price on any product page",
@@ -273,8 +273,8 @@ export default function AlertsPage() {
                 "Email sent the instant price drops below your target",
                 `Free: ${FREE_LIMIT} active alerts · Premium: unlimited`,
               ].map((text, i) => (
-                <div key={i} className="flex items-center gap-3 text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
-                  <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] flex-shrink-0" style={{ background: "var(--bg2)", border: "1px solid var(--border-sm)", color: "rgba(255,255,255,0.8)", fontFamily: "var(--font-ibm-plex-mono), monospace" }}>
+                <div key={i} className="flex items-center gap-3 text-sm" style={{ color: "var(--text-muted)" }}>
+                  <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] flex-shrink-0" style={{ background: "var(--bg2)", border: "1px solid var(--border-sm)", color: "var(--text-secondary)", fontFamily: "var(--font-ibm-plex-mono), monospace" }}>
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <span>{text}</span>

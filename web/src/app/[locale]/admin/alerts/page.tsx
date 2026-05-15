@@ -101,8 +101,8 @@ export default function AdminAlertsPage() {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-black font-outfit">Alerts</h1>
-        <span className="text-xs text-white/30">{total.toLocaleString()} total</span>
+        <h1 className="text-2xl font-bold text-white">Alerts</h1>
+        <span className="text-xs" style={{ color: "var(--text-faint)" }}>{total.toLocaleString()} total</span>
       </div>
 
       {/* Filters */}
@@ -111,63 +111,69 @@ export default function AdminAlertsPage() {
           <button
             key={f}
             onClick={() => { setFilter(f); setPage(1); }}
-            className={`px-4 py-2 rounded-xl text-xs font-bold capitalize transition-all ${
-              filter === f ? "nm-inset text-indigo-400" : "nm-raised text-white/40 hover:text-white"
-            }`}
+            className="px-4 py-2 rounded-xl text-xs font-medium capitalize transition-all dk-focus"
+            style={filter === f
+              ? { background: "rgba(124,58,237,0.1)", border: "1px solid rgba(124,58,237,0.3)", color: "var(--lav)" }
+              : { background: "var(--bg2)", border: "1px solid var(--border-sm)", color: "var(--text-muted)" }
+            }
           >
             {f}
           </button>
         ))}
-        <button onClick={load} className="ml-auto nm-raised rounded-xl px-3 py-2 text-white/40 hover:text-white transition-colors">
+        <button
+          onClick={load}
+          className="ml-auto rounded-xl px-3 py-2 transition-colors dk-focus"
+          style={{ background: "var(--bg2)", border: "1px solid var(--border-sm)", color: "var(--text-muted)" }}
+        >
           <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
         </button>
       </div>
 
-      <div className="nm-raised rounded-2xl overflow-hidden">
+      <div className="dk-card overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-16">
-            <Loader2 size={20} className="animate-spin text-indigo-400" />
+            <Loader2 size={20} className="animate-spin" style={{ color: "var(--lav)" }} />
           </div>
         ) : alerts.length === 0 ? (
-          <p className="text-center text-white/30 py-16 text-sm">No alerts found.</p>
+          <p className="text-center py-16 text-sm" style={{ color: "var(--text-faint)" }}>No alerts found.</p>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/5 text-[10px] uppercase tracking-widest text-white/30">
-                <th className="text-left px-4 py-3 font-bold">Product</th>
-                <th className="text-left px-4 py-3 font-bold hidden md:table-cell">User</th>
-                <th className="text-right px-4 py-3 font-bold hidden sm:table-cell">Target</th>
-                <th className="text-right px-4 py-3 font-bold hidden sm:table-cell">Now</th>
-                <th className="text-center px-4 py-3 font-bold hidden lg:table-cell">Last Hit</th>
-                <th className="text-center px-4 py-3 font-bold">Actions</th>
+              <tr className="text-[10px] uppercase tracking-widest" style={{ borderBottom: "1px solid var(--border-sm)", color: "var(--text-faint)" }}>
+                <th className="text-left px-4 py-3 font-semibold">Product</th>
+                <th className="text-left px-4 py-3 font-semibold hidden md:table-cell">User</th>
+                <th className="text-right px-4 py-3 font-semibold hidden sm:table-cell">Target</th>
+                <th className="text-right px-4 py-3 font-semibold hidden sm:table-cell">Now</th>
+                <th className="text-center px-4 py-3 font-semibold hidden lg:table-cell">Last Hit</th>
+                <th className="text-center px-4 py-3 font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
               {alerts.map((a) => {
                 const hit = a.current_price !== null && a.current_price <= a.target_price;
                 return (
-                  <tr key={a.id} className="border-b border-white/5 last:border-0 hover:bg-white/3 transition-colors">
+                  <tr key={a.id} className="transition-colors" style={{ borderBottom: "1px solid var(--border-sm)" }}>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
-                        {hit ? <TrendingDown size={11} className="text-emerald-400 shrink-0" /> : null}
-                        <p className="text-white/70 text-xs line-clamp-1">{a.product_title ?? "Unknown"}</p>
+                        {hit && <TrendingDown size={11} className="shrink-0" style={{ color: "var(--green)" }} />}
+                        <p className="text-xs line-clamp-1" style={{ color: "var(--text-body)" }}>{a.product_title ?? "Unknown"}</p>
                       </div>
                       {hit && (
-                        <span className="text-[8px] font-black text-emerald-400 flex items-center gap-0.5 mt-0.5">
+                        <span className="text-[8px] font-semibold flex items-center gap-0.5 mt-0.5" style={{ color: "var(--green)" }}>
                           <CheckCircle2 size={8} /> PRICE HIT
                         </span>
                       )}
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
-                      <span className="text-[10px] text-white/40">{a.user_email ?? "anon"}</span>
+                      <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{a.user_email ?? "anon"}</span>
                     </td>
-                    <td className="px-4 py-3 text-right font-mono text-xs hidden sm:table-cell">
+                    <td className="px-4 py-3 text-right text-xs hidden sm:table-cell" style={{ fontFamily: "'IBM Plex Mono', monospace", color: "var(--text-body)" }}>
                       {fmt(a.target_price)}
                     </td>
-                    <td className={`px-4 py-3 text-right font-mono text-xs hidden sm:table-cell ${hit ? "text-emerald-400 font-bold" : ""}`}>
+                    <td className="px-4 py-3 text-right text-xs hidden sm:table-cell" style={{ fontFamily: "'IBM Plex Mono', monospace", color: hit ? "var(--green)" : "var(--text-body)", fontWeight: hit ? 600 : 400 }}>
                       {fmt(a.current_price)}
                     </td>
-                    <td className="px-4 py-3 text-center text-[10px] text-white/30 hidden lg:table-cell">
+                    <td className="px-4 py-3 text-center text-[10px] hidden lg:table-cell" style={{ color: "var(--text-faint)" }}>
                       {a.last_triggered
                         ? new Date(a.last_triggered).toLocaleDateString("en-BD", { month: "short", day: "numeric" })
                         : "—"}
@@ -177,8 +183,11 @@ export default function AdminAlertsPage() {
                         <button
                           onClick={() => toggle(a)}
                           disabled={busy === a.id}
-                          className="p-1.5 rounded-lg hover:bg-white/10 text-white/20 hover:text-amber-400 transition-colors disabled:opacity-40"
+                          className="p-1.5 rounded-lg transition-colors disabled:opacity-40 dk-focus"
+                          style={{ color: "var(--text-faint)" }}
                           title={a.is_active ? "Pause" : "Resume"}
+                          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--amber)")}
+                          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-faint)")}
                         >
                           {busy === a.id ? (
                             <Loader2 size={13} className="animate-spin" />
@@ -191,8 +200,11 @@ export default function AdminAlertsPage() {
                         <button
                           onClick={() => remove(a.id)}
                           disabled={busy === a.id}
-                          className="p-1.5 rounded-lg hover:bg-white/10 text-white/20 hover:text-rose-400 transition-colors disabled:opacity-40"
+                          className="p-1.5 rounded-lg transition-colors disabled:opacity-40 dk-focus"
+                          style={{ color: "var(--text-faint)" }}
                           title="Delete"
+                          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--red)")}
+                          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-faint)")}
                         >
                           <Trash2 size={13} />
                         </button>
@@ -211,15 +223,17 @@ export default function AdminAlertsPage() {
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="flex items-center gap-1 px-3 py-2 nm-raised rounded-xl text-white/40 hover:text-white disabled:opacity-30 transition-colors"
+            className="flex items-center gap-1 px-3 py-2 rounded-xl transition-colors disabled:opacity-30 dk-focus"
+            style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)", color: "var(--text-muted)" }}
           >
             <ChevronLeft size={13} /> Prev
           </button>
-          <span className="text-white/30">Page {page} of {totalPages}</span>
+          <span style={{ color: "var(--text-faint)" }}>Page {page} of {totalPages}</span>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="flex items-center gap-1 px-3 py-2 nm-raised rounded-xl text-white/40 hover:text-white disabled:opacity-30 transition-colors"
+            className="flex items-center gap-1 px-3 py-2 rounded-xl transition-colors disabled:opacity-30 dk-focus"
+            style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)", color: "var(--text-muted)" }}
           >
             Next <ChevronRight size={13} />
           </button>

@@ -43,30 +43,56 @@
   --radius-sm: 0.5rem;
 }
 
+/* ══════════════════════════════════════════════════════════
+   DARK THEME (default)
+══════════════════════════════════════════════════════════ */
+
 @layer base {
   :root {
+    /* Backgrounds */
     --bg:         #08071a;
     --bg1:        #0e0c24;
     --bg2:        #13112e;
     --bg3:        #1a1740;
+
+    /* Brand */
     --purple:     #7c3aed;
     --lav:        #a78bfa;
     --lav2:       #c4b5fd;
+
+    /* Status */
     --green:      #22c55e;
     --red:        #ef4444;
     --amber:      #f59e0b;
+
+    /* Borders */
     --border:     rgba(124,58,237,0.2);
-    --border-sm:  rgba(255,255,255,0.08);
+    --border-sm:  rgba(255,255,255,0.06);
+
+    /* ── Semantic Text ──────────────────────────────────── */
+    --text-primary:    #ffffff;
+    --text-secondary:  rgba(255,255,255,0.80);
+    --text-body:       rgba(255,255,255,0.65);
+    --text-muted:      rgba(255,255,255,0.45);
+    --text-faint:      rgba(255,255,255,0.25);
+    --text-ghost:      rgba(255,255,255,0.10);
+
+    /* ── Surface overlays ───────────────────────────────── */
+    --surface-ghost:   rgba(255,255,255,0.04);
+
+    /* ── Nav ────────────────────────────────────────────── */
+    --nav-bg:          rgba(8,7,26,0.88);
   }
 
   * { border-color: var(--border-sm); }
 
   body {
     background-color: var(--bg);
-    color: #ffffff;
+    color: var(--text-primary);
     font-family: var(--font-space-grotesk), system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 200ms ease, color 200ms ease;
   }
 
   ::selection {
@@ -79,6 +105,83 @@
   ::-webkit-scrollbar-thumb  { background: rgba(124,58,237,0.3); border-radius: 10px; }
   ::-webkit-scrollbar-thumb:hover { background: rgba(124,58,237,0.5); }
 }
+
+/* ══════════════════════════════════════════════════════════
+   LIGHT THEME
+══════════════════════════════════════════════════════════ */
+
+html[data-theme="light"] {
+  /* Backgrounds */
+  --bg:         #f8f7ff;
+  --bg1:        #ffffff;
+  --bg2:        #f0eeff;
+  --bg3:        #e8e3fa;
+
+  /* Brand — keep purple, darken lavender for light-bg legibility */
+  --purple:     #7c3aed;
+  --lav:        #6d28d9;
+  --lav2:       #5b21b6;
+
+  /* Status — slightly richer for light bg contrast */
+  --green:      #16a34a;
+  --red:        #dc2626;
+  --amber:      #b45309;
+
+  /* Borders */
+  --border:     rgba(124,58,237,0.18);
+  --border-sm:  rgba(9,7,28,0.08);
+
+  /* ── Semantic Text ──────────────────────────────────────── */
+  --text-primary:    #0a0718;
+  --text-secondary:  rgba(10,7,24,0.80);
+  --text-body:       rgba(10,7,24,0.65);
+  --text-muted:      rgba(10,7,24,0.45);
+  --text-faint:      rgba(10,7,24,0.25);
+  --text-ghost:      rgba(10,7,24,0.10);
+
+  /* ── Surface overlays ───────────────────────────────────── */
+  --surface-ghost:   rgba(10,7,24,0.04);
+
+  /* ── Nav ─────────────────────────────────────────────────── */
+  --nav-bg:          rgba(248,247,255,0.92);
+
+  color-scheme: light;
+}
+
+/* text-white used for headings/body text should flip in light mode.
+   Elements that need to stay white (buttons, badges with colored bg)
+   use style={{ color: "#ffffff" }} to preserve explicit white. */
+html[data-theme="light"] .text-white {
+  color: var(--text-primary);
+}
+
+/* Tailwind opacity variants */
+html[data-theme="light"] .text-white\/80 { color: var(--text-secondary); }
+html[data-theme="light"] .text-white\/60 { color: var(--text-body); }
+html[data-theme="light"] .text-white\/40 { color: var(--text-muted); }
+html[data-theme="light"] .text-white\/30 { color: var(--text-faint); }
+html[data-theme="light"] .text-white\/20 { color: var(--text-faint); }
+
+/* Preserve body/border color transitions */
+html[data-theme="light"] * {
+  border-color: var(--border-sm);
+}
+
+html[data-theme="light"] ::selection {
+  background-color: rgba(124,58,237,0.15);
+  color: #5b21b6;
+}
+
+html[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(124,58,237,0.25);
+}
+html[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(124,58,237,0.4);
+}
+
+/* ══════════════════════════════════════════════════════════
+   COMPONENTS
+══════════════════════════════════════════════════════════ */
 
 /* ── Card ───────────────────────────────────────────────── */
 
@@ -108,7 +211,7 @@
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: rgba(255,255,255,0.4);
+  color: var(--text-muted);
   margin-bottom: 0.5rem;
 }
 
@@ -116,7 +219,7 @@
   font-family: var(--font-ibm-plex-mono), monospace;
   font-size: 2rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--text-primary);
   line-height: 1;
 }
 
@@ -198,15 +301,15 @@
   background-color: var(--bg2);
   border: 1px solid var(--border-sm);
   border-radius: 0.75rem;
-  color: #ffffff;
+  color: var(--text-primary);
   font-family: var(--font-space-grotesk), sans-serif;
   font-size: 0.9rem;
   outline: none;
-  transition: border-color 200ms ease;
+  transition: border-color 200ms ease, background-color 200ms ease;
 }
 
 .dk-input:focus  { border-color: var(--purple); }
-.dk-input::placeholder { color: rgba(255,255,255,0.4); }
+.dk-input::placeholder { color: var(--text-muted); }
 
 /* ── Divider ────────────────────────────────────────────── */
 
@@ -225,12 +328,12 @@
 
 .dk-price-green  { color: var(--green); }
 .dk-price-red    { color: var(--red); }
-.dk-price-muted  { color: rgba(255,255,255,0.4); text-decoration: line-through; }
+.dk-price-muted  { color: var(--text-muted); text-decoration: line-through; }
 
 /* ── Navbar ─────────────────────────────────────────────── */
 
 .dk-nav {
-  background-color: rgba(8,7,26,0.85);
+  background-color: var(--nav-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border-sm);

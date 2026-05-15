@@ -61,19 +61,19 @@ export default function DealsPreview({ deals }: { deals: DealItem[] }) {
       <div className="flex items-center justify-between mb-8 gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2.5 text-white">
-            <span className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(124,58,237,0.12)", color: "#a78bfa", border: "1px solid rgba(124,58,237,0.2)" }}>
+            <span className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(124,58,237,0.12)", color: "var(--lav)", border: "1px solid rgba(124,58,237,0.2)" }}>
               <TrendingDown size={16} />
             </span>
             Today&apos;s Real Deals
           </h2>
-          <p className="text-sm mt-1.5" style={{ color: "rgba(255,255,255,0.3)" }}>
+          <p className="text-sm mt-1.5" style={{ color: "var(--text-faint)" }}>
             Verified genuine price drops — not inflated discounts
           </p>
         </div>
         <Link
           href="/deals"
           className="text-[10px] font-semibold uppercase tracking-widest flex items-center gap-1.5 px-4 py-2 rounded-full transition-colors flex-shrink-0 dk-focus"
-          style={{ color: "#a78bfa", background: "rgba(124,58,237,0.1)", border: "1px solid rgba(124,58,237,0.2)" }}
+          style={{ color: "var(--lav)", background: "rgba(124,58,237,0.1)", border: "1px solid rgba(124,58,237,0.2)" }}
         >
           View all <ArrowRight size={12} />
         </Link>
@@ -88,7 +88,7 @@ export default function DealsPreview({ deals }: { deals: DealItem[] }) {
       >
         {deals.map((deal) => {
           const save   = savings(deal.product.current_price, deal.avg_30d);
-          const pColor = PLATFORM_COLOR[deal.product.platform] ?? "rgba(255,255,255,0.4)";
+          const pColor = PLATFORM_COLOR[deal.product.platform] ?? "var(--text-muted)";
           return (
             <motion.div key={deal.product.id} variants={item}>
               <Link
@@ -100,7 +100,7 @@ export default function DealsPreview({ deals }: { deals: DealItem[] }) {
                   {deal.product.image_url ? (
                     <img src={deal.product.image_url} alt={deal.product.title} className="w-full h-full object-contain p-1.5" loading="lazy" />
                   ) : (
-                    <ShoppingCart size={20} style={{ color: "rgba(255,255,255,0.2)" }} />
+                    <ShoppingCart size={20} style={{ color: "var(--text-faint)" }} />
                   )}
                 </div>
 
@@ -111,7 +111,7 @@ export default function DealsPreview({ deals }: { deals: DealItem[] }) {
                   >
                     {deal.product.platform}
                   </span>
-                  <p className="text-sm font-medium mt-1.5 line-clamp-2 leading-snug" style={{ color: "rgba(255,255,255,0.8)" }}>
+                  <p className="text-sm font-medium mt-1.5 line-clamp-2 leading-snug" style={{ color: "var(--text-secondary)" }}>
                     {deal.product.title}
                   </p>
                   <div className="flex items-center gap-2.5 mt-2 flex-wrap">
@@ -131,7 +131,7 @@ export default function DealsPreview({ deals }: { deals: DealItem[] }) {
                   <span className="text-lg font-semibold leading-none" style={{ color: scoreColor(deal.deal_score), fontFamily: "var(--font-ibm-plex-mono), monospace" }}>
                     {deal.deal_score}
                   </span>
-                  <span className="text-[8px] font-medium uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.2)" }}>/10</span>
+                  <span className="text-[8px] font-medium uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>/10</span>
                 </div>
               </Link>
             </motion.div>

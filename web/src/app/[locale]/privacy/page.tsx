@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen pt-24 pb-20 px-4 max-w-3xl mx-auto">
-      <div className="nm-raised rounded-2xl p-8 md:p-12">
+      <div className="dk-card p-8 md:p-12">
         <h1 className="text-3xl font-black tracking-tight mb-2">Privacy Policy</h1>
         <p className="text-white/40 text-sm mb-10">
           Last updated: April 2025 &nbsp;·&nbsp; Effective immediately
@@ -25,12 +25,12 @@ export default function PrivacyPage() {
 
         <Section title="What We Collect">
           <ul className="space-y-3 list-none">
-            <Li icon={<Link2 size={18} className="text-indigo-400" />}>
+            <Li icon={<Link2 size={18} style={{ color: "var(--lav)" }} />}>
               <strong>Product URLs:</strong> When you visit a Daraz product page with the extension active,
               or submit a URL on our website, we store that URL and its product ID to track price history.
               We do <em>not</em> collect any other URLs you visit.
             </Li>
-            <Li icon={<Mail size={18} className="text-emerald-400" />}>
+            <Li icon={<Mail size={18} style={{ color: "var(--green)" }} />}>
               <strong>Email address:</strong> Only if you voluntarily set a price alert. Used solely
               to send you a single notification email when your target price is reached. We do not send
               marketing emails.
@@ -62,7 +62,7 @@ export default function PrivacyPage() {
               <strong>host_permissions (daraz.com.bd, api.damkoi.com):</strong> Allows the extension to
               fetch price data from our API and to inject the price history panel on Daraz product pages.
             </Li>
-            <Li icon={<Bell size={18} className="text-indigo-400" />}>
+            <Li icon={<Bell size={18} style={{ color: "var(--lav)" }} />}>
               <strong>alarms / storage:</strong> Used locally to cache recent verdicts and schedule
               background badge updates. No data leaves your device via these permissions.
             </Li>
@@ -80,7 +80,7 @@ export default function PrivacyPage() {
 
         <Section title="Third-Party Services">
           <ul className="space-y-3 list-none">
-            <Li icon={<Send size={18} className="text-emerald-400" />}>
+            <Li icon={<Send size={18} style={{ color: "var(--green)" }} />}>
               <strong>Resend:</strong> Used to send price alert emails. Your email is transmitted to Resend
               solely for this purpose and is subject to{" "}
               <a href="https://resend.com/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">

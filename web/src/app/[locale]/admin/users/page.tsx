@@ -76,67 +76,75 @@ export default function AdminUsersPage() {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-black font-outfit">Users</h1>
-        <span className="text-xs text-white/30">{total.toLocaleString()} total</span>
+        <h1 className="text-2xl font-bold text-white">Users</h1>
+        <span className="text-xs" style={{ color: "var(--text-faint)" }}>{total.toLocaleString()} total</span>
       </div>
 
       {/* Filters */}
       <div className="flex items-center gap-3">
         <button
           onClick={() => { setPremiumOnly((p) => !p); setPage(1); }}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-            premiumOnly ? "nm-inset text-amber-400" : "nm-raised text-white/40 hover:text-white"
-          }`}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition-all dk-focus"
+          style={premiumOnly
+            ? { background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", color: "var(--amber)" }
+            : { background: "var(--bg2)", border: "1px solid var(--border-sm)", color: "var(--text-muted)" }
+          }
         >
           <Star size={12} /> Premium only
         </button>
-        <button onClick={load} className="nm-raised rounded-xl px-3 py-2 text-white/40 hover:text-white transition-colors">
+        <button
+          onClick={load}
+          className="rounded-xl px-3 py-2 transition-colors dk-focus"
+          style={{ background: "var(--bg2)", border: "1px solid var(--border-sm)", color: "var(--text-muted)" }}
+        >
           <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
         </button>
       </div>
 
       {/* Table */}
-      <div className="nm-raised rounded-2xl overflow-hidden">
+      <div className="dk-card overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-16">
-            <Loader2 size={20} className="animate-spin text-indigo-400" />
+            <Loader2 size={20} className="animate-spin" style={{ color: "var(--lav)" }} />
           </div>
         ) : users.length === 0 ? (
-          <p className="text-center text-white/30 py-16 text-sm">No users found.</p>
+          <p className="text-center py-16 text-sm" style={{ color: "var(--text-faint)" }}>No users found.</p>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/5 text-[10px] uppercase tracking-widest text-white/30">
-                <th className="text-left px-4 py-3 font-bold">Email</th>
-                <th className="text-left px-4 py-3 font-bold hidden md:table-cell">Provider</th>
-                <th className="text-center px-4 py-3 font-bold hidden sm:table-cell">Alerts</th>
-                <th className="text-left px-4 py-3 font-bold hidden lg:table-cell">Joined</th>
-                <th className="text-center px-4 py-3 font-bold">Premium</th>
+              <tr className="text-[10px] uppercase tracking-widest" style={{ borderBottom: "1px solid var(--border-sm)", color: "var(--text-faint)" }}>
+                <th className="text-left px-4 py-3 font-semibold">Email</th>
+                <th className="text-left px-4 py-3 font-semibold hidden md:table-cell">Provider</th>
+                <th className="text-center px-4 py-3 font-semibold hidden sm:table-cell">Alerts</th>
+                <th className="text-left px-4 py-3 font-semibold hidden lg:table-cell">Joined</th>
+                <th className="text-center px-4 py-3 font-semibold">Premium</th>
               </tr>
             </thead>
             <tbody>
               {users.map((u) => (
-                <tr key={u.id} className="border-b border-white/5 last:border-0 hover:bg-white/3 transition-colors">
+                <tr key={u.id} className="transition-colors" style={{ borderBottom: "1px solid var(--border-sm)" }}>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <p className="text-white/70 text-xs">{u.email ?? <span className="text-white/20 italic">anonymous</span>}</p>
+                      <p className="text-xs" style={{ color: "var(--text-body)" }}>
+                        {u.email ?? <span className="italic" style={{ color: "var(--text-faint)" }}>anonymous</span>}
+                      </p>
                       {u.is_admin && (
-                        <span className="text-[8px] font-black text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded-full uppercase">
+                        <span className="text-[8px] font-semibold px-1.5 py-0.5 rounded-full uppercase" style={{ color: "var(--red)", background: "rgba(239,68,68,0.1)" }}>
                           Admin
                         </span>
                       )}
                     </div>
-                    <p className="text-[9px] text-white/20 font-mono mt-0.5">{u.id.slice(0, 8)}…</p>
+                    <p className="text-[9px] mt-0.5" style={{ color: "var(--text-faint)", fontFamily: "'IBM Plex Mono', monospace" }}>{u.id.slice(0, 8)}…</p>
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
-                    <span className="text-[10px] text-white/30 capitalize">{u.auth_provider ?? "—"}</span>
+                    <span className="text-[10px] capitalize" style={{ color: "var(--text-faint)" }}>{u.auth_provider ?? "—"}</span>
                   </td>
                   <td className="px-4 py-3 text-center hidden sm:table-cell">
-                    <span className="text-xs font-mono">{u.active_alert_count}</span>
-                    <span className="text-[9px] text-white/20">/{u.alert_count}</span>
+                    <span className="text-xs" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{u.active_alert_count}</span>
+                    <span className="text-[9px]" style={{ color: "var(--text-faint)" }}>/{u.alert_count}</span>
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
-                    <span className="text-[10px] text-white/30">
+                    <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>
                       {u.created_at ? new Date(u.created_at).toLocaleDateString("en-BD", { month: "short", day: "numeric", year: "2-digit" }) : "—"}
                     </span>
                   </td>
@@ -144,14 +152,14 @@ export default function AdminUsersPage() {
                     <button
                       onClick={() => togglePremium(u)}
                       disabled={toggling === u.id}
-                      className="inline-flex items-center gap-1 text-[10px] font-bold transition-colors disabled:opacity-40"
+                      className="inline-flex items-center gap-1 text-[10px] font-medium transition-colors disabled:opacity-40 dk-focus"
                     >
                       {toggling === u.id ? (
-                        <Loader2 size={14} className="animate-spin text-white/30" />
+                        <Loader2 size={14} className="animate-spin" style={{ color: "var(--text-faint)" }} />
                       ) : u.is_premium ? (
-                        <ToggleRight size={18} className="text-amber-400" />
+                        <ToggleRight size={18} style={{ color: "var(--amber)" }} />
                       ) : (
-                        <ToggleLeft size={18} className="text-white/20 hover:text-white/50" />
+                        <ToggleLeft size={18} style={{ color: "var(--text-faint)" }} />
                       )}
                     </button>
                   </td>
@@ -162,21 +170,22 @@ export default function AdminUsersPage() {
         )}
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between text-xs">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="flex items-center gap-1 px-3 py-2 nm-raised rounded-xl text-white/40 hover:text-white disabled:opacity-30 transition-colors"
+            className="flex items-center gap-1 px-3 py-2 rounded-xl transition-colors disabled:opacity-30 dk-focus"
+            style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)", color: "var(--text-muted)" }}
           >
             <ChevronLeft size={13} /> Prev
           </button>
-          <span className="text-white/30">Page {page} of {totalPages}</span>
+          <span style={{ color: "var(--text-faint)" }}>Page {page} of {totalPages}</span>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="flex items-center gap-1 px-3 py-2 nm-raised rounded-xl text-white/40 hover:text-white disabled:opacity-30 transition-colors"
+            className="flex items-center gap-1 px-3 py-2 rounded-xl transition-colors disabled:opacity-30 dk-focus"
+            style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)", color: "var(--text-muted)" }}
           >
             Next <ChevronRight size={13} />
           </button>

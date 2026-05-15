@@ -19,7 +19,7 @@ function detectPlatform(url: string): string | null {
 }
 
 const FEATURES = [
-  { icon: TrendingDown, color: "#a78bfa", bg: "rgba(124,58,237,0.12)", title: "Price History",       desc: "90 days of price data across every platform we track." },
+  { icon: TrendingDown, color: "var(--lav)", bg: "rgba(124,58,237,0.12)", title: "Price History",       desc: "90 days of price data across every platform we track." },
   { icon: ShieldAlert,  color: "#f59e0b", bg: "rgba(245,158,11,0.12)", title: "Fake Deal Detector",   desc: "Instant verdict: is this discount real or inflated noise?" },
   { icon: Bell,         color: "#22c55e", bg: "rgba(34,197,94,0.12)",  title: "Price Alerts",         desc: "Email the moment it hits your target price. No account needed." },
 ];
@@ -148,7 +148,7 @@ export default function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
           className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-7 text-xs font-semibold uppercase tracking-widest"
-          style={{ background: "rgba(124,58,237,0.12)", border: "1px solid rgba(124,58,237,0.25)", color: "#a78bfa" }}
+          style={{ background: "rgba(124,58,237,0.12)", border: "1px solid rgba(124,58,237,0.25)", color: "var(--lav)" }}
         >
           <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: "#22c55e", boxShadow: "0 0 6px #22c55e" }} />
           BD Shopping Intelligence · Live
@@ -162,7 +162,7 @@ export default function HeroSection() {
           className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-6 leading-tight text-white"
         >
           Stop falling for{" "}
-          <span style={{ color: "#a78bfa" }}>fake discounts</span>
+          <span style={{ color: "var(--lav)" }}>fake discounts</span>
         </motion.h1>
 
         <motion.p
@@ -170,7 +170,7 @@ export default function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
           className="text-base sm:text-lg mb-10 max-w-2xl leading-relaxed"
-          style={{ color: "rgba(255,255,255,0.4)" }}
+          style={{ color: "var(--text-muted)" }}
         >
           Sellers inflate prices before sales. DamKoi shows you the real price history
           across Daraz, Cartup, Rokomari, and Pickaboo — and alerts you when prices genuinely drop.
@@ -188,7 +188,7 @@ export default function HeroSection() {
             className="flex items-center rounded-xl overflow-hidden"
             style={{ background: "var(--bg2)", border: "1px solid var(--border-sm)" }}
           >
-            <div className="pl-4 flex-shrink-0" style={{ color: "rgba(255,255,255,0.3)" }}>
+            <div className="pl-4 flex-shrink-0" style={{ color: "var(--text-faint)" }}>
               <Search size={18} />
             </div>
             <input
@@ -196,13 +196,14 @@ export default function HeroSection() {
               value={url}
               onChange={(e) => { setUrl(e.target.value); if (state !== "idle") setState("idle"); }}
               placeholder="Paste any product URL — Daraz, Rokomari, Cartup…"
-              className="flex-1 bg-transparent py-4 px-3 text-sm text-white/90 placeholder:text-white/25 focus:outline-none min-w-0"
+              className="flex-1 bg-transparent py-4 px-3 text-sm focus:outline-none min-w-0"
+              style={{ color: "var(--text-secondary)" }}
               aria-label="Product URL"
             />
             {platform && (
               <span
                 className="hidden sm:flex items-center px-3 text-[10px] font-semibold uppercase tracking-widest"
-                style={{ color: "#a78bfa", borderLeft: "1px solid var(--border-sm)", padding: "1rem 0.75rem" }}
+                style={{ color: "var(--lav)", borderLeft: "1px solid var(--border-sm)", padding: "1rem 0.75rem" }}
               >
                 {platform}
               </span>
@@ -235,7 +236,7 @@ export default function HeroSection() {
             <Clock size={16} className="mt-0.5 flex-shrink-0" style={{ color: "var(--amber)" }} />
             <div>
               <p className="font-semibold text-sm mb-1" style={{ color: "var(--amber)" }}>Tracking Started!</p>
-              <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.45)" }}>
+              <p className="text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>
                 Added to queue. Our scraper collects the first price within the next hour.
               </p>
             </div>
@@ -252,10 +253,10 @@ export default function HeroSection() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
           className="mt-6 flex flex-wrap items-center justify-center gap-4 sm:gap-6"
         >
-          <Link href="/deals" className="text-sm flex items-center gap-1.5 hover:text-white/60 transition-colors dk-focus" style={{ color: "rgba(255,255,255,0.3)" }}>
+          <Link href="/deals" className="text-sm flex items-center gap-1.5 hover:text-white/60 transition-colors dk-focus" style={{ color: "var(--text-faint)" }}>
             Browse top deals <ArrowRight size={13} />
           </Link>
-          <Link href="/dashboard" className="text-sm flex items-center gap-1.5 hover:text-white/60 transition-colors dk-focus" style={{ color: "rgba(255,255,255,0.3)" }}>
+          <Link href="/dashboard" className="text-sm flex items-center gap-1.5 hover:text-white/60 transition-colors dk-focus" style={{ color: "var(--text-faint)" }}>
             My tracked products <ArrowRight size={13} />
           </Link>
         </motion.div>
@@ -286,7 +287,7 @@ export default function HeroSection() {
                   <Icon size={20} />
                 </div>
                 <h3 className="font-semibold text-base text-white">{f.title}</h3>
-                <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.4)" }}>{f.desc}</p>
+                <p className="text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>{f.desc}</p>
               </motion.div>
             );
           })}

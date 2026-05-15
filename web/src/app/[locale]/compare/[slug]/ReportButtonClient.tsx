@@ -30,7 +30,7 @@ export default function ReportButtonClient({ productId }: { productId: string })
           Report incorrect grouping
         </button>
       )}
-      {state === "sent" && <span className="text-emerald-400">Reported — thanks!</span>}
+      {state === "sent" && <span style={{ color: "var(--green)" }}>Reported — thanks!</span>}
       {state === "error" && <span className="text-white/30">Could not send, try again later.</span>}
     </div>
   );

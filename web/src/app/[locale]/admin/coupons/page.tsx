@@ -37,14 +37,9 @@ type CouponForm = {
 };
 
 const EMPTY_FORM: CouponForm = {
-  platform: "daraz",
-  code: "",
-  product_id: "",
-  discount_pct: "",
-  discount_flat: "",
-  min_spend: "",
-  payment_method: "",
-  expires_at: "",
+  platform: "daraz", code: "", product_id: "",
+  discount_pct: "", discount_flat: "", min_spend: "",
+  payment_method: "", expires_at: "",
 };
 
 function fmt(p: number | null) {
@@ -63,6 +58,17 @@ async function adminFetch(path: string, opts?: RequestInit) {
     },
   });
 }
+
+const selectStyle: React.CSSProperties = {
+  background: "var(--bg2)",
+  border: "1px solid var(--border-sm)",
+  color: "var(--text-body)",
+  borderRadius: "0.75rem",
+  padding: "0.625rem 0.75rem",
+  fontSize: "0.875rem",
+  outline: "none",
+  width: "100%",
+};
 
 export default function AdminCouponsPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -95,11 +101,7 @@ export default function AdminCouponsPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const openCreate = () => {
-    setEditId(null);
-    setForm(EMPTY_FORM);
-    setShowForm(true);
-  };
+  const openCreate = () => { setEditId(null); setForm(EMPTY_FORM); setShowForm(true); };
 
   const openEdit = (c: Coupon) => {
     setEditId(c.id);
@@ -130,15 +132,10 @@ export default function AdminCouponsPage() {
         payment_method: form.payment_method || null,
         expires_at: form.expires_at ? new Date(form.expires_at).toISOString() : null,
       };
-
       const res = editId
         ? await adminFetch(`/admin/coupons/${editId}`, { method: "PATCH", body: JSON.stringify(body) })
         : await adminFetch("/admin/coupons", { method: "POST", body: JSON.stringify(body) });
-
-      if (res.ok) {
-        setShowForm(false);
-        load();
-      }
+      if (res.ok) { setShowForm(false); load(); }
     } finally {
       setSaving(false);
     }
@@ -163,13 +160,10 @@ export default function AdminCouponsPage() {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-black font-outfit">Coupons</h1>
+        <h1 className="text-2xl font-bold text-white">Coupons</h1>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-white/30">{total} total</span>
-          <button
-            onClick={openCreate}
-            className="flex items-center gap-1.5 px-4 py-2 nm-btn-primary rounded-xl text-xs font-black"
-          >
+          <span className="text-xs" style={{ color: "var(--text-faint)" }}>{total} total</span>
+          <button onClick={openCreate} className="dk-btn-primary flex items-center gap-1.5 text-xs">
             <Plus size={12} /> Add Coupon
           </button>
         </div>
@@ -180,43 +174,47 @@ export default function AdminCouponsPage() {
         <select
           value={platformFilter}
           onChange={(e) => { setPlatformFilter(e.target.value); setPage(1); }}
-          className="nm-inset rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all bg-transparent"
+          style={{ ...selectStyle, width: "auto" }}
         >
-          <option value="" className="bg-[#1a2332]">All platforms</option>
+          <option value="" style={{ background: "#0e0c24" }}>All platforms</option>
           {PLATFORMS.map((p) => (
-            <option key={p} value={p} className="bg-[#1a2332]">{p}</option>
+            <option key={p} value={p} style={{ background: "#0e0c24" }}>{p}</option>
           ))}
         </select>
-        <button onClick={load} className="nm-raised rounded-xl px-3 py-2 text-white/40 hover:text-white transition-colors">
+        <button
+          onClick={load}
+          className="rounded-xl px-3 py-2 transition-colors dk-focus"
+          style={{ background: "var(--bg2)", border: "1px solid var(--border-sm)", color: "var(--text-muted)" }}
+        >
           <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
         </button>
       </div>
 
       {/* Inline form */}
       {showForm && (
-        <div className="nm-raised rounded-2xl p-5 border border-indigo-500/20">
-          <h3 className="text-sm font-black mb-4">{editId ? "Edit Coupon" : "New Coupon"}</h3>
+        <div className="dk-card p-5" style={{ border: "1px solid rgba(124,58,237,0.2)" }}>
+          <h3 className="text-sm font-semibold mb-4 text-white">{editId ? "Edit Coupon" : "New Coupon"}</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
             {[
-              { key: "platform", label: "Platform", type: "select", options: PLATFORMS },
-              { key: "code", label: "Code *", type: "text", placeholder: "e.g. SAVE10" },
-              { key: "product_id", label: "Product ID (optional)", type: "text", placeholder: "UUID or blank" },
-              { key: "discount_pct", label: "Discount %", type: "number", placeholder: "e.g. 10" },
-              { key: "discount_flat", label: "Flat off (paisa)", type: "number", placeholder: "e.g. 5000 = ৳50" },
-              { key: "min_spend", label: "Min spend (paisa)", type: "number", placeholder: "e.g. 50000" },
-              { key: "payment_method", label: "Payment method", type: "select", options: PAYMENT_METHODS },
-              { key: "expires_at", label: "Expires", type: "date" },
+              { key: "platform",        label: "Platform",              type: "select",  options: PLATFORMS,        placeholder: "" },
+              { key: "code",            label: "Code *",                type: "text",    options: [],               placeholder: "e.g. SAVE10" },
+              { key: "product_id",      label: "Product ID (optional)", type: "text",    options: [],               placeholder: "UUID or blank" },
+              { key: "discount_pct",    label: "Discount %",            type: "number",  options: [],               placeholder: "e.g. 10" },
+              { key: "discount_flat",   label: "Flat off (paisa)",      type: "number",  options: [],               placeholder: "e.g. 5000 = ৳50" },
+              { key: "min_spend",       label: "Min spend (paisa)",     type: "number",  options: [],               placeholder: "e.g. 50000" },
+              { key: "payment_method",  label: "Payment method",        type: "select",  options: PAYMENT_METHODS,  placeholder: "" },
+              { key: "expires_at",      label: "Expires",               type: "date",    options: [],               placeholder: "" },
             ].map(({ key, label, type, placeholder, options }) => (
               <div key={key}>
-                <label className="block text-[10px] text-white/30 uppercase tracking-widest mb-1">{label}</label>
+                <label className="block text-[10px] uppercase tracking-widest mb-1" style={{ color: "var(--text-faint)" }}>{label}</label>
                 {type === "select" ? (
                   <select
                     value={(form as Record<string, string>)[key]}
                     onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                    className="w-full nm-inset rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 bg-transparent"
+                    style={selectStyle}
                   >
-                    {(options ?? []).map((o) => (
-                      <option key={o} value={o} className="bg-[#1a2332]">{o || "Any"}</option>
+                    {options.map((o) => (
+                      <option key={o} value={o} style={{ background: "#0e0c24" }}>{o || "Any"}</option>
                     ))}
                   </select>
                 ) : (
@@ -225,7 +223,7 @@ export default function AdminCouponsPage() {
                     value={(form as Record<string, string>)[key]}
                     onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
                     placeholder={placeholder}
-                    className="w-full nm-inset rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30"
+                    className="dk-input w-full"
                   />
                 )}
               </div>
@@ -235,14 +233,15 @@ export default function AdminCouponsPage() {
             <button
               onClick={save}
               disabled={saving}
-              className="flex items-center gap-1.5 px-4 py-2 nm-btn-primary rounded-xl text-xs font-black disabled:opacity-50"
+              className="dk-btn-primary flex items-center gap-1.5 text-xs disabled:opacity-50"
             >
               {saving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
               {editId ? "Save Changes" : "Create"}
             </button>
             <button
               onClick={() => setShowForm(false)}
-              className="flex items-center gap-1.5 px-4 py-2 nm-raised rounded-xl text-xs font-bold text-white/40 hover:text-white transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium transition-colors dk-focus"
+              style={{ background: "var(--bg2)", border: "1px solid var(--border-sm)", color: "var(--text-muted)" }}
             >
               <X size={12} /> Cancel
             </button>
@@ -251,47 +250,47 @@ export default function AdminCouponsPage() {
       )}
 
       {/* Table */}
-      <div className="nm-raised rounded-2xl overflow-hidden">
+      <div className="dk-card overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-16">
-            <Loader2 size={20} className="animate-spin text-indigo-400" />
+            <Loader2 size={20} className="animate-spin" style={{ color: "var(--lav)" }} />
           </div>
         ) : coupons.length === 0 ? (
-          <p className="text-center text-white/30 py-16 text-sm">No coupons found.</p>
+          <p className="text-center py-16 text-sm" style={{ color: "var(--text-faint)" }}>No coupons found.</p>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/5 text-[10px] uppercase tracking-widest text-white/30">
-                <th className="text-left px-4 py-3 font-bold">Code</th>
-                <th className="text-left px-4 py-3 font-bold">Platform</th>
-                <th className="text-left px-4 py-3 font-bold hidden md:table-cell">Discount</th>
-                <th className="text-left px-4 py-3 font-bold hidden lg:table-cell">Payment</th>
-                <th className="text-left px-4 py-3 font-bold hidden lg:table-cell">Expires</th>
-                <th className="text-center px-4 py-3 font-bold">Actions</th>
+              <tr className="text-[10px] uppercase tracking-widest" style={{ borderBottom: "1px solid var(--border-sm)", color: "var(--text-faint)" }}>
+                <th className="text-left px-4 py-3 font-semibold">Code</th>
+                <th className="text-left px-4 py-3 font-semibold">Platform</th>
+                <th className="text-left px-4 py-3 font-semibold hidden md:table-cell">Discount</th>
+                <th className="text-left px-4 py-3 font-semibold hidden lg:table-cell">Payment</th>
+                <th className="text-left px-4 py-3 font-semibold hidden lg:table-cell">Expires</th>
+                <th className="text-center px-4 py-3 font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
               {coupons.map((c) => (
-                <tr key={c.id} className="border-b border-white/5 last:border-0 hover:bg-white/3 transition-colors">
+                <tr key={c.id} className="transition-colors" style={{ borderBottom: "1px solid var(--border-sm)" }}>
                   <td className="px-4 py-3">
-                    <p className="font-mono text-xs text-white font-bold">{c.code}</p>
+                    <p className="text-xs font-semibold text-white" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{c.code}</p>
                     {!c.is_active && (
-                      <span className="text-[8px] text-white/20">inactive</span>
+                      <span className="text-[8px]" style={{ color: "var(--text-faint)" }}>inactive</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-[10px] capitalize text-white/50">{c.platform}</span>
+                    <span className="text-[10px] capitalize" style={{ color: "var(--text-muted)" }}>{c.platform}</span>
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell text-xs">
-                    {c.discount_pct ? <span className="text-emerald-400">{c.discount_pct}% off</span>
-                      : c.discount_flat ? <span className="text-emerald-400">{fmt(c.discount_flat)} off</span>
-                      : <span className="text-white/20">—</span>}
+                    {c.discount_pct ? <span style={{ color: "var(--green)" }}>{c.discount_pct}% off</span>
+                      : c.discount_flat ? <span style={{ color: "var(--green)" }}>{fmt(c.discount_flat)} off</span>
+                      : <span style={{ color: "var(--text-faint)" }}>—</span>}
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
-                    <span className="text-[10px] text-white/40">{c.payment_method ?? "Any"}</span>
+                    <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{c.payment_method ?? "Any"}</span>
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
-                    <span className="text-[10px] text-white/30">
+                    <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>
                       {c.expires_at ? new Date(c.expires_at).toLocaleDateString("en-BD", { month: "short", day: "numeric" }) : "—"}
                     </span>
                   </td>
@@ -299,16 +298,22 @@ export default function AdminCouponsPage() {
                     <div className="flex items-center justify-center gap-1">
                       <button
                         onClick={() => openEdit(c)}
-                        className="p-1.5 rounded-lg hover:bg-white/10 text-white/20 hover:text-indigo-400 transition-colors"
+                        className="p-1.5 rounded-lg transition-colors dk-focus"
+                        style={{ color: "var(--text-faint)" }}
                         title="Edit"
+                        onMouseEnter={(e) => (e.currentTarget.style.color = "var(--lav)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-faint)")}
                       >
                         <Edit2 size={13} />
                       </button>
                       <button
                         onClick={() => remove(c.id)}
                         disabled={busy === c.id}
-                        className="p-1.5 rounded-lg hover:bg-white/10 text-white/20 hover:text-rose-400 transition-colors disabled:opacity-40"
+                        className="p-1.5 rounded-lg transition-colors disabled:opacity-40 dk-focus"
+                        style={{ color: "var(--text-faint)" }}
                         title="Delete"
+                        onMouseEnter={(e) => (e.currentTarget.style.color = "var(--red)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-faint)")}
                       >
                         {busy === c.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
                       </button>
@@ -326,15 +331,17 @@ export default function AdminCouponsPage() {
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="flex items-center gap-1 px-3 py-2 nm-raised rounded-xl text-white/40 hover:text-white disabled:opacity-30 transition-colors"
+            className="flex items-center gap-1 px-3 py-2 rounded-xl transition-colors disabled:opacity-30 dk-focus"
+            style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)", color: "var(--text-muted)" }}
           >
             <ChevronLeft size={13} /> Prev
           </button>
-          <span className="text-white/30">Page {page} of {totalPages}</span>
+          <span style={{ color: "var(--text-faint)" }}>Page {page} of {totalPages}</span>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="flex items-center gap-1 px-3 py-2 nm-raised rounded-xl text-white/40 hover:text-white disabled:opacity-30 transition-colors"
+            className="flex items-center gap-1 px-3 py-2 rounded-xl transition-colors disabled:opacity-30 dk-focus"
+            style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)", color: "var(--text-muted)" }}
           >
             Next <ChevronRight size={13} />
           </button>

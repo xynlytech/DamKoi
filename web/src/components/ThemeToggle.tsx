@@ -4,19 +4,20 @@ import { useEffect, useState } from "react";
 import { Sun, Moon } from "lucide-react";
 
 export default function ThemeToggle() {
-  const [isDark, setIsDark] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return localStorage.getItem("theme") !== "light";
-  });
+  const [isDark, setIsDark] = useState(true);
 
   useEffect(() => {
-    document.documentElement.classList.toggle("light", !isDark);
-  }, [isDark]);
+    const stored = localStorage.getItem("theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const dark = stored ? stored !== "light" : prefersDark;
+    setIsDark(dark);
+    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+  }, []);
 
   function toggle() {
     const next = !isDark;
     setIsDark(next);
-    document.documentElement.classList.toggle("light", !next);
+    document.documentElement.setAttribute("data-theme", next ? "dark" : "light");
     localStorage.setItem("theme", next ? "dark" : "light");
   }
 
@@ -24,9 +25,16 @@ export default function ThemeToggle() {
     <button
       onClick={toggle}
       aria-label="Toggle theme"
-      className="nm-raised nm-interactive rounded-xl p-2.5 text-white/40 hover:text-indigo-400 transition-colors nm-focus"
+      className="rounded-xl p-2 transition-colors dk-focus"
+      style={{
+        background: "var(--bg2)",
+        border: "1px solid var(--border-sm)",
+        color: "var(--text-muted)",
+      }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--lav)"; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-muted)"; }}
     >
-      {isDark ? <Sun size={16} /> : <Moon size={16} />}
+      {isDark ? <Sun size={15} /> : <Moon size={15} />}
     </button>
   );
 }

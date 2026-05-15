@@ -12,7 +12,7 @@ const PLATFORMS = [
 export default function PlatformBadges() {
   return (
     <section className="py-10">
-      <p className="text-center text-[10px] font-medium uppercase tracking-[0.22em] mb-6" style={{ color: "rgba(255,255,255,0.2)" }}>
+      <p className="text-center text-[10px] font-medium uppercase tracking-[0.22em] mb-6" style={{ color: "var(--text-faint)" }}>
         Tracking prices across
       </p>
       <div className="flex flex-wrap items-center justify-center gap-3">
@@ -24,16 +24,16 @@ export default function PlatformBadges() {
               key={p.name}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-medium transition-all"
               style={{
-                color:       alive ? p.color          : "rgba(255,255,255,0.2)",
-                background:  alive ? `${p.color}12`   : "rgba(255,255,255,0.04)",
-                border:      alive ? `1px solid ${p.color}25` : "1px solid rgba(255,255,255,0.06)",
+                color:       alive ? p.color          : "var(--text-faint)",
+                background:  alive ? `${p.color}12`   : "var(--surface-ghost)",
+                border:      alive ? `1px solid ${p.color}25` : "1px solid var(--border-sm)",
                 opacity:     alive ? 1 : 0.45,
               }}
             >
               <Icon size={13} />
               {p.name}
               {!alive && (
-                <span className="text-[8px] font-medium uppercase tracking-widest px-1.5 py-0.5 rounded-full" style={{ color: "rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.05)" }}>
+                <span className="text-[8px] font-medium uppercase tracking-widest px-1.5 py-0.5 rounded-full" style={{ color: "var(--text-faint)", background: "var(--surface-ghost)" }}>
                   soon
                 </span>
               )}

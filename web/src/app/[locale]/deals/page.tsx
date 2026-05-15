@@ -36,6 +36,9 @@ async function getDeals(platform?: string, category?: string, minScore = 7): Pro
   }
 }
 
+const activeFilterStyle = { background: "rgba(124,58,237,0.12)", border: "1px solid rgba(124,58,237,0.3)", color: "var(--lav)" };
+const inactiveFilterStyle = { background: "var(--surface-ghost)", border: "1px solid var(--border-sm)", color: "var(--text-muted)" };
+
 export default async function DealsPage({
   searchParams,
 }: {
@@ -51,10 +54,10 @@ export default async function DealsPage({
     <div className="container mx-auto px-4 max-w-5xl">
       {/* Header */}
       <div className="mb-10">
-        <h1 className="text-4xl font-black font-outfit mb-2 flex items-center gap-3">
-          <Flame size={32} className="text-indigo-500" /> Real Deals Today
+        <h1 className="text-4xl font-bold mb-2 flex items-center gap-3 text-white">
+          <Flame size={32} style={{ color: "var(--purple)" }} /> Real Deals Today
         </h1>
-        <p className="text-white/40 text-sm">
+        <p className="text-sm" style={{ color: "var(--text-muted)" }}>
           {deals.length}+ verified price drops · Updated every hour
         </p>
       </div>
@@ -65,11 +68,8 @@ export default async function DealsPage({
           <Link
             key={p}
             href={`/deals?platform=${p}&category=${category}&score=${minScore}`}
-            className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all duration-200 ${
-              platform === p
-                ? "nm-btn-primary"
-                : "nm-pill text-white/40 hover:text-white/70"
-            }`}
+            className="px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-widest transition-all"
+            style={platform === p ? activeFilterStyle : inactiveFilterStyle}
           >
             {p || "All Platforms"}
           </Link>
@@ -79,11 +79,8 @@ export default async function DealsPage({
             <Link
               key={s}
               href={`/deals?platform=${platform}&category=${category}&score=${s}`}
-              className={`px-3 py-2 rounded-full text-xs font-black transition-all duration-200 ${
-                minScore === s
-                  ? "nm-btn-primary"
-                  : "nm-pill text-white/40 hover:text-white/70"
-              }`}
+              className="px-3 py-2 rounded-full text-xs font-semibold transition-all"
+              style={minScore === s ? activeFilterStyle : inactiveFilterStyle}
             >
               Score ≥{s}
             </Link>
@@ -97,11 +94,8 @@ export default async function DealsPage({
           <Link
             key={c}
             href={`/deals?platform=${platform}&category=${c}&score=${minScore}`}
-            className={`px-3 py-1.5 rounded-full text-[11px] font-bold capitalize transition-all duration-200 ${
-              category === c
-                ? "nm-btn-primary"
-                : "nm-pill text-white/30 hover:text-white/60"
-            }`}
+            className="px-3 py-1.5 rounded-full text-[11px] font-medium capitalize transition-all"
+            style={category === c ? activeFilterStyle : { ...inactiveFilterStyle, color: "var(--text-faint)" }}
           >
             {c || "All Categories"}
           </Link>
@@ -111,23 +105,18 @@ export default async function DealsPage({
       {/* Deals grid + Load More */}
       {deals.length === 0 ? (
         <div className="text-center py-20">
-          <div className="nm-raised w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white/20">
+          <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6" style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)", color: "var(--text-faint)" }}>
             <Search size={36} strokeWidth={1.5} />
           </div>
-          <p className="font-black uppercase tracking-widest text-sm text-white/30 mb-4">
+          <p className="font-semibold uppercase tracking-widest text-sm mb-4" style={{ color: "var(--text-faint)" }}>
             No deals matched your filters
           </p>
-          <Link href="/deals" className="nm-pill inline-block px-5 py-2.5 rounded-xl text-indigo-400 text-sm font-bold hover:text-indigo-300 transition-colors">
+          <Link href="/deals" className="text-sm font-semibold transition-colors dk-focus" style={{ color: "var(--lav)" }}>
             Reset filters
           </Link>
         </div>
       ) : (
-        <DealsLoadMore
-          initialDeals={deals}
-          platform={platform}
-          category={category}
-          minScore={minScore}
-        />
+        <DealsLoadMore initialDeals={deals} platform={platform} category={category} minScore={minScore} />
       )}
     </div>
   );

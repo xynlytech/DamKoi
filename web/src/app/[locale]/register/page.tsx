@@ -48,7 +48,7 @@ export default function RegisterPage() {
           <div className="rounded-2xl p-8 text-center" style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)" }}>
             <CheckCircle2 size={44} strokeWidth={1.5} className="mx-auto mb-5" style={{ color: "var(--green)" }} />
             <h2 className="text-xl font-bold text-white mb-3">Check your inbox</h2>
-            <p className="text-sm leading-relaxed mb-6" style={{ color: "rgba(255,255,255,0.5)" }}>
+            <p className="text-sm leading-relaxed mb-6" style={{ color: "var(--text-muted)" }}>
               We sent a confirmation link to <span className="text-white font-semibold">{email}</span>. Click it to activate your account.
             </p>
             <Link href="/login" className="dk-btn-primary inline-flex items-center gap-2 text-xs uppercase tracking-widest dk-focus">
@@ -76,24 +76,24 @@ export default function RegisterPage() {
 
         <div className="rounded-2xl p-8" style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)" }}>
           <h1 className="text-2xl font-bold text-center text-white mb-1">Create Account</h1>
-          <p className="text-sm text-center mb-8" style={{ color: "rgba(255,255,255,0.4)" }}>Free. No credit card required.</p>
+          <p className="text-sm text-center mb-8" style={{ color: "var(--text-muted)" }}>Free. No credit card required.</p>
 
           <form onSubmit={submit} className="flex flex-col gap-4">
             <div className="relative">
-              <Mail size={14} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "rgba(255,255,255,0.25)" }} />
+              <Mail size={14} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--text-faint)" }} />
               <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus className="dk-input pl-10" />
             </div>
 
             <div className="relative">
-              <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "rgba(255,255,255,0.25)" }} />
+              <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--text-faint)" }} />
               <input type={showPw ? "text" : "password"} placeholder="Password (min 8 chars)" value={pw} onChange={(e) => setPw(e.target.value)} required minLength={8} className="dk-input pl-10 pr-11" />
-              <button type="button" onClick={() => setShowPw((p) => !p)} className="absolute right-4 top-1/2 -translate-y-1/2 transition-colors dk-focus" style={{ color: "rgba(255,255,255,0.25)" }}>
+              <button type="button" onClick={() => setShowPw((p) => !p)} className="absolute right-4 top-1/2 -translate-y-1/2 transition-colors dk-focus" style={{ color: "var(--text-faint)" }}>
                 {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
 
             <div className="relative">
-              <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "rgba(255,255,255,0.25)" }} />
+              <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--text-faint)" }} />
               <input type={showPw ? "text" : "password"} placeholder="Confirm password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required className="dk-input pl-10" />
             </div>
 
@@ -104,9 +104,9 @@ export default function RegisterPage() {
             </button>
           </form>
 
-          <p className="text-center text-xs mt-6" style={{ color: "rgba(255,255,255,0.3)" }}>
+          <p className="text-center text-xs mt-6" style={{ color: "var(--text-faint)" }}>
             Already have an account?{" "}
-            <Link href="/login" className="font-semibold transition-colors dk-focus" style={{ color: "#a78bfa" }}>Sign in</Link>
+            <Link href="/login" className="font-semibold transition-colors dk-focus" style={{ color: "var(--lav)" }}>Sign in</Link>
           </p>
         </div>
       </motion.div>

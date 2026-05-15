@@ -8,18 +8,26 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/v1";
 const PAGE_SIZE = 50;
 
 const PLATFORM_COLOR: Record<string, string> = {
-  daraz:    "text-orange-400 bg-orange-500/10 border-orange-500/20",
-  cartup:   "text-blue-400 bg-blue-500/10 border-blue-500/20",
-  rokomari: "text-green-400 bg-green-500/10 border-green-500/20",
-  pickaboo: "text-purple-400 bg-purple-500/10 border-purple-500/20",
-  chaldal:  "text-teal-400 bg-teal-500/10 border-teal-500/20",
-  othoba:   "text-rose-400 bg-rose-500/10 border-rose-500/20",
+  daraz: "#f97316", cartup: "#3b82f6", rokomari: "#ef4444",
+  pickaboo: "#8b5cf6", chaldal: "#22c55e", othoba: "#ec4899",
 };
 
-const SCORE_COLOR = (s: number) =>
-  s >= 9 ? "text-emerald-400 bg-emerald-500/10"
-  : s >= 7 ? "text-indigo-400 bg-indigo-500/10"
-  : "text-amber-400 bg-amber-500/10";
+const PLATFORM_BG: Record<string, string> = {
+  daraz: "rgba(249,115,22,0.1)", cartup: "rgba(59,130,246,0.1)", rokomari: "rgba(239,68,68,0.1)",
+  pickaboo: "rgba(139,92,246,0.1)", chaldal: "rgba(34,197,94,0.1)", othoba: "rgba(236,72,153,0.1)",
+};
+
+function scoreColor(s: number): string {
+  if (s >= 9) return "var(--green)";
+  if (s >= 7) return "var(--lav)";
+  return "var(--amber)";
+}
+
+function scoreBg(s: number): string {
+  if (s >= 9) return "rgba(34,197,94,0.1)";
+  if (s >= 7) return "rgba(124,58,237,0.1)";
+  return "rgba(245,158,11,0.1)";
+}
 
 function fmt(p: number | null) {
   return p ? `৳${(p / 100).toLocaleString("en-BD")}` : "—";
@@ -47,14 +55,9 @@ export default function DealsLoadMore({ initialDeals, platform, category, minSco
   async function loadMore() {
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        min_score: String(minScore),
-        limit: String(PAGE_SIZE),
-        offset: String(offset),
-      });
+      const params = new URLSearchParams({ min_score: String(minScore), limit: String(PAGE_SIZE), offset: String(offset) });
       if (platform) params.set("platform", platform);
       if (category) params.set("category", category);
-
       const res = await fetch(`${API}/products/deals?${params}`);
       if (!res.ok) throw new Error("fetch failed");
       const next: DealItem[] = await res.json();
@@ -71,47 +74,51 @@ export default function DealsLoadMore({ initialDeals, platform, category, minSco
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {deals.map((deal) => (
-          <Link
-            key={deal.product.id}
-            href={`/product/${deal.product.id}`}
-            className="nm-raised nm-interactive rounded-2xl p-5 flex flex-col gap-3 group"
-          >
-            <div className="flex items-start gap-3">
-              {deal.product.image_url && (
-                <div className="w-14 h-14 rounded-xl nm-inset flex-shrink-0 overflow-hidden">
-                  <img src={deal.product.image_url} alt="" className="w-full h-full object-contain p-1" />
+        {deals.map((deal) => {
+          const platColor = PLATFORM_COLOR[deal.product.platform] ?? "var(--text-muted)";
+          const platBg = PLATFORM_BG[deal.product.platform] ?? "var(--surface-ghost)";
+          return (
+            <Link
+              key={deal.product.id}
+              href={`/product/${deal.product.id}`}
+              className="dk-card p-5 flex flex-col gap-3 group block"
+            >
+              <div className="flex items-start gap-3">
+                {deal.product.image_url && (
+                  <div className="w-14 h-14 rounded-xl flex-shrink-0 overflow-hidden" style={{ background: "var(--bg3)", border: "1px solid var(--border-sm)" }}>
+                    <img src={deal.product.image_url} alt="" className="w-full h-full object-contain p-1" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <span className="text-[9px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full" style={{ color: platColor, background: platBg }}>
+                    {deal.product.platform}
+                  </span>
+                  <p className="text-sm font-medium mt-1 line-clamp-2 leading-snug" style={{ color: "var(--text-secondary)" }}>
+                    {deal.product.title}
+                  </p>
                 </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${PLATFORM_COLOR[deal.product.platform] ?? "text-white/40 bg-white/5 border-white/10"}`}>
-                  {deal.product.platform}
-                </span>
-                <p className="text-sm font-semibold text-white/80 mt-1 line-clamp-2 leading-snug">
-                  {deal.product.title}
-                </p>
               </div>
-            </div>
 
-            <div className="flex items-center justify-between">
-              <span className="font-black text-lg font-mono text-white">{fmt(deal.product.current_price)}</span>
-              {deal.avg_30d && deal.product.current_price && deal.avg_30d > deal.product.current_price && (
-                <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-full">
-                  Save {fmt(deal.avg_30d - deal.product.current_price)} vs avg
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-lg text-white" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(deal.product.current_price)}</span>
+                {deal.avg_30d && deal.product.current_price && deal.avg_30d > deal.product.current_price && (
+                  <span className="text-[10px] font-semibold px-2 py-1 rounded-full" style={{ color: "var(--green)", background: "rgba(34,197,94,0.1)" }}>
+                    Save {fmt(deal.avg_30d - deal.product.current_price)} vs avg
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between pt-3" style={{ borderTop: "1px solid var(--border-sm)" }}>
+                <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{ color: scoreColor(deal.deal_score), background: scoreBg(deal.deal_score) }}>
+                  Score {deal.deal_score}/10
                 </span>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between border-t border-white/5 pt-3">
-              <span className={`text-xs font-black px-2 py-1 rounded-full ${SCORE_COLOR(deal.deal_score)}`}>
-                Score {deal.deal_score}/10
-              </span>
-              <span className="text-[10px] text-white/20 font-mono uppercase group-hover:text-indigo-400 transition-colors flex items-center gap-0.5">
-                View <ArrowUpRight size={10} />
-              </span>
-            </div>
-          </Link>
-        ))}
+                <span className="text-[10px] flex items-center gap-0.5 transition-colors" style={{ color: "var(--text-faint)" }}>
+                  View <ArrowUpRight size={10} />
+                </span>
+              </div>
+            </Link>
+          );
+        })}
       </div>
 
       {hasMore && (
@@ -119,7 +126,7 @@ export default function DealsLoadMore({ initialDeals, platform, category, minSco
           <button
             onClick={loadMore}
             disabled={loading}
-            className="flex items-center gap-2 px-8 py-3 nm-btn-primary rounded-2xl disabled:opacity-50 text-sm uppercase tracking-widest"
+            className="dk-btn-primary flex items-center gap-2 disabled:opacity-50 text-sm uppercase tracking-widest"
           >
             {loading ? (
               <><Loader2 size={16} className="animate-spin" /> Loading…</>
@@ -131,7 +138,7 @@ export default function DealsLoadMore({ initialDeals, platform, category, minSco
       )}
 
       {!hasMore && deals.length > PAGE_SIZE && (
-        <p className="mt-10 text-center text-white/20 text-sm">
+        <p className="mt-10 text-center text-sm" style={{ color: "var(--text-faint)" }}>
           You&apos;ve seen all {deals.length} deals — check back tomorrow for fresh drops.
         </p>
       )}

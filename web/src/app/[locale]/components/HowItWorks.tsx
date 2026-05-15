@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { ClipboardPaste, Bot, Search, Bell } from "lucide-react";
 
 const STEPS = [
-  { step: "01", title: "Paste a product URL",       desc: "Copy any product URL from Daraz, Cartup, Rokomari, or Pickaboo and paste it into DamKoi.", icon: ClipboardPaste, color: "#a78bfa", bg: "rgba(124,58,237,0.12)" },
+  { step: "01", title: "Paste a product URL",       desc: "Copy any product URL from Daraz, Cartup, Rokomari, or Pickaboo and paste it into DamKoi.", icon: ClipboardPaste, color: "var(--lav)", bg: "rgba(124,58,237,0.12)" },
   { step: "02", title: "We scrape the real price",  desc: "DamKoi checks the price today, compares it against the 30-day history, and computes a deal score.", icon: Bot,  color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
   { step: "03", title: "Get the honest verdict",    desc: "Is it FAKE_DISCOUNT or BEST_PRICE? Our algorithm catches sellers who inflate prices before a sale.", icon: Search, color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
   { step: "04", title: "Set a price alert",         desc: "Enter your email and target price — we notify you the instant it drops. No account needed.", icon: Bell, color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
@@ -27,7 +27,7 @@ export default function HowItWorks() {
 
       <div className="text-center mb-12">
         <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">How DamKoi Works</h2>
-        <p className="text-sm" style={{ color: "rgba(255,255,255,0.35)" }}>
+        <p className="text-sm" style={{ color: "var(--text-faint)" }}>
           Four steps from suspicious discount to confident purchase.
         </p>
       </div>
@@ -55,7 +55,7 @@ export default function HowItWorks() {
                 </span>
               </div>
               <h3 className="font-semibold text-base text-white leading-snug">{s.title}</h3>
-              <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.38)" }}>{s.desc}</p>
+              <p className="text-sm leading-relaxed" style={{ color: "var(--text-faint)" }}>{s.desc}</p>
             </motion.div>
           );
         })}
