@@ -107,11 +107,10 @@ export function getVerdict(
     dealScore = 5;
   } else {
     label = "FAKE_DISCOUNT";
-    const overpay = currentPrice - avg30d;
     explanation =
       lang === "bn"
-        ? `দামটি গড়ের চেয়ে বেশি। বিজ্ঞাপিত ছাড়টি বিভ্রান্তিকর।`
-        : `Price is above the 30-day average (${fmt(avg30d)}). The advertised discount is misleading.`;
+        ? `দামটি গড়ের চেয়ে ${fmt(currentPrice - avg30d)} বেশি। বিজ্ঞাপিত ছাড়টি বিভ্রান্তিকর।`
+        : `Price is ${fmt(currentPrice - avg30d)} above the 30-day average (${fmt(avg30d)}). The advertised discount is misleading.`;
     dealScore = Math.max(1, 3 + Math.round(discountFromAvg * 10));
   }
 

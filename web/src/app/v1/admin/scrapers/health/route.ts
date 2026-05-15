@@ -10,7 +10,6 @@ export async function GET(req: NextRequest) {
   if (auth instanceof NextResponse) return auth;
 
   const db = createServerClient();
-  const since6h = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
   const today = new Date(); today.setHours(0, 0, 0, 0);
 
   const { data: products } = await db

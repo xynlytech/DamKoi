@@ -108,8 +108,10 @@ jobs:
   # ── 4. Alerts: check prices and notify users ──────────────────────
   alerts:
     name: Check Alerts
-    if: ${{ github.event.inputs.job == 'alerts' || github.event.inputs.job == 'all' || github.event.inputs.job == '' || github.event_name == 'schedule' }}
-    needs: scrape
+    # !failure() = run when scrape succeeded OR was skipped (e.g. job=='alerts' dispatch)
+    if: >-
+      ${{ !failure() && (github.event.inputs.job == 'alerts' || github.event.inputs.job == 'all' || github.event.inputs.job == '' || github.event_name == 'schedule') }}
+    needs: [scrape]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:

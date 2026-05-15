@@ -644,7 +644,7 @@ async def send_daily_digest_job():
             # 2. New products today
             today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
             new_result = await db.execute(
-                select(func.count(Product.id)).where(Product.created_at >= today)
+                select(func.count(Product.id)).where(Product.first_seen_at >= today)
             )
             new_products = new_result.scalar_one()
 
