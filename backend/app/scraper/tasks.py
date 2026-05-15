@@ -375,49 +375,96 @@ async def scrape_via_http(limit: int = 3000, offset: int = 0) -> int:
     return len(scraped)
 
 
+async def _fetch_product_urls(
+    where_clauses: list,
+    order_by,
+    offset: int,
+    limit: int,
+) -> list[str]:
+    """Helper: fetch product URLs from DB with given filters."""
+    async with async_session_factory() as db:
+        q = select(Product.url).where(*where_clauses).order_by(order_by)
+        if offset:
+            q = q.offset(offset)
+        result = await db.execute(q.limit(limit))
+        return [row[0] for row in result.all()]
+
+
 async def scrape_longtail_products(shard_index: int = 0, total_shards: int = 1):
     """
-    Scrape active products — API → HTTP → Playwright fallback chain.
-    shard_index / total_shards: splits the product list across parallel GH Actions jobs.
-    e.g. shard 0/3 → first 3,000 products, shard 1/3 → next 3,000, etc.
+    Two-pass scrape per shard to guarantee both jobs get done:
+
+    Pass A — Price updates (80% capacity):
+        Existing products ordered by stalest price first (NULLS LAST).
+        Ensures all products with price history get refreshed daily.
+
+    Pass B — New product discovery (20% capacity):
+        Brand-new stubs (never scraped, last_scraped_at IS NULL).
+        Ensures newly harvested products get their first price quickly.
+
+    With 10 shards × 3,000/shard:
+      Pass A: 2,400 × 10 × 4 runs/day = 96,000 price updates/day
+      Pass B:   600 × 10 × 4 runs/day = 24,000 new products get first price/day
     """
     per_shard = 3000
-    offset = shard_index * per_shard
+    pass_a_limit = int(per_shard * 0.80)   # 2,400 — existing products
+    pass_b_limit = int(per_shard * 0.20)   # 600   — new stubs
+    offset = shard_index * pass_a_limit
     label = f"shard {shard_index}/{total_shards}"
-    print(f"[SCRAPER] [{datetime.now()}] Long-tail scrape — {label} (offset={offset})")
 
-    # 1. Fastest: Daraz Affiliate API
-    api_count = await scrape_via_api(limit=per_shard, offset=offset)
-    if api_count > 0:
-        print(f"   [OK] API scraped {api_count} products ({label}).")
-        return
+    print(f"[SCRAPER] [{datetime.now()}] Long-tail — {label}")
 
-    # 2. Fast: plain HTTP, __NEXT_DATA__ extraction
-    http_count = await scrape_via_http(limit=per_shard, offset=offset)
-    if http_count > 0:
-        print(f"   [OK] HTTP scraped {http_count} products ({label}).")
-        return
+    # ── Pass A: price updates for existing products ───────────────────
+    print(f"   [A] Price updates — {pass_a_limit} products (offset={offset})")
+    urls_a = await _fetch_product_urls(
+        where_clauses=[Product.is_active == True, Product.last_scraped_at.isnot(None)],
+        order_by=Product.last_scraped_at.asc(),   # stalest first, no nulls
+        offset=offset,
+        limit=pass_a_limit,
+    )
 
-    # 3. Playwright fallback (4 concurrent pages, ~1,500 products per shard)
-    pw_limit = 1500
-    pw_offset = shard_index * pw_limit
-    print(f"   [PLAYWRIGHT] Fallback — {label} (offset={pw_offset}, limit={pw_limit})")
-    async with async_session_factory() as db:
-        result = await db.execute(
-            select(Product.id, Product.url)
-            .where(Product.is_active == True)
-            .order_by(Product.last_scraped_at.asc().nullsfirst())
-            .offset(pw_offset)
-            .limit(pw_limit)
-        )
-        products = result.all()
+    if urls_a:
+        saved_a = await _scrape_urls_fast(urls_a, label="A")
+        print(f"   [A] Done: {saved_a}/{len(urls_a)} updated.")
 
-    if not products:
-        print(f"   No products for {label}.")
-        return
+    # ── Pass B: first-time scrape for newly harvested stubs ───────────
+    print(f"   [B] New product discovery — up to {pass_b_limit} stubs")
+    urls_b = await _fetch_product_urls(
+        where_clauses=[Product.is_active == True, Product.last_scraped_at.is_(None)],
+        order_by=Product.created_at.asc().nullsfirst(),   # oldest stub first
+        offset=0,   # all shards compete for stubs; duplicates are harmless
+        limit=pass_b_limit,
+    )
 
-    urls = [p.url for p in products]
-    await _run_scrape_batch(urls, f"longtail-{label}")
+    if urls_b:
+        saved_b = await _scrape_urls_fast(urls_b, label="B")
+        print(f"   [B] Done: {saved_b}/{len(urls_b)} new products priced.")
+    else:
+        print(f"   [B] No new stubs — all products have prices.")
+
+
+async def _scrape_urls_fast(urls: list[str], label: str = "") -> int:
+    """
+    Run the API → HTTP → Playwright chain for a list of URLs.
+    Returns number of products successfully saved.
+    """
+    if not urls:
+        return 0
+
+    from app.scraper.daraz_http import scrape_batch_http
+
+    # Try HTTP scraper (fast, no browser)
+    scraped = await scrape_batch_http(urls, concurrency=20)
+
+    if len(scraped) >= max(1, len(urls) * 0.10):
+        agent = ScrapeAgent(batch_name=f"HTTP-{label}", platform="daraz")
+        await agent._save_results(scraped)
+        return len(scraped)
+
+    # Playwright fallback
+    print(f"   [{label}] HTTP blocked — using Playwright fallback")
+    agent = ScrapeAgent(batch_name=f"Playwright-{label}", platform="daraz")
+    return await agent.run(urls)
 
 
 async def scrape_platform_products(platform: str, limit: int = 200):
