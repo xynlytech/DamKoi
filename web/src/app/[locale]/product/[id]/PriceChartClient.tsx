@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Loader2, TrendingDown, TrendingUp, Minus, Flame } from "lucide-react";
 
@@ -92,6 +92,25 @@ function PriceChart({
     ? Math.round(Math.max(0, Math.min(100, ((avgP - curP) / avgP) * 200 + 50)))
     : 50;
 
+  const W = 760, H = 200;
+  const PAD = { t: 12, r: 16, b: 32, l: 12 };
+  const cW = W - PAD.l - PAD.r;
+  const cH = H - PAD.t - PAD.b;
+  const lo = minP * 0.97, hi = maxP * 1.03, rng = hi - lo || 1;
+  const cx = (i: number) => PAD.l + (i / (sorted.length - 1)) * cW;
+  const cy = (p: number) => PAD.t + (1 - (p - lo) / rng) * cH;
+
+  function handleMouseMove(e: React.MouseEvent<SVGSVGElement>) {
+    if (!svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const mx = ((e.clientX - rect.left) / rect.width) * W;
+    const dx = mx - PAD.l;
+    if (dx < 0 || dx > cW) { setTooltip(null); return; }
+    const idx = Math.round((dx / cW) * (sorted.length - 1));
+    const pt = sorted[Math.max(0, Math.min(sorted.length - 1, idx))];
+    setTooltip({ x: cx(idx), y: cy(pt.price), pt });
+  }
+
   if (sorted.length < 2) {
     return (
       <div>
@@ -103,40 +122,19 @@ function PriceChart({
     );
   }
 
-  const W = 760, H = 200;
-  const PAD = { t: 12, r: 16, b: 32, l: 12 };
-  const cW = W - PAD.l - PAD.r;
-  const cH = H - PAD.t - PAD.b;
-  const lo = minP * 0.97, hi = maxP * 1.03, rng = hi - lo || 1;
-  const cx = (i: number) => PAD.l + (i / (sorted.length - 1)) * cW;
-  const cy = (p: number) => PAD.t + (1 - (p - lo) / rng) * cH;
-
   const linePath = sorted.map((p, i) => `${i === 0 ? "M" : "L"} ${cx(i).toFixed(1)} ${cy(p.price).toFixed(1)}`).join(" ");
   const areaPath = `${linePath} L ${cx(sorted.length - 1).toFixed(1)} ${(PAD.t + cH).toFixed(1)} L ${PAD.l} ${(PAD.t + cH).toFixed(1)} Z`;
 
-  // Right-side Y ticks
   const yTicks = [0, 0.5, 1].map((t) => ({
     y: PAD.t + (1 - t) * cH,
     val: lo + t * rng,
   }));
 
-  // X ticks — 5 dates spread across
   const xCount = Math.min(5, sorted.length);
   const xTicks = Array.from({ length: xCount }, (_, i) => {
     const idx = Math.round((i / (xCount - 1)) * (sorted.length - 1));
     return { x: cx(idx), label: fmtShort(sorted[idx].scraped_at) };
   });
-
-  const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    if (!svgRef.current) return;
-    const rect = svgRef.current.getBoundingClientRect();
-    const mx = ((e.clientX - rect.left) / rect.width) * W;
-    const dx = mx - PAD.l;
-    if (dx < 0 || dx > cW) { setTooltip(null); return; }
-    const idx = Math.round((dx / cW) * (sorted.length - 1));
-    const pt = sorted[Math.max(0, Math.min(sorted.length - 1, idx))];
-    setTooltip({ x: cx(idx), y: cy(pt.price), pt });
-  }, [sorted]);
 
   return (
     <div className="w-full">
@@ -312,7 +310,7 @@ export default function PriceChartClient({ productId }: { productId: string }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
+    setLoading(true); // eslint-disable-line react-hooks/set-state-in-effect
     fetch(`${API}/products/${productId}/price-history?days=${days}`)
       .then((r) => r.ok ? r.json() : null)
       .then((d) => { if (d?.prices) setPoints(d.prices); })

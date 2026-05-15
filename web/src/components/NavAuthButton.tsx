@@ -12,7 +12,7 @@ export default function NavAuthButton() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    setMounted(true); // eslint-disable-line react-hooks/set-state-in-effect
     supabase.auth.getSession().then(({ data }) => {
       setEmail(data.session?.user?.email ?? null);
     });

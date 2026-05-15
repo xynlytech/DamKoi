@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Lock, Mail, Loader2, Eye, EyeOff, Shield } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -13,15 +13,12 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
-  const [status, setStatus] = useState<"idle" | "loading" | "err">("idle");
-  const [msg, setMsg] = useState("");
-
-  useEffect(() => {
-    if (params.get("error") === "not_admin") {
-      setStatus("err");
-      setMsg("Your account does not have admin access.");
-    }
-  }, [params]);
+  const [status, setStatus] = useState<"idle" | "loading" | "err">(
+    () => params.get("error") === "not_admin" ? "err" : "idle"
+  );
+  const [msg, setMsg] = useState(
+    () => params.get("error") === "not_admin" ? "Your account does not have admin access." : ""
+  );
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
