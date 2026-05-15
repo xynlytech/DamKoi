@@ -269,10 +269,65 @@ async def scrape_tracked_products():
     await _run_scrape_batch(urls, "tracked")
 
 
+async def scrape_via_api(limit: int = 5000) -> int:
+    """
+    Fast path: fetch prices via Daraz Affiliate API (HTTP, no browser).
+    ~100x faster than Playwright. Skipped if DARAZ_APP_KEY not set.
+    Returns number of products updated.
+    """
+    from app.config import settings
+    from app.scraper.daraz_api import DarazAffiliateAPI
+
+    if not settings.DARAZ_APP_KEY or not settings.DARAZ_APP_SECRET:
+        print("   [API] DARAZ_APP_KEY not set — skipping API scrape, falling back to Playwright.")
+        return 0
+
+    print(f"[SCRAPER] [{datetime.now()}] Starting Daraz API price fetch (limit={limit})...")
+
+    async with async_session_factory() as db:
+        result = await db.execute(
+            select(Product.id, Product.external_id)
+            .where(Product.is_active == True, Product.platform == "daraz")
+            .order_by(Product.last_scraped_at.asc().nullsfirst())
+            .limit(limit)
+        )
+        products = result.all()
+
+    if not products:
+        print("   [API] No Daraz products to scrape.")
+        return 0
+
+    item_ids = [p.external_id for p in products]
+    print(f"   [API] Fetching prices for {len(item_ids)} products...")
+
+    async with DarazAffiliateAPI(
+        app_key=settings.DARAZ_APP_KEY,
+        app_secret=settings.DARAZ_APP_SECRET,
+        tracking_id=settings.DARAZ_TRACKING_ID,
+    ) as api:
+        scraped = await api.fetch_batch(item_ids, concurrency=10)
+
+    if not scraped:
+        print("   [API] No results returned — API may be misconfigured or rate-limited.")
+        return 0
+
+    agent = ScrapeAgent(batch_name="DarazAPI", platform="daraz")
+    await agent._save_results(scraped)
+    print(f"   [API] Done: {len(scraped)}/{len(item_ids)} products updated.")
+    return len(scraped)
+
+
 async def scrape_longtail_products():
-    """Scrape all other active products (daily at 2AM)."""
+    """Scrape all active products — API-first, Playwright fallback."""
     print(f"[SCRAPER] [{datetime.now()}] Starting long-tail product scrape...")
 
+    # Try fast API path first
+    api_count = await scrape_via_api(limit=5000)
+    if api_count > 0:
+        print(f"   [OK] API path scraped {api_count} products. Skipping Playwright.")
+        return
+
+    # Playwright fallback
     async with async_session_factory() as db:
         result = await db.execute(
             select(Product.id, Product.url)

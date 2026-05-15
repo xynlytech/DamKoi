@@ -64,6 +64,11 @@ class Settings(BaseSettings):
     RATE_LIMIT_AUTHENTICATED: str = "120/minute"
     RATE_LIMIT_EXTENSION: str = "60/minute"
 
+    # ── Daraz Affiliate API (fast HTTP price fetching) ───
+    DARAZ_APP_KEY: str = ""
+    DARAZ_APP_SECRET: str = ""
+    DARAZ_TRACKING_ID: str = "damkoi"
+
     # ── Scraper Config ────────────────────────────────────
     SCRAPE_DELAY_MIN: float = 2.0  # seconds
     SCRAPE_DELAY_MAX: float = 5.0  # seconds

@@ -24,6 +24,9 @@ jobs:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      DARAZ_APP_KEY: ${{ secrets.DARAZ_APP_KEY }}
+      DARAZ_APP_SECRET: ${{ secrets.DARAZ_APP_SECRET }}
+      DARAZ_TRACKING_ID: ${{ secrets.DARAZ_TRACKING_ID }}
       REDIS_URL: ''  # no Redis in CI — tasks degrade gracefully
 
     defaults:
