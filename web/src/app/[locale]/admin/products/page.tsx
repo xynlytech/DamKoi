@@ -65,8 +65,8 @@ export default function AdminProductsPage() {
       const res = await adminFetch(`/admin/products?${qs}`);
       if (res.ok) {
         const data = await res.json();
-        setProducts(data.items);
-        setTotal(data.total);
+        setProducts(data.products ?? []);
+        setTotal(data.total ?? 0);
       }
     } finally {
       setLoading(false);

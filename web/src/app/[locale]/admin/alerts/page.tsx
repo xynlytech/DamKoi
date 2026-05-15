@@ -11,13 +11,11 @@ const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
 
 type AlertRow = {
   id: string;
-  user_email: string | null;
-  product_title: string | null;
-  product_id: string;
+  users: { email: string } | null;
+  products: { id: string; title: string; url: string; platform: string } | null;
   target_price: number;
   current_price: number | null;
   is_active: boolean;
-  notify_via: string[];
   last_triggered: string | null;
   created_at: string | null;
 };
@@ -57,8 +55,8 @@ export default function AdminAlertsPage() {
       const res = await adminFetch(`/admin/alerts?${qs}`);
       if (res.ok) {
         const data = await res.json();
-        setAlerts(data.items);
-        setTotal(data.total);
+        setAlerts(data.alerts ?? []);
+        setTotal(data.total ?? 0);
       }
     } finally {
       setLoading(false);
@@ -150,13 +148,13 @@ export default function AdminAlertsPage() {
             </thead>
             <tbody>
               {alerts.map((a) => {
-                const hit = a.current_price !== null && a.current_price <= a.target_price;
+                const hit = false;
                 return (
                   <tr key={a.id} className="transition-colors" style={{ borderBottom: "1px solid var(--border-sm)" }}>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
                         {hit && <TrendingDown size={11} className="shrink-0" style={{ color: "var(--green)" }} />}
-                        <p className="text-xs line-clamp-1" style={{ color: "var(--text-body)" }}>{a.product_title ?? "Unknown"}</p>
+                        <p className="text-xs line-clamp-1" style={{ color: "var(--text-body)" }}>{a.products?.title ?? "Unknown"}</p>
                       </div>
                       {hit && (
                         <span className="text-[8px] font-semibold flex items-center gap-0.5 mt-0.5" style={{ color: "var(--green)" }}>
@@ -165,7 +163,7 @@ export default function AdminAlertsPage() {
                       )}
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
-                      <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{a.user_email ?? "anon"}</span>
+                      <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{a.users?.email ?? "anon"}</span>
                     </td>
                     <td className="px-4 py-3 text-right text-xs hidden sm:table-cell" style={{ fontFamily: "'IBM Plex Mono', monospace", color: "var(--text-body)" }}>
                       {fmt(a.target_price)}

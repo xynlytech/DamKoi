@@ -91,8 +91,8 @@ export default function AdminCouponsPage() {
       const res = await adminFetch(`/admin/coupons?${qs}`);
       if (res.ok) {
         const data = await res.json();
-        setCoupons(data.items);
-        setTotal(data.total);
+        setCoupons(data.coupons ?? []);
+        setTotal(data.total ?? 0);
       }
     } finally {
       setLoading(false);

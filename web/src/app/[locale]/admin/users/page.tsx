@@ -46,8 +46,8 @@ export default function AdminUsersPage() {
       const res = await adminFetch(`/admin/users?${qs}`);
       if (res.ok) {
         const data = await res.json();
-        setUsers(data.items);
-        setTotal(data.total);
+        setUsers(data.users ?? []);
+        setTotal(data.total ?? 0);
       }
     } finally {
       setLoading(false);

@@ -1,19 +1,25 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, Play, CheckCircle2, AlertCircle, Clock, RefreshCw } from "lucide-react";
+import { Loader2, Play, CheckCircle2, XCircle, Clock, RefreshCw } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
 
-type JobInfo = {
-  description: string;
-  last_run: string | null;
-};
+const JOBS = [
+  { id: "harvest",  label: "Harvest",  desc: "Discover new products from sitemaps" },
+  { id: "scrape",   label: "Scrape",   desc: "Scrape prices for tracked products" },
+  { id: "alerts",   label: "Alerts",   desc: "Check alerts and send notifications" },
+  { id: "all",      label: "All",      desc: "Run harvest + scrape + alerts in sequence" },
+];
 
-type RunResult = {
+type Run = {
+  id: number;
   status: string;
-  ran_at: string;
+  conclusion: string | null;
+  started_at: string;
+  completed_at: string;
+  job: string;
 };
 
 async function adminFetch(path: string, opts?: RequestInit) {
@@ -28,26 +34,20 @@ async function adminFetch(path: string, opts?: RequestInit) {
   });
 }
 
-const JOB_COLOR: Record<string, string> = {
-  alerts:   "var(--amber)",
-  coupons:  "var(--green)",
-  digest:   "var(--lav)",
-  matching: "#7c3aed",
-  backfill: "#3b82f6",
-  cleanup:  "var(--red)",
-};
-
 export default function AdminCronPage() {
-  const [history, setHistory] = useState<Record<string, JobInfo>>({});
+  const [runs, setRuns] = useState<Run[]>([]);
   const [running, setRunning] = useState<string | null>(null);
-  const [results, setResults] = useState<Record<string, { ok: boolean; ran_at: string }>>({});
+  const [dispatched, setDispatched] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
 
   const loadHistory = async () => {
     setLoading(true);
     try {
       const res = await adminFetch("/admin/cron/history");
-      if (res.ok) setHistory(await res.json());
+      if (res.ok) {
+        const data = await res.json();
+        setRuns(data.runs ?? []);
+      }
     } finally {
       setLoading(false);
     }
@@ -59,24 +59,20 @@ export default function AdminCronPage() {
     setRunning(job);
     try {
       const res = await adminFetch(`/admin/cron/trigger/${job}`, { method: "POST" });
-      const data: RunResult = res.ok ? await res.json() : { status: "error", ran_at: new Date().toISOString() };
-      setResults((prev) => ({ ...prev, [job]: { ok: res.ok, ran_at: data.ran_at } }));
       if (res.ok) {
-        setHistory((prev) => ({ ...prev, [job]: { ...prev[job], last_run: data.ran_at } }));
+        setDispatched((prev) => ({ ...prev, [job]: true }));
       }
     } finally {
       setRunning(null);
     }
   };
 
-  const jobs = Object.keys(history);
-
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Cron Jobs</h1>
-          <p className="text-xs mt-0.5" style={{ color: "var(--text-faint)" }}>Manually trigger any background job</p>
+          <p className="text-xs mt-0.5" style={{ color: "var(--text-faint)" }}>Manually trigger any background job via GitHub Actions</p>
         </div>
         <button
           onClick={loadHistory}
@@ -88,57 +84,91 @@ export default function AdminCronPage() {
         </button>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center py-20">
-          <Loader2 size={24} className="animate-spin" style={{ color: "var(--lav)" }} />
+      {/* Job trigger cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {JOBS.map(({ id, label, desc }) => (
+          <div key={id} className="dk-card p-5">
+            <p className="text-sm font-semibold text-white mb-1">{label}</p>
+            <p className="text-[11px] mb-4 leading-relaxed" style={{ color: "var(--text-muted)" }}>{desc}</p>
+            {dispatched[id] && (
+              <p className="text-[10px] font-semibold flex items-center gap-1 mb-2" style={{ color: "var(--green)" }}>
+                <CheckCircle2 size={10} /> Dispatched
+              </p>
+            )}
+            <button
+              onClick={() => trigger(id)}
+              disabled={running !== null}
+              className="dk-btn-primary w-full flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest disabled:opacity-40"
+            >
+              {running === id ? (
+                <><Loader2 size={11} className="animate-spin" /> Dispatching…</>
+              ) : (
+                <><Play size={11} /> Run Now</>
+              )}
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Run history */}
+      <div className="dk-card overflow-hidden">
+        <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--border-sm)" }}>
+          <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
+            Recent Runs
+          </h2>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {jobs.map((job) => {
-            const info = history[job];
-            const result = results[job];
-            const isRunning = running === job;
-            const color = JOB_COLOR[job] ?? "var(--text-muted)";
-
-            return (
-              <div key={job} className="dk-card p-5">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <p className="text-sm font-semibold capitalize" style={{ color }}>{job}</p>
-                    <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: "var(--text-muted)" }}>{info.description}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1.5 text-[10px] mb-4" style={{ color: "var(--text-faint)" }}>
-                  <Clock size={10} />
-                  {info.last_run
-                    ? `Last run: ${new Date(info.last_run).toLocaleTimeString()}`
-                    : "Never run this session"}
-                </div>
-
-                {result && (
-                  <div className="flex items-center gap-1.5 text-[10px] font-semibold mb-3" style={{ color: result.ok ? "var(--green)" : "var(--red)" }}>
-                    {result.ok ? <CheckCircle2 size={11} /> : <AlertCircle size={11} />}
-                    {result.ok ? `Ran OK at ${new Date(result.ran_at).toLocaleTimeString()}` : "Run failed"}
-                  </div>
-                )}
-
-                <button
-                  onClick={() => trigger(job)}
-                  disabled={isRunning || running !== null}
-                  className="dk-btn-primary w-full flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest disabled:opacity-40"
-                >
-                  {isRunning ? (
-                    <><Loader2 size={11} className="animate-spin" /> Running…</>
-                  ) : (
-                    <><Play size={11} /> Run Now</>
-                  )}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      )}
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 size={20} className="animate-spin" style={{ color: "var(--lav)" }} />
+          </div>
+        ) : runs.length === 0 ? (
+          <p className="text-center py-12 text-sm" style={{ color: "var(--text-faint)" }}>No runs yet.</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-[10px] uppercase tracking-widest" style={{ borderBottom: "1px solid var(--border-sm)", color: "var(--text-faint)" }}>
+                <th className="text-left px-5 py-3 font-semibold">Job</th>
+                <th className="text-left px-5 py-3 font-semibold">Status</th>
+                <th className="text-left px-5 py-3 font-semibold hidden md:table-cell">Result</th>
+                <th className="text-right px-5 py-3 font-semibold hidden sm:table-cell">Started</th>
+              </tr>
+            </thead>
+            <tbody>
+              {runs.map((r) => (
+                <tr key={r.id} style={{ borderBottom: "1px solid var(--border-sm)" }}>
+                  <td className="px-5 py-3">
+                    <span className="text-xs font-medium capitalize text-white">{r.job}</span>
+                  </td>
+                  <td className="px-5 py-3">
+                    <span className="text-[10px] capitalize" style={{
+                      color: r.status === "completed" ? "var(--text-faint)" : r.status === "in_progress" ? "var(--amber)" : "var(--text-faint)"
+                    }}>{r.status}</span>
+                  </td>
+                  <td className="px-5 py-3 hidden md:table-cell">
+                    {r.conclusion === "success" ? (
+                      <span className="flex items-center gap-1 text-[10px] font-semibold" style={{ color: "var(--green)" }}>
+                        <CheckCircle2 size={10} /> success
+                      </span>
+                    ) : r.conclusion === "failure" ? (
+                      <span className="flex items-center gap-1 text-[10px] font-semibold" style={{ color: "var(--red)" }}>
+                        <XCircle size={10} /> failed
+                      </span>
+                    ) : (
+                      <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{r.conclusion ?? "—"}</span>
+                    )}
+                  </td>
+                  <td className="px-5 py-3 text-right hidden sm:table-cell">
+                    <span className="text-[10px] flex items-center justify-end gap-1" style={{ color: "var(--text-faint)" }}>
+                      <Clock size={9} />
+                      {new Date(r.started_at).toLocaleString("en-BD", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 }
