@@ -19,7 +19,13 @@ type Run = {
   conclusion: string | null;
   started_at: string;
   completed_at: string;
+  event?: string;
   job: string;
+};
+
+const JOB_LABELS: Record<string, string> = {
+  harvest: "Harvest", scrape: "Scrape", alerts: "Alerts",
+  all: "All", platforms: "Platforms", scheduled: "Scheduled", manual: "Manual",
 };
 
 async function adminFetch(path: string, opts?: RequestInit) {
@@ -137,7 +143,12 @@ export default function AdminCronPage() {
               {runs.map((r) => (
                 <tr key={r.id} style={{ borderBottom: "1px solid var(--border-sm)" }}>
                   <td className="px-5 py-3">
-                    <span className="text-xs font-medium capitalize text-white">{r.job}</span>
+                    <span className="text-xs font-medium text-white">
+                      {JOB_LABELS[r.job] ?? r.job}
+                    </span>
+                    {r.event === "schedule" && (
+                      <span className="ml-2 text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: "rgba(99,102,241,0.15)", color: "var(--lav)" }}>cron</span>
+                    )}
                   </td>
                   <td className="px-5 py-3">
                     <span className="text-[10px] capitalize" style={{
