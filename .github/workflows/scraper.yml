@@ -1,0 +1,51 @@
+name: DamKoi Scraper
+
+on:
+  schedule:
+    # Scrape every 6 hours (BD prime shopping hours: 8am, 2pm, 8pm, 2am BDT = 2am/8am/2pm/8pm UTC)
+    - cron: '0 2,8,14,20 * * *'
+  workflow_dispatch:
+    inputs:
+      job:
+        description: 'Job to run'
+        required: false
+        default: 'all'
+        type: choice
+        options: [all, scrape, alerts]
+
+jobs:
+  scrape:
+    name: Scrape & Update Prices
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      REDIS_URL: ''  # no Redis in CI — tasks degrade gracefully
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install Python deps
+        run: pip install -r requirements.txt
+
+      - name: Install Playwright browsers
+        run: |
+          pip install playwright playwright-stealth
+          playwright install chromium --with-deps
+
+      - name: Run cron job
+        run: python run_cron.py ${{ github.event.inputs.job || 'all' }}
