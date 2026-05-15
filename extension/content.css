@@ -6,25 +6,25 @@
  * All selectors namespaced with #damkoi-sidebar to avoid conflicts.
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 /* ── Sidebar Shell ───────────────────────────────────────── */
 
 #damkoi-sidebar {
-  --dk-bg:        rgba(15, 23, 42, 0.75);
+  --dk-bg:        rgba(8, 7, 26, 0.92);
   --dk-surface:   rgba(255, 255, 255, 0.04);
-  --dk-border:    rgba(255, 255, 255, 0.1);
-  --dk-accent:    #6366F1;
-  --dk-accentD:   rgba(99, 102, 241, 0.15);
-  --dk-success:   #10B981;
-  --dk-danger:    #EF4444;
-  --dk-warning:   #F59E0B;
-  --dk-text:      #F1F5F9;
-  --dk-muted:     #94A3B8;
-  --dk-dim:       #64748B;
-  --dk-r:         24px;
+  --dk-border:    rgba(255, 255, 255, 0.08);
+  --dk-accent:    #7c3aed;
+  --dk-accentD:   rgba(124, 58, 237, 0.15);
+  --dk-success:   #22c55e;
+  --dk-danger:    #ef4444;
+  --dk-warning:   #f59e0b;
+  --dk-text:      #ffffff;
+  --dk-muted:     rgba(255, 255, 255, 0.7);
+  --dk-dim:       rgba(255, 255, 255, 0.4);
+  --dk-r:         20px;
   --dk-rsm:       12px;
-  --dk-t:         250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --dk-t:         200ms cubic-bezier(0.4, 0, 0.2, 1);
 
   position: fixed;
   top: 0;
@@ -34,7 +34,7 @@
   z-index: 2147483647;
   display: flex;
   flex-direction: row;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 13px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -109,7 +109,7 @@
   color: #fff;
   background: var(--dk-accent);
   border-color: var(--dk-accent);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
 }
 
 /* ── Main Panel ──────────────────────────────────────────── */
@@ -137,12 +137,11 @@
 }
 
 #damkoi-sidebar .damkoi-logo {
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 18px;
-  font-weight: 900;
-  letter-spacing: -0.5px;
-  background: linear-gradient(135deg, #fff 0%, var(--dk-accent) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: #fff;
 }
 
 #damkoi-sidebar .damkoi-close {
@@ -272,7 +271,7 @@
   font-size: 16px;
   font-weight: 800;
   color: #fff;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'IBM Plex Mono', monospace;
 }
 
 #damkoi-sidebar .damkoi-value.accent { color: var(--dk-accent); }
@@ -296,8 +295,8 @@
 
 #damkoi-sidebar .damkoi-input:focus {
   border-color: var(--dk-accent);
-  background: rgba(0,0,0,0.5);
-  box-shadow: 0 0 0 4px var(--dk-accentD);
+  background: rgba(8,7,26,0.8);
+  box-shadow: 0 0 0 3px var(--dk-accentD);
 }
 
 /* ── Buttons ─────────────────────────────────────────────── */
@@ -309,17 +308,18 @@
   color: #fff;
   border: none;
   border-radius: 12px;
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
   cursor: pointer;
   transition: all var(--dk-t);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
 }
 
 #damkoi-sidebar .damkoi-btn:hover {
-  background: #4f46e5;
+  background: #6d28d9;
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.4);
 }
 
 #damkoi-sidebar .damkoi-btn:active {

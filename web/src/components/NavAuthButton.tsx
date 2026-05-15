@@ -29,16 +29,16 @@ export default function NavAuthButton() {
   if (email) {
     return (
       <div className="flex items-center gap-2">
-        <span className="text-[10px] text-white/30 font-mono hidden lg:block max-w-[120px] truncate">
+        <span className="text-[10px] hidden lg:block max-w-[120px] truncate" style={{ color: "rgba(255,255,255,0.3)", fontFamily: "var(--font-ibm-plex-mono), monospace" }}>
           {email}
         </span>
         <button
-          onClick={async () => {
-            await supabase.auth.signOut();
-            router.push("/");
-          }}
+          onClick={async () => { await supabase.auth.signOut(); router.push("/"); }}
           title="Sign out"
-          className="nm-raised rounded-lg p-2 text-white/30 hover:text-rose-400 transition-colors"
+          className="rounded-lg p-2 transition-colors dk-focus"
+          style={{ color: "rgba(255,255,255,0.3)", background: "var(--bg2)", border: "1px solid var(--border-sm)" }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--red)"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.3)"; }}
         >
           <LogOut size={13} />
         </button>
@@ -49,7 +49,10 @@ export default function NavAuthButton() {
   return (
     <Link
       href="/login"
-      className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-white/40 hover:text-indigo-400 transition-colors nm-focus"
+      className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-widest transition-colors dk-focus"
+      style={{ color: "rgba(255,255,255,0.4)" }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#a78bfa"; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.4)"; }}
     >
       <User size={13} />
       Sign In

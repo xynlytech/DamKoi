@@ -1,296 +1,267 @@
 @import "tailwindcss";
 
 @theme {
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
+  /* ── Color Tokens ──────────────────────────────────────── */
+  --color-bg:        #08071a;
+  --color-bg-1:      #0e0c24;
+  --color-bg-2:      #13112e;
+  --color-bg-3:      #1a1740;
+  --color-purple:    #7c3aed;
+  --color-lavender:  #a78bfa;
+  --color-lavender-2:#c4b5fd;
+  --color-green:     #22c55e;
+  --color-red:       #ef4444;
+  --color-amber:     #f59e0b;
 
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
+  /* Tailwind v4 semantic aliases */
+  --color-background: #08071a;
+  --color-foreground:  #ffffff;
+  --color-border:     rgba(255,255,255,0.08);
+  --color-input:      #13112e;
+  --color-ring:       #7c3aed;
+  --color-card:       #0e0c24;
+  --color-card-foreground: #ffffff;
+  --color-primary:    #7c3aed;
+  --color-primary-foreground: #ffffff;
+  --color-secondary:  #13112e;
+  --color-secondary-foreground: #a78bfa;
+  --color-muted:      #13112e;
+  --color-muted-foreground: rgba(255,255,255,0.4);
+  --color-accent:     #a78bfa;
+  --color-accent-foreground: #ffffff;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
 
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  /* ── Typography ────────────────────────────────────────── */
+  --font-space-grotesk: var(--font-space-grotesk);
+  --font-ibm-plex-mono: var(--font-ibm-plex-mono);
 
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
-
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
-
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
-
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
-
-  --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
-
-  --font-outfit: var(--font-outfit);
-  --font-inter: var(--font-inter);
-  --font-mono: var(--font-mono);
+  /* ── Radius ────────────────────────────────────────────── */
+  --radius: 1rem;
+  --radius-lg: 1rem;
+  --radius-md: 0.75rem;
+  --radius-sm: 0.5rem;
 }
 
 @layer base {
   :root {
-    /*
-     * Dark neumorphism needs L ≥ 22% so both light and dark shadows
-     * are visible. Too dark (≤ 15%) → light shadow vanishes into bg.
-     * L=22% navy ≈ #24314C — dark enough for night feel, light enough
-     * for dual-shadow contrast.
-     */
-    --background: 220 35% 22%;
-    --foreground: 210 40% 93%;
-    /* Card = same as background. Neumorphism is monochromatic — shadows
-       do all the depth work, not bg color contrast. */
-    --card: 220 35% 22%;
-    --card-foreground: 210 40% 93%;
-    --popover: 220 35% 22%;
-    --popover-foreground: 210 40% 93%;
-    --primary: 239 84% 67%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 220 35% 28%;
-    --secondary-foreground: 210 40% 93%;
-    --muted: 220 35% 28%;
-    --muted-foreground: 215 20% 50%;
-    --accent: 239 84% 67%;
-    --accent-foreground: 210 40% 93%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 93%;
-    --border: 220 35% 30%;
-    /* Input surface: noticeably darker than bg → creates concave illusion */
-    --input: 220 35% 17%;
-    --ring: 239 84% 67%;
-    --radius: 1rem;
-
-    /* Shadow tokens — tuned for L=22% base */
-    --nm-light:    rgba(255, 255, 255, 0.10);
-    --nm-dark:     rgba(0,   0,   0,   0.55);
-    --nm-light-sm: rgba(255, 255, 255, 0.07);
-    --nm-dark-sm:  rgba(0,   0,   0,   0.35);
+    --bg:         #08071a;
+    --bg1:        #0e0c24;
+    --bg2:        #13112e;
+    --bg3:        #1a1740;
+    --purple:     #7c3aed;
+    --lav:        #a78bfa;
+    --lav2:       #c4b5fd;
+    --green:      #22c55e;
+    --red:        #ef4444;
+    --amber:      #f59e0b;
+    --border:     rgba(124,58,237,0.2);
+    --border-sm:  rgba(255,255,255,0.08);
   }
-}
 
-@layer base {
-  * {
-    @apply border-border;
-  }
+  * { border-color: var(--border-sm); }
+
   body {
-    @apply bg-background text-foreground font-inter antialiased;
+    background-color: var(--bg);
+    color: #ffffff;
+    font-family: var(--font-space-grotesk), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
+
+  ::selection {
+    background-color: rgba(124,58,237,0.3);
+    color: #c4b5fd;
+  }
+
+  ::-webkit-scrollbar        { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track  { background: transparent; }
+  ::-webkit-scrollbar-thumb  { background: rgba(124,58,237,0.3); border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(124,58,237,0.5); }
 }
 
-/* ─── Dark Neumorphism Core ─────────────────────────────────────── */
+/* ── Card ───────────────────────────────────────────────── */
 
-/*
- * Raised / convex — cards, panels, buttons at rest.
- * Light top-left + dark bottom-right = "light source from top-left" illusion.
- * Border adds subtle edge definition (critical in dark mode).
- */
-.nm-raised {
-  background-color: hsl(var(--card));
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  box-shadow:
-    -10px -10px 24px var(--nm-light),
-      10px 10px 24px var(--nm-dark),
-      -4px  -4px  10px var(--nm-light-sm),
-       4px   4px  10px var(--nm-dark-sm);
+.dk-card {
+  background-color: var(--bg1);
+  border: 1px solid var(--border-sm);
+  border-radius: 1rem;
+  transition: background-color 200ms ease, border-color 200ms ease;
 }
 
-/* Inset / concave — inputs, pressed surfaces */
-.nm-inset {
-  background-color: hsl(var(--input));
-  border: 1px solid rgba(0, 0, 0, 0.25);
-  box-shadow:
-    inset  6px  6px 16px rgba(0,   0,   0,   0.48),
-    inset -6px -6px 16px rgba(255, 255, 255, 0.05);
+.dk-card:hover {
+  background-color: var(--bg2);
+  border-color: var(--border);
 }
 
-/* Pressed — active click state */
-.nm-pressed {
-  box-shadow:
-    inset  4px  4px 10px rgba(0,   0,   0,   0.52),
-    inset -4px -4px 10px rgba(255, 255, 255, 0.04);
+/* ── Stat Card ──────────────────────────────────────────── */
+
+.dk-stat-card {
+  background-color: var(--bg1);
+  border: 1px solid var(--border-sm);
+  border-radius: 1rem;
+  padding: 1.25rem;
 }
 
-/* Pill / badge — small raised chips */
-.nm-pill {
-  background-color: hsl(var(--card));
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  box-shadow:
-    -5px -5px 12px var(--nm-light),
-     5px  5px 12px var(--nm-dark);
+.dk-stat-label {
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(255,255,255,0.4);
+  margin-bottom: 0.5rem;
 }
 
-/* Floating header — semi-transparent raised panel */
-.nm-header {
-  background-color: hsla(220, 35%, 22%, 0.90);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  box-shadow:
-    -6px  -6px 20px rgba(255, 255, 255, 0.06),
-     6px   6px 20px rgba(0,   0,   0,   0.60),
-     0    16px 48px  rgba(0,   0,   0,   0.35);
+.dk-stat-value {
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 2rem;
+  font-weight: 600;
+  color: #ffffff;
+  line-height: 1;
 }
 
-/* Interactive: lift on hover, press on active */
-.nm-interactive {
-  @apply transition-all duration-300 cursor-pointer;
-}
-.nm-interactive:hover {
-  box-shadow:
-    -14px -14px 30px var(--nm-light),
-      14px 14px 30px var(--nm-dark),
-      -5px  -5px 12px var(--nm-light-sm),
-       5px   5px 12px var(--nm-dark-sm);
-  transform: translateY(-4px);
-  border-color: rgba(255, 255, 255, 0.11);
-}
-.nm-interactive:active {
-  box-shadow:
-    inset 4px  4px 10px rgba(0,   0,   0,   0.52),
-    inset -4px -4px 10px rgba(255, 255, 255, 0.04);
-  transform: translateY(0);
+/* ── Buttons ────────────────────────────────────────────── */
+
+.dk-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--purple);
+  color: #ffffff;
+  border: none;
+  border-radius: 0.75rem;
+  font-family: var(--font-space-grotesk), sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 200ms ease;
 }
 
-/* Primary CTA button — indigo gradient over raised surface */
-.nm-btn-primary {
-  background: linear-gradient(145deg, #6366f1, #4f46e5);
-  border: 1px solid rgba(99, 102, 241, 0.4);
-  box-shadow:
-    -4px -4px 12px rgba(255, 255, 255, 0.07),
-     4px  4px 12px rgba(0,   0,   0,   0.55),
-     0    0   24px  rgba(99, 102, 241, 0.30);
-  @apply text-white font-black transition-all duration-200;
-}
-.nm-btn-primary:hover {
-  background: linear-gradient(145deg, #818cf8, #6366f1);
-  box-shadow:
-    -5px -5px 16px rgba(255, 255, 255, 0.08),
-     5px  5px 16px rgba(0,   0,   0,   0.60),
-     0    0   36px  rgba(99, 102, 241, 0.45);
-  transform: scale(1.03);
-}
-.nm-btn-primary:active {
-  box-shadow:
-    inset 3px  3px  8px rgba(0,   0,   0,   0.45),
-    inset -3px -3px 8px rgba(255, 255, 255, 0.05);
-  transform: scale(0.97);
-}
-.nm-btn-primary:disabled {
-  opacity: 0.38;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
+.dk-btn-primary:hover {
+  background-color: #6d28d9;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(124,58,237,0.35);
 }
 
-/* Text gradients */
-.text-gradient-indigo {
-  background: linear-gradient(135deg, #F8FAFC 0%, #818CF8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.dk-btn-primary:active { transform: scale(0.97); }
+
+.dk-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background-color: transparent;
+  color: var(--lav);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  font-family: var(--font-space-grotesk), sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 200ms ease;
 }
 
-.text-gradient-mint {
-  background: linear-gradient(135deg, #F0FDFA 0%, #2DD4BF 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.dk-btn-secondary:hover {
+  background-color: var(--bg2);
+  border-color: rgba(124,58,237,0.4);
 }
 
-/* Keyboard focus ring */
-.nm-focus:focus-visible {
-  outline: 2px solid hsl(var(--ring));
+/* ── Badge / Pill ───────────────────────────────────────── */
+
+.dk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 2rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.dk-badge-green  { color: var(--green);  background: rgba(34,197,94,0.12);  border: 1px solid rgba(34,197,94,0.2); }
+.dk-badge-red    { color: var(--red);    background: rgba(239,68,68,0.12);  border: 1px solid rgba(239,68,68,0.2); }
+.dk-badge-amber  { color: var(--amber);  background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.2); }
+.dk-badge-purple { color: var(--lav);    background: rgba(124,58,237,0.12); border: 1px solid var(--border); }
+
+/* ── Form Input ─────────────────────────────────────────── */
+
+.dk-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background-color: var(--bg2);
+  border: 1px solid var(--border-sm);
+  border-radius: 0.75rem;
+  color: #ffffff;
+  font-family: var(--font-space-grotesk), sans-serif;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 200ms ease;
+}
+
+.dk-input:focus  { border-color: var(--purple); }
+.dk-input::placeholder { color: rgba(255,255,255,0.4); }
+
+/* ── Divider ────────────────────────────────────────────── */
+
+.dk-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(124,58,237,0.25), transparent);
+  margin: 1.5rem 0;
+}
+
+/* ── Price Display ──────────────────────────────────────── */
+
+.dk-price {
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-weight: 500;
+}
+
+.dk-price-green  { color: var(--green); }
+.dk-price-red    { color: var(--red); }
+.dk-price-muted  { color: rgba(255,255,255,0.4); text-decoration: line-through; }
+
+/* ── Navbar ─────────────────────────────────────────────── */
+
+.dk-nav {
+  background-color: rgba(8,7,26,0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-sm);
+}
+
+/* ── Focus ring ─────────────────────────────────────────── */
+
+.dk-focus:focus-visible {
+  outline: 2px solid var(--purple);
   outline-offset: 3px;
+  border-radius: 4px;
 }
 
-/* ─── Light Mode ────────────────────────────────────────────────
- * Applied via `.light` class on <html>.
- * L=92% navy-tinted base → proper light neumorphism dual-shadow contrast.
- */
-.light {
-  color-scheme: light;
+/* ── Cursor glow overlay (Framer Motion managed) ─────────── */
 
-  /* Color vars — light palette */
-  --background: 220 28% 93%;
-  --foreground: 220 40% 12%;
-  --card: 220 28% 93%;
-  --card-foreground: 220 40% 12%;
-  --popover: 220 28% 93%;
-  --popover-foreground: 220 40% 12%;
-  --primary: 239 84% 58%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 220 28% 87%;
-  --secondary-foreground: 220 40% 12%;
-  --muted: 220 28% 87%;
-  --muted-foreground: 220 20% 42%;
-  --accent: 239 84% 58%;
-  --accent-foreground: 0 0% 100%;
-  --destructive: 0 84% 55%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 220 28% 82%;
-  --input: 220 28% 88%;
-  --ring: 239 84% 58%;
-
-  /* Light neumorphism shadow tokens */
-  --nm-light:    rgba(255, 255, 255, 0.90);
-  --nm-dark:     rgba(163, 177, 198, 0.70);
-  --nm-light-sm: rgba(255, 255, 255, 0.70);
-  --nm-dark-sm:  rgba(163, 177, 198, 0.48);
+.dk-cursor-glow {
+  pointer-events: none;
+  position: fixed;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%);
+  z-index: 0;
+  transform: translate(-50%, -50%);
 }
 
-/* nm-header in light mode */
-.light .nm-header {
-  background-color: hsla(220, 28%, 93%, 0.92);
-  border-color: rgba(163, 177, 198, 0.35);
-  box-shadow:
-    -6px  -6px 20px rgba(255, 255, 255, 0.85),
-     6px   6px 20px rgba(163, 177, 198, 0.65),
-     0    16px 48px  rgba(163, 177, 198, 0.25);
-}
+/* ── Platform Colors ────────────────────────────────────── */
 
-/* nm-inset in light mode — slightly darker concave surface */
-.light .nm-inset {
-  background-color: hsl(220 28% 88%);
-  border-color: rgba(163, 177, 198, 0.30);
-  box-shadow:
-    inset  6px  6px 16px rgba(163, 177, 198, 0.55),
-    inset -6px -6px 16px rgba(255, 255, 255, 0.85);
-}
-
-/* ── Remap white-opacity text classes to dark equivalents in light mode ─ */
-.light .text-white    { color: hsl(220 40% 12%) !important; }
-.light .text-white\/90 { color: rgba(15, 25, 45, 0.90) !important; }
-.light .text-white\/80 { color: rgba(15, 25, 45, 0.82) !important; }
-.light .text-white\/70 { color: rgba(15, 25, 45, 0.72) !important; }
-.light .text-white\/60 { color: rgba(15, 25, 45, 0.65) !important; }
-.light .text-white\/50 { color: rgba(15, 25, 45, 0.55) !important; }
-.light .text-white\/45 { color: rgba(15, 25, 45, 0.50) !important; }
-.light .text-white\/40 { color: rgba(15, 25, 45, 0.45) !important; }
-.light .text-white\/38 { color: rgba(15, 25, 45, 0.42) !important; }
-.light .text-white\/35 { color: rgba(15, 25, 45, 0.40) !important; }
-.light .text-white\/30 { color: rgba(15, 25, 45, 0.38) !important; }
-.light .text-white\/25 { color: rgba(15, 25, 45, 0.32) !important; }
-.light .text-white\/20 { color: rgba(15, 25, 45, 0.30) !important; }
-.light .text-white\/10 { color: rgba(15, 25, 45, 0.18) !important; }
-
-/* ── Remap white-opacity bg classes ─ */
-.light .bg-white\/5  { background-color: rgba(15, 25, 45, 0.04) !important; }
-.light .bg-white\/3  { background-color: rgba(15, 25, 45, 0.02) !important; }
-.light .bg-white\/8  { background-color: rgba(15, 25, 45, 0.06) !important; }
-.light .bg-white\/10 { background-color: rgba(15, 25, 45, 0.08) !important; }
-
-/* ── Remap white-opacity border classes ─ */
-.light .border-white\/5  { border-color: rgba(15, 25, 45, 0.08) !important; }
-.light .border-white\/8  { border-color: rgba(15, 25, 45, 0.10) !important; }
-.light .border-white\/10 { border-color: rgba(15, 25, 45, 0.13) !important; }
-.light .border-white\/15 { border-color: rgba(15, 25, 45, 0.16) !important; }
-.light .border-white\/20 { border-color: rgba(15, 25, 45, 0.20) !important; }
+.dk-platform-daraz    { color: #f97316; }
+.dk-platform-cartup   { color: #3b82f6; }
+.dk-platform-rokomari { color: #ef4444; }
+.dk-platform-pickaboo { color: #8b5cf6; }
+.dk-platform-chaldal  { color: #22c55e; }
+.dk-platform-othoba   { color: #ec4899; }

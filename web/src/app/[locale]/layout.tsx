@@ -1,26 +1,19 @@
 import type { Metadata } from "next";
-import { Outfit, Inter, JetBrains_Mono } from "next/font/google";
+import { Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
 import Link from "next/link";
 import "../globals.css";
-import { Flame, Zap } from "lucide-react";
-import ThemeToggle from "@/components/ThemeToggle";
 import NavAuthButton from "@/components/NavAuthButton";
 
-const outfit = Outfit({
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
-  variable: "--font-outfit",
-  weight: ["500", "700", "800", "900"],
-});
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-space-grotesk",
   weight: ["400", "500", "600", "700"],
 });
 
-const jetbrains = JetBrains_Mono({
+const ibmPlexMono = IBM_Plex_Mono({
   subsets: ["latin"],
-  variable: "--font-mono",
+  variable: "--font-ibm-plex-mono",
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -61,119 +54,69 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className={`dark ${outfit.variable} ${inter.variable} ${jetbrains.variable}`}
+      className={`${spaceGrotesk.variable} ${ibmPlexMono.variable}`}
     >
-      <body className="font-inter min-h-dvh flex flex-col bg-background text-foreground selection:bg-indigo-500/30 selection:text-indigo-200">
+      <body className="min-h-dvh flex flex-col" style={{ backgroundColor: "var(--bg)", color: "#fff", fontFamily: "var(--font-space-grotesk), system-ui, sans-serif" }}>
         <NextIntlClientProvider messages={messages}>
-          {/* ── Floating Navbar ── */}
-          <header className="fixed top-5 left-1/2 -translate-x-1/2 w-[92%] max-w-5xl z-50 rounded-2xl nm-header transition-all duration-300">
-            <div className="mx-auto px-5 h-16 flex items-center justify-between gap-4">
+          {/* ── Navbar ── */}
+          <header className="fixed top-0 left-0 right-0 z-50 dk-nav">
+            <div className="mx-auto px-5 h-16 flex items-center justify-between gap-4 max-w-6xl">
               {/* Logo */}
-              <Link href="/" className="flex items-center gap-3 group flex-shrink-0">
-                <div className="w-9 h-9 rounded-xl nm-raised flex items-center justify-center overflow-hidden">
+              <Link href="/" className="flex items-center gap-3 flex-shrink-0">
+                <div className="w-8 h-8 rounded-xl overflow-hidden flex items-center justify-center" style={{ background: "var(--bg2)", border: "1px solid var(--border-sm)" }}>
                   <img src="/dk-logo.svg" alt="DamKoi" className="w-full h-full object-contain" />
                 </div>
-                <span className="text-xl font-black font-outfit tracking-tighter bg-gradient-to-r from-white via-white to-indigo-400 bg-clip-text text-transparent">
-                  DamKoi
-                </span>
+                <span className="text-lg font-bold tracking-tight text-white">DamKoi</span>
               </Link>
 
               {/* Desktop Nav */}
-              <nav className="hidden md:flex items-center gap-6 text-[11px] font-bold uppercase tracking-[0.18em] text-white/40">
-                <Link
-                  href={`/${locale}/`}
-                  className="hover:text-indigo-400 transition-colors nm-focus"
-                >
-                  Home
-                </Link>
-                <Link
-                  href={`/${locale}/deals`}
-                  className="hover:text-indigo-400 transition-colors flex items-center gap-1 nm-focus"
-                >
-                  <Flame size={13} className="text-indigo-500" /> Deals
-                </Link>
-                <Link
-                  href={`/${locale}/dashboard`}
-                  className="hover:text-indigo-400 transition-colors nm-focus"
-                >
-                  Dashboard
-                </Link>
-                <Link
-                  href={`/${locale}/alerts`}
-                  className="hover:text-indigo-400 transition-colors nm-focus"
-                >
-                  My Alerts
-                </Link>
-                <Link
-                  href={`/${locale}/premium`}
-                  className="text-yellow-400 hover:text-yellow-300 transition-colors flex items-center gap-1 nm-focus"
-                >
-                  <Zap size={13} /> Premium
-                </Link>
-
+              <nav className="hidden md:flex items-center gap-6">
+                <Link href={`/${locale}/`}         className="text-xs font-medium text-white/40 hover:text-white/80 transition-colors uppercase tracking-widest dk-focus">Home</Link>
+                <Link href={`/${locale}/deals`}     className="text-xs font-medium text-white/40 hover:text-white/80 transition-colors uppercase tracking-widest dk-focus">Deals</Link>
+                <Link href={`/${locale}/dashboard`} className="text-xs font-medium text-white/40 hover:text-white/80 transition-colors uppercase tracking-widest dk-focus">Dashboard</Link>
+                <Link href={`/${locale}/alerts`}    className="text-xs font-medium text-white/40 hover:text-white/80 transition-colors uppercase tracking-widest dk-focus">Alerts</Link>
                 <NavAuthButton />
-
-                <ThemeToggle />
-
-                <Link
-                  href={`/${locale}/install`}
-                  className="nm-btn-primary px-5 py-2.5 rounded-xl text-[10px] nm-focus"
-                >
-                  INSTALL EXTENSION
+                <Link href={`/${locale}/install`} className="dk-btn-primary text-xs px-4 py-2.5 dk-focus">
+                  Install Extension
                 </Link>
               </nav>
 
-              {/* Mobile hamburger */}
-              <button
-                aria-label="Open menu"
-                className="md:hidden nm-raised rounded-xl p-2.5 flex flex-col gap-1.5 nm-interactive nm-focus"
-              >
-                <span className="block w-5 h-0.5 bg-white/50 rounded-full" />
-                <span className="block w-5 h-0.5 bg-white/50 rounded-full" />
-                <span className="block w-3 h-0.5 bg-white/30 rounded-full" />
+              {/* Mobile menu */}
+              <button aria-label="Open menu" className="md:hidden p-2 rounded-lg dk-focus" style={{ border: "1px solid var(--border-sm)", background: "var(--bg2)" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
+                </svg>
               </button>
             </div>
           </header>
 
           {/* ── Main Content ── */}
-          <main className="flex-1 pt-28 pb-16">
+          <main className="flex-1 pt-16">
             {children}
           </main>
 
           {/* ── Footer ── */}
-          <footer className="mt-auto py-10">
-            <div className="container mx-auto px-4 max-w-5xl">
-              <div className="nm-raised rounded-2xl px-6 py-6 flex flex-col md:flex-row justify-between items-center gap-5">
-                <div className="flex items-center gap-2.5">
-                  <div className="nm-raised w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
+          <footer className="mt-auto py-12" style={{ borderTop: "1px solid var(--border-sm)" }}>
+            <div className="mx-auto px-5 max-w-6xl">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-lg overflow-hidden flex items-center justify-center" style={{ background: "var(--bg2)", border: "1px solid var(--border-sm)" }}>
                     <img src="/dk-logo.svg" alt="DamKoi" className="w-full h-full object-contain" />
                   </div>
-                  <span className="font-black font-outfit text-white tracking-tight">DamKoi</span>
-                  <span className="text-white/20 text-[10px] uppercase tracking-widest ml-3 font-bold border-l border-white/10 pl-3 hidden sm:block">
+                  <span className="font-bold text-white">DamKoi</span>
+                  <span className="text-white/20 text-[10px] uppercase tracking-widest ml-2 hidden sm:block" style={{ borderLeft: "1px solid var(--border-sm)", paddingLeft: "0.5rem" }}>
                     Bangladesh Shopping Intelligence
                   </span>
                 </div>
 
-                <nav className="flex flex-wrap items-center justify-center gap-5 text-xs text-white/30 font-medium">
-                  {[
-                    ["Deals", "/deals"],
-                    ["Dashboard", "/dashboard"],
-                    ["My Alerts", "/alerts"],
-                    ["Extension", "/install"],
-                    ["Privacy", "/privacy"],
-                  ].map(([label, href]) => (
-                    <Link
-                      key={href}
-                      href={href}
-                      className="hover:text-white/70 transition-colors nm-focus"
-                    >
-                      {label}
-                    </Link>
+                <nav className="flex flex-wrap items-center justify-center gap-5">
+                  {[["Deals", "/deals"], ["Dashboard", "/dashboard"], ["Alerts", "/alerts"], ["Extension", "/install"], ["Privacy", "/privacy"]].map(([label, href]) => (
+                    <Link key={href} href={href} className="text-xs text-white/30 hover:text-white/60 transition-colors dk-focus">{label}</Link>
                   ))}
                 </nav>
 
-                <p className="text-white/20 text-[10px] font-mono flex-shrink-0">
-                  &copy; {new Date().getFullYear()} DAMKOI_SYS.V2
+                <p className="text-white/20 text-[10px]" style={{ fontFamily: "var(--font-ibm-plex-mono), monospace" }}>
+                  &copy; {new Date().getFullYear()} DamKoi
                 </p>
               </div>
             </div>
