@@ -392,47 +392,110 @@ class DamKoiExtension {
   }
 
   renderNotTracked(container, tabId) {
+    const WEB = 'https://damkoi.xynly.com';
+    const currentUrl = encodeURIComponent(window.location.href);
+
     if (this.data?.connectionError) {
       container.innerHTML = `
-        <h3>Connection Error</h3>
-        <p style="margin: 15px 0; color: var(--dk-dim); line-height: 1.5;">
-          Could not reach DamKoi servers. Check your internet connection and try refreshing the page.
-        </p>
+        <div class="dk-error-state">
+          <div class="dk-es-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <h3 class="dk-es-title">Servers Unreachable</h3>
+          <p class="dk-es-desc">DamKoi API is temporarily offline. Your internet is fine — this is on our end.</p>
+          <div class="dk-es-actions">
+            <a href="${WEB}" target="_blank" rel="noopener" class="dk-web-cta">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              Open Web App
+            </a>
+            <button class="dk-retry-btn" onclick="window.location.reload()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+              Retry
+            </button>
+          </div>
+        </div>
       `;
       return;
     }
-    if (tabId === 'history') {
+
+    if (tabId === 'summary') {
       container.innerHTML = `
-        <h3 style="display:flex;align-items:center;gap:6px;"><span style="width:16px;height:16px;display:inline-block;">${ICONS.history}</span> Price History</h3>
-        <p style="margin: 15px 0; color: var(--dk-dim); line-height: 1.5;">
-          No price history available yet. We are tracking this item starting today.
-        </p>
-      `;
-    } else if (tabId === 'alternatives') {
-      container.innerHTML = `
-        <h3 style="display:flex;align-items:center;gap:6px;"><span style="width:16px;height:16px;display:inline-block;">${ICONS.alternatives}</span> Alternatives</h3>
-        <p style="margin: 15px 0; color: var(--dk-dim); line-height: 1.5;">
-          Searching for similar deals... This will populate once our system analyzes the product.
-        </p>
-      `;
-    } else if (tabId === 'alerts') {
-      container.innerHTML = `
-        <h3 style="display:flex;align-items:center;gap:6px;"><span style="width:16px;height:16px;display:inline-block;">${ICONS.alerts}</span> Price Alerts</h3>
-        <p style="margin: 15px 0; color: var(--dk-dim); line-height: 1.5;">
-          You can set target price alerts once the initial price data is gathered. Check back soon!
-        </p>
-      `;
-    } else {
-      container.innerHTML = `
-        <h3>Getting Started</h3>
-        <p style="margin: 15px 0; color: var(--dk-dim); line-height: 1.5;">
-          This product is not fully tracked yet. We've added it to our next scrape batch.
-        </p>
-        <div class="damkoi-card">
-          <p style="font-size: 13px; color: var(--dk-text); font-weight: 600;">Check back in about 15-30 minutes for a full price drop history and verdict.</p>
+        <div class="dk-not-tracked">
+          <div class="dk-nt-anim-wrap">
+            <div class="dk-nt-ring"></div>
+            <div class="dk-nt-ring dk-nt-ring2"></div>
+            <svg class="dk-nt-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+          </div>
+
+          <div class="dk-nt-badge">
+            <span class="dk-nt-dot"></span>
+            TRACKING STARTED
+          </div>
+
+          <h3 class="dk-nt-title">We're on it.</h3>
+          <p class="dk-nt-desc">
+            First price data arrives within <strong>15–30 minutes</strong>.
+            Check back or get notified below.
+          </p>
+
+          <div class="dk-nt-steps">
+            <div class="dk-nt-step dk-step-done">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="11" height="11"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Product detected</span>
+            </div>
+            <div class="dk-nt-step dk-step-active">
+              <div class="dk-step-spin"></div>
+              <span>Price scan queued</span>
+            </div>
+            <div class="dk-nt-step">
+              <div class="dk-step-empty"></div>
+              <span>History building</span>
+            </div>
+          </div>
+
+          <a href="${WEB}?url=${currentUrl}" target="_blank" rel="noopener" class="dk-web-cta dk-nt-cta">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            Set Alert on Web App
+          </a>
         </div>
       `;
+      return;
     }
+
+    const EMPTY_STATES = {
+      history: {
+        icon: ICONS.history,
+        title: 'Price History',
+        desc: 'No data yet — we just added this product. Check back in 15–30 minutes.',
+      },
+      alternatives: {
+        icon: ICONS.alternatives,
+        title: 'Alternatives',
+        desc: 'We\'ll surface similar products once our system indexes this item.',
+      },
+      alerts: {
+        icon: ICONS.alerts,
+        title: 'Price Alerts',
+        desc: 'Set alerts once we collect the first price point. Almost there!',
+      },
+    };
+    const s = EMPTY_STATES[tabId] || EMPTY_STATES.history;
+    container.innerHTML = `
+      <div class="dk-tab-empty">
+        <span class="dk-te-icon">${s.icon}</span>
+        <h3>${s.title}</h3>
+        <p class="dk-te-desc">${s.desc}</p>
+        <a href="${WEB}?url=${currentUrl}" target="_blank" rel="noopener" class="dk-web-cta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Open DamKoi
+        </a>
+      </div>
+    `;
   }
 
   renderSummary(container) {

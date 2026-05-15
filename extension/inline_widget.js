@@ -39,7 +39,8 @@ const C = {
   raised:  'rgba(255, 255, 255, 0.45)',
   inset:   'rgba(0, 0, 0, 0.04)',
   border:  'rgba(255, 255, 255, 0.5)',
-  accent:  '#A16207',
+  accent:  '#7c3aed',
+  primary: '#7c3aed',
   success: '#059669',
   danger:  '#DC2626',
   warn:    '#D97706',
@@ -48,12 +49,24 @@ const C = {
   dim:     '#A8A29E',
 };
 
+const IC = {
+  trophy:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>',
+  check:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>',
+  clock:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+  xmark:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  chart:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
+  buy:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>',
+  wait:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+  tag:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>',
+  bell:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>',
+};
+
 const VERDICT_META = {
-  BEST_PRICE:        { icon: '🏆', label: 'Best Price',       color: C.success, bg: 'rgba(16,185,129,0.12)',  rec: 'buy'  },
-  GOOD_DEAL:         { icon: '✅', label: 'Good Deal',         color: '#34d399', bg: 'rgba(52,211,153,0.1)',   rec: 'buy'  },
-  FAIR_PRICE:        { icon: '🟡', label: 'Fair Price',        color: C.warn,    bg: 'rgba(245,158,11,0.1)',   rec: 'wait' },
-  FAKE_DISCOUNT:     { icon: '❌', label: 'Fake Discount',     color: C.danger,  bg: 'rgba(239,68,68,0.1)',    rec: 'wait' },
-  INSUFFICIENT_DATA: { icon: '📊', label: 'Not Enough Data',  color: C.muted,   bg: 'rgba(123,123,158,0.1)', rec: null   },
+  BEST_PRICE:        { icon: IC.trophy, label: 'Best Price',      color: C.success, bg: 'rgba(16,185,129,0.12)',  rec: 'buy'  },
+  GOOD_DEAL:         { icon: IC.check,  label: 'Good Deal',        color: '#34d399', bg: 'rgba(52,211,153,0.1)',   rec: 'buy'  },
+  FAIR_PRICE:        { icon: IC.clock,  label: 'Fair Price',       color: C.warn,    bg: 'rgba(245,158,11,0.1)',   rec: 'wait' },
+  FAKE_DISCOUNT:     { icon: IC.xmark,  label: 'Fake Discount',    color: C.danger,  bg: 'rgba(239,68,68,0.1)',    rec: 'wait' },
+  INSUFFICIENT_DATA: { icon: IC.chart,  label: 'Not Enough Data',  color: C.muted,   bg: 'rgba(123,123,158,0.1)', rec: null   },
 };
 
 function scoreColor(s) {
@@ -405,6 +418,15 @@ const WIDGET_CSS = `
   }
 
   .dk-skel {
+    background: linear-gradient(90deg, rgba(0,0,0,0.06) 0%, rgba(0,0,0,0.03) 50%, rgba(0,0,0,0.06) 100%);
+    background-size: 400px 100%;
+    animation: dkwShimmer 1.6s ease-in-out infinite;
+    border-radius: 6px;
+  }
+  @keyframes dkwShimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position:  400px 0; }
+  }
   .dk-skel-footer { display:flex; justify-content:space-between; gap:10px; }
   .dk-skel-foot-l { height:22px; flex:1; border-radius:6px; }
   .dk-skel-btn    { height:30px; width:90px; border-radius:8px; }
@@ -445,7 +467,7 @@ function buildCouponsSection(coupons) {
   return `
     <div class="dk-divider"></div>
     <div class="dk-coupons">
-      <div class="dk-coupon-title">🏷️ Available Coupons</div>
+      <div class="dk-coupon-title" style="display:flex;align-items:center;gap:5px;">${IC.tag} Available Coupons</div>
       <div class="dk-coupon-list">${cards}</div>
     </div>`;
 }
@@ -550,7 +572,7 @@ function buildRecommendation(verdict, savingsPct) {
     const savings = savingsPct > 0 ? `You save <strong style="color:${C.success}">${savingsPct}%</strong> vs the 30-day average.` : 'This is at or below its typical price.';
     return `
       <div class="dk-rec">
-        <div class="dk-rec-icon">🟢</div>
+        <div class="dk-rec-icon" style="color:${C.success}">${IC.buy}</div>
         <div>
           <div class="dk-rec-title" style="color:${C.success}">Good Time to Buy</div>
           <div class="dk-rec-sub">${savings} ${verdict.explanation}</div>
@@ -559,7 +581,7 @@ function buildRecommendation(verdict, savingsPct) {
   } else {
     return `
       <div class="dk-rec">
-        <div class="dk-rec-icon">⏳</div>
+        <div class="dk-rec-icon" style="color:${C.warn}">${IC.wait}</div>
         <div>
           <div class="dk-rec-title" style="color:${C.warn}">Consider Waiting</div>
           <div class="dk-rec-sub">${verdict.explanation}</div>
@@ -595,7 +617,7 @@ function buildAltsList(alts) {
   return `
     <div class="dk-divider" style="margin-bottom:12px;"></div>
     <div class="dk-alts">
-      <div class="dk-alts-title">🔍 Look-alike Deals</div>
+      <div class="dk-alts-title" style="display:flex;align-items:center;gap:5px;">${IC.chart} Look-alike Deals</div>
       <div class="dk-alt-list" id="dk-alt-list">${items}</div>
     </div>`;
 }
@@ -654,7 +676,7 @@ function buildHTML(data, alts, chartObj, activeRange, coupons = []) {
     <!-- Chart -->
     <div class="dk-chart-section">
       <div class="dk-chart-header">
-        <span class="dk-chart-title">📈 Price History</span>
+        <span class="dk-chart-title" style="display:flex;align-items:center;gap:5px;">${IC.chart} Price History</span>
         <div class="dk-range-tabs">
           ${['1M','3M','ALL'].map(r =>
             `<button class="dk-range-tab${r === activeRange ? ' active' : ''}" data-range="${r}">${r}</button>`
@@ -680,7 +702,7 @@ function buildHTML(data, alts, chartObj, activeRange, coupons = []) {
     <!-- Footer: explanation + alert CTA -->
     <div class="dk-footer">
       <p class="dk-explanation">${verdict.explanation}</p>
-      <button class="dk-alert-btn" id="dk-alert-btn">🔔 Alert me</button>
+      <button class="dk-alert-btn" id="dk-alert-btn" style="display:flex;align-items:center;gap:6px;">${IC.bell} Alert me</button>
     </div>
 
     <!-- Alert form (hidden) -->
@@ -742,7 +764,9 @@ function wireWidget(shadowRoot, data, alts, currentRange, coupons = []) {
   alertBtn?.addEventListener('click', () => {
     const open = alertForm.style.display !== 'none';
     alertForm.style.display = open ? 'none' : 'block';
-    alertBtn.textContent = open ? '🔔 Alert me' : '✕ Cancel';
+    alertBtn.innerHTML = open
+      ? `${IC.bell} Alert me`
+      : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Cancel`;
   });
 
   // Alert submit
@@ -776,8 +800,8 @@ function wireWidget(shadowRoot, data, alts, currentRange, coupons = []) {
           channel:      'email',
         }
       });
-      setStatus(`✅ Alert set! We'll email you when price drops to ৳${targetBDT.toLocaleString('en-BD')}.`, C.success);
-      alertBtn.textContent = '✅ Alert set';
+      setStatus(`Alert set! We'll email you when price drops to ৳${targetBDT.toLocaleString('en-BD')}.`, C.success);
+      alertBtn.innerHTML = `${IC.check} Alert set`;
     } catch {
       setStatus('Failed to set alert — please try again.', C.danger);
     } finally {

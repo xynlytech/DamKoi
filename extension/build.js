@@ -19,7 +19,9 @@ const isFirefox  = process.argv.includes('--firefox');
 
 // ── Environment-specific API URLs ─────────────────────────────
 
-const PROD_API_BASE  = process.env.PROD_API_BASE || 'https://api.damkoi.com';
+// Production API goes through the Next.js proxy on damkoi.xynly.com/v1/*
+// Set PROD_API_BASE env var to override (e.g. if api.damkoi.com DNS is live)
+const PROD_API_BASE  = process.env.PROD_API_BASE || 'https://damkoi.xynly.com';
 const API_BASE       = isProd ? PROD_API_BASE                  : 'http://127.0.0.1:8000';
 const DASHBOARD_BASE = isProd ? 'https://damkoi.xynly.com'     : 'http://127.0.0.1:3000';
 

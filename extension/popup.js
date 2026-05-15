@@ -140,7 +140,12 @@ async function init() {
     console.error('[DamKoi Popup]', error);
     showState(errorState);
     document.getElementById('error-message').textContent =
-      'Could not connect to DamKoi. Please try again.';
+      'Could not connect to DamKoi servers. Please try again.';
+    const webLink = document.getElementById('error-web-link');
+    if (webLink) {
+      const productUrl = tab?.url ? `?url=${encodeURIComponent(tab.url)}` : '';
+      webLink.href = `${DASHBOARD_BASE}${productUrl}`;
+    }
     recordTiming('error');
   }
 }

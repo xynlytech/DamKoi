@@ -626,6 +626,16 @@ body {
   line-height: 1.5;
 }
 
+.error-web-btn {
+  margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  padding: 8px 14px;
+  width: auto;
+}
+
 /* ── Animations ──────────────────────────────────────────── */
 
 @keyframes fadeSlideIn {
