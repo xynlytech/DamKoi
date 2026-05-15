@@ -3,10 +3,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import {
   Bell, Mail, Trash2, PauseCircle, PlayCircle,
   Plus, ArrowUpRight, AlertCircle, Loader2, CheckCircle2,
-  ShoppingCart, BellOff, User
+  ShoppingCart, BellOff,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -30,55 +31,13 @@ function fmt(p: number | null) {
   return `৳${(p / 100).toLocaleString("en-BD")}`;
 }
 
-function savings(current: number | null, target: number) {
-  if (!current || current <= target) return null;
-  return current - target;
-}
-
-// ── Sign-in Gate ──────────────────────────────────────────────
-
-function SignInGate() {
-  return (
-    <div className="nm-raised rounded-2xl p-8 text-center max-w-sm mx-auto">
-      <div className="flex justify-center mb-5 text-indigo-400">
-        <User size={48} strokeWidth={1.5} />
-      </div>
-      <h2 className="text-xl font-black font-outfit mb-2">Sign in to view alerts</h2>
-      <p className="text-white/40 text-sm mb-7 leading-relaxed">
-        Create an account or sign in to manage your price alerts.
-      </p>
-      <div className="flex flex-col gap-3">
-        <Link
-          href="/login"
-          className="w-full py-3 nm-btn-primary rounded-xl text-xs uppercase tracking-widest font-black text-center block"
-        >
-          Sign In
-        </Link>
-        <Link
-          href="/register"
-          className="w-full py-3 rounded-xl text-xs uppercase tracking-widest font-black text-center text-white/40 hover:text-white transition-colors"
-        >
-          Create Account
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-// ── Alert Card ────────────────────────────────────────────────
-
-function AlertCard({
-  alert,
-  email,
-  onUpdate,
-  onDelete,
-}: {
-  alert: Alert;
-  email: string;
+function AlertCard({ alert, email, onUpdate, onDelete }: {
+  alert: Alert; email: string;
   onUpdate: (id: string, patch: Partial<Alert>) => void;
   onDelete: (id: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const hit = alert.current_price !== null && alert.current_price <= alert.target_price;
 
   const toggle = async () => {
     setBusy(true);
@@ -88,96 +47,72 @@ function AlertCard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, is_active: !alert.is_active }),
       });
-      if (res.ok) {
-        const updated = await res.json();
-        onUpdate(alert.id, { is_active: updated.is_active });
-      }
-    } finally {
-      setBusy(false);
-    }
+      if (res.ok) { const u = await res.json(); onUpdate(alert.id, { is_active: u.is_active }); }
+    } finally { setBusy(false); }
   };
 
   const remove = async () => {
     if (!confirm("Delete this alert?")) return;
     setBusy(true);
     try {
-      const res = await fetch(
-        `${API}/alerts/${alert.id}/by-email?email=${encodeURIComponent(email)}`,
-        { method: "DELETE" }
-      );
+      const res = await fetch(`${API}/alerts/${alert.id}/by-email?email=${encodeURIComponent(email)}`, { method: "DELETE" });
       if (res.ok || res.status === 204) onDelete(alert.id);
-    } finally {
-      setBusy(false);
-    }
+    } finally { setBusy(false); }
   };
 
-  const saving = savings(alert.current_price, alert.target_price);
-
   return (
-    <div className={`nm-raised rounded-2xl p-5 flex gap-4 transition-opacity ${!alert.is_active ? "opacity-50" : ""}`}>
-      {/* Product image */}
-      <div className="w-14 h-14 rounded-xl nm-inset flex-shrink-0 overflow-hidden">
+    <div className="dk-card p-4 flex gap-4" style={{ opacity: alert.is_active ? 1 : 0.5 }}>
+      <div className="flex-shrink-0 overflow-hidden rounded-xl" style={{ width: 52, height: 52, background: "var(--bg2)", border: "1px solid var(--border-sm)" }}>
         {alert.product_image
           ? <img src={alert.product_image} alt="" className="w-full h-full object-contain p-1" />
-          : <div className="w-full h-full flex items-center justify-center text-white/20"><ShoppingCart size={24} /></div>
+          : <div className="w-full h-full flex items-center justify-center"><ShoppingCart size={20} style={{ color: "rgba(255,255,255,0.2)" }} /></div>
         }
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-white/80 line-clamp-2 leading-snug mb-1">
+        <p className="text-sm font-medium line-clamp-2 leading-snug mb-1.5" style={{ color: "rgba(255,255,255,0.8)" }}>
           {alert.product_title ?? "Unknown product"}
         </p>
-
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-          <span className="text-white/40">
-            Target: <span className="text-white font-bold">{fmt(alert.target_price)}</span>
+          <span style={{ color: "rgba(255,255,255,0.4)" }}>
+            Target: <span className="text-white font-semibold">{fmt(alert.target_price)}</span>
           </span>
           {alert.current_price && (
-            <span className="text-white/40">
-              Now: <span className={alert.current_price <= alert.target_price ? "text-emerald-400 font-bold" : "text-white/60"}>
+            <span style={{ color: "rgba(255,255,255,0.4)" }}>
+              Now: <span style={{ color: hit ? "var(--green)" : "rgba(255,255,255,0.6)", fontWeight: hit ? 600 : 400 }}>
                 {fmt(alert.current_price)}
               </span>
             </span>
           )}
-          {saving && saving > 0 && (
-            <span className="text-amber-400 font-bold">{fmt(saving)} to go</span>
-          )}
-          {alert.current_price && alert.current_price <= alert.target_price && (
-            <span className="flex items-center gap-1 text-emerald-400 font-bold">
-              <CheckCircle2 size={12} /> Price hit!
+          {hit && (
+            <span className="flex items-center gap-1 font-semibold" style={{ color: "var(--green)" }}>
+              <CheckCircle2 size={11} /> Price hit!
             </span>
           )}
         </div>
-
         {alert.last_triggered && (
-          <p className="text-[10px] text-indigo-400 mt-1">
+          <p className="text-[10px] mt-1" style={{ color: "#a78bfa" }}>
             Last triggered: {new Date(alert.last_triggered).toLocaleDateString("en-BD")}
           </p>
         )}
       </div>
 
-      {/* Actions */}
-      <div className="flex flex-col gap-2 items-center justify-center shrink-0">
-        <Link
-          href={`/product/${alert.product_id}`}
-          className="p-1.5 rounded-lg hover:bg-white/10 text-white/30 hover:text-indigo-400 transition-colors"
-          title="View product"
+      <div className="flex flex-col gap-1.5 items-center justify-center flex-shrink-0">
+        <Link href={`/product/${alert.product_id}`} title="View product"
+          className="p-1.5 rounded-lg transition-colors dk-focus"
+          style={{ color: "rgba(255,255,255,0.3)" }}
         >
           <ArrowUpRight size={14} />
         </Link>
-        <button
-          onClick={toggle}
-          disabled={busy}
-          className="p-1.5 rounded-lg hover:bg-white/10 text-white/30 hover:text-amber-400 transition-colors disabled:opacity-40"
-          title={alert.is_active ? "Pause alert" : "Resume alert"}
+        <button onClick={toggle} disabled={busy} title={alert.is_active ? "Pause" : "Resume"}
+          className="p-1.5 rounded-lg transition-colors dk-focus disabled:opacity-40"
+          style={{ color: "rgba(255,255,255,0.3)" }}
         >
           {busy ? <Loader2 size={14} className="animate-spin" /> : alert.is_active ? <PauseCircle size={14} /> : <PlayCircle size={14} />}
         </button>
-        <button
-          onClick={remove}
-          disabled={busy}
-          className="p-1.5 rounded-lg hover:bg-white/10 text-white/30 hover:text-red-400 transition-colors disabled:opacity-40"
-          title="Delete alert"
+        <button onClick={remove} disabled={busy} title="Delete alert"
+          className="p-1.5 rounded-lg transition-colors dk-focus disabled:opacity-40"
+          style={{ color: "rgba(255,255,255,0.3)" }}
         >
           <Trash2 size={14} />
         </button>
@@ -186,61 +121,44 @@ function AlertCard({
   );
 }
 
-// ── Main Page ─────────────────────────────────────────────────
+const item = { hidden: { y: 14, opacity: 0 }, visible: { y: 0, opacity: 1, transition: { duration: 0.35 } } };
+const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.06 } } };
 
 export default function AlertsPage() {
   const router = useRouter();
-  const [email, setEmail] = useState<string | null>(null);
-  const [authChecked, setAuthChecked] = useState(false);
-  const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [email, setEmail]           = useState<string | null>(null);
+  const [authChecked, setAuth]      = useState(false);
+  const [alerts, setAlerts]         = useState<Alert[]>([]);
+  const [loading, setLoading]       = useState(false);
   const [fetchError, setFetchError] = useState("");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session) { router.replace("/login"); return; }
       setEmail(data.session.user.email ?? null);
-      setAuthChecked(true);
+      setAuth(true);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) { router.replace("/login"); return; }
-      setEmail(session.user.email ?? null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
+      if (!s) { router.replace("/login"); return; }
+      setEmail(s.user.email ?? null);
     });
     return () => subscription.unsubscribe();
   }, [router]);
 
   const fetchAlerts = useCallback(async (e: string) => {
-    setLoading(true);
-    setFetchError("");
+    setLoading(true); setFetchError("");
     try {
       const res = await fetch(`${API}/alerts/by-email?email=${encodeURIComponent(e)}`);
-      if (!res.ok) throw new Error("Failed to load alerts");
+      if (!res.ok) throw new Error("Failed");
       setAlerts(await res.json());
-    } catch {
-      setFetchError("Could not load alerts. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    } catch { setFetchError("Could not load alerts. Please try again."); }
+    finally { setLoading(false); }
   }, []);
 
-  // Fetch when email becomes available
-  useEffect(() => {
-    if (email) fetchAlerts(email);
-  }, [email, fetchAlerts]);
+  useEffect(() => { if (email) fetchAlerts(email); }, [email, fetchAlerts]);
 
-  const handleUpdate = (id: string, patch: Partial<Alert>) => {
-    setAlerts((prev) => prev.map((a) => (a.id === id ? { ...a, ...patch } : a)));
-  };
-
-  const handleDelete = (id: string) => {
-    setAlerts((prev) => prev.filter((a) => a.id !== id));
-  };
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    setEmail(null);
-    setAlerts([]);
-  };
+  const handleUpdate = (id: string, patch: Partial<Alert>) => setAlerts((p) => p.map((a) => a.id === id ? { ...a, ...patch } : a));
+  const handleDelete = (id: string) => setAlerts((p) => p.filter((a) => a.id !== id));
 
   const activeCount = alerts.filter((a) => a.is_active).length;
   const atLimit = activeCount >= FREE_LIMIT;
@@ -248,32 +166,33 @@ export default function AlertsPage() {
   if (!authChecked) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 size={28} className="animate-spin text-indigo-400" />
+        <Loader2 size={26} className="animate-spin" style={{ color: "#a78bfa" }} />
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 max-w-3xl">
+    <div className="mx-auto px-5 max-w-3xl py-10">
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="text-4xl font-black font-outfit mb-1 flex items-center gap-3">
-            <Bell size={32} className="text-indigo-400" />
+          <h1 className="text-3xl font-bold text-white flex items-center gap-3 mb-1">
+            <Bell size={26} style={{ color: "#a78bfa" }} />
             My Alerts
           </h1>
-          <p className="text-white/40 text-sm">
+          <p className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>
             Get an email the instant any tracked product hits your target price.
           </p>
         </div>
         {email && (
           <div className="text-right">
-            <p className="text-xs text-white/40 flex items-center gap-1 justify-end">
+            <p className="text-xs flex items-center gap-1 justify-end" style={{ color: "rgba(255,255,255,0.4)" }}>
               <Mail size={11} /> {email}
             </p>
             <button
-              onClick={handleSignOut}
-              className="text-[10px] text-white/20 hover:text-red-400 transition-colors mt-1"
+              onClick={async () => { await supabase.auth.signOut(); setEmail(null); setAlerts([]); }}
+              className="text-[10px] mt-1 transition-colors dk-focus"
+              style={{ color: "rgba(255,255,255,0.2)" }}
             >
               Sign out
             </button>
@@ -281,112 +200,84 @@ export default function AlertsPage() {
         )}
       </div>
 
-      {/* Loading */}
-      {email && loading && (
+      {loading && (
         <div className="flex justify-center py-16">
-          <Loader2 size={28} className="animate-spin text-indigo-400" />
+          <Loader2 size={26} className="animate-spin" style={{ color: "#a78bfa" }} />
         </div>
       )}
 
-      {/* Error */}
-      {email && fetchError && (
-        <div className="nm-raised rounded-2xl p-5 flex items-center gap-3 text-red-400 text-sm">
-          <AlertCircle size={18} />
+      {fetchError && (
+        <div className="rounded-xl p-4 flex items-center gap-3 text-sm mb-5" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "var(--red)" }}>
+          <AlertCircle size={16} />
           {fetchError}
-          <button
-            onClick={() => fetchAlerts(email)}
-            className="ml-auto text-xs underline"
-          >
-            Retry
-          </button>
+          <button onClick={() => email && fetchAlerts(email)} className="ml-auto text-xs underline dk-focus">Retry</button>
         </div>
       )}
 
-      {/* Loaded */}
-      {email && !loading && !fetchError && (
+      {!loading && !fetchError && (
         <>
-          {/* Stats bar */}
+          {/* Limit bar */}
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
-              <span className="text-sm text-white/60">
-                <span className="font-bold text-white">{activeCount}</span>
-                <span className="text-white/30"> / {FREE_LIMIT} active alerts used</span>
-              </span>
-              {atLimit && (
-                <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
-                  Limit reached
+              <div className="flex items-center gap-2">
+                <div className="w-32 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--bg2)" }}>
+                  <div className="h-full rounded-full transition-all" style={{ width: `${Math.min((activeCount / FREE_LIMIT) * 100, 100)}%`, background: atLimit ? "var(--amber)" : "var(--purple)" }} />
+                </div>
+                <span className="text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
+                  <span className="text-white font-semibold">{activeCount}</span>
+                  <span> / {FREE_LIMIT}</span>
                 </span>
-              )}
+              </div>
+              {atLimit && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ color: "var(--amber)", background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.2)" }}>Limit reached</span>}
             </div>
-            <Link
-              href="/"
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-[10px] uppercase tracking-widest transition-all hover:scale-105"
-            >
-              <Plus size={12} /> New alert
+            <Link href="/" className="dk-btn-primary text-[10px] uppercase tracking-widest flex items-center gap-1.5 py-2 px-4 dk-focus">
+              <Plus size={11} /> New alert
             </Link>
           </div>
 
-          {/* Free tier limit banner */}
           {atLimit && (
-            <div className="mb-5 nm-raised rounded-2xl p-4 border border-amber-500/20 flex items-center justify-between gap-4">
-              <p className="text-sm text-amber-300/80">
+            <div className="mb-5 rounded-xl p-4 flex items-center justify-between gap-4" style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)" }}>
+              <p className="text-sm" style={{ color: "rgba(245,158,11,0.8)" }}>
                 Free tier: {FREE_LIMIT} active alerts maximum.
               </p>
-              <Link
-                href="/premium"
-                className="shrink-0 text-xs font-black text-amber-400 hover:text-amber-300 underline transition-colors"
-              >
-                Go Premium →
-              </Link>
+              <Link href="/premium" className="text-xs font-semibold underline flex-shrink-0 dk-focus" style={{ color: "var(--amber)" }}>Go Premium →</Link>
             </div>
           )}
 
-          {/* Alert list */}
           {alerts.length === 0 ? (
             <div className="text-center py-20">
-              <div className="flex justify-center mb-5 text-white/20">
-                <BellOff size={48} strokeWidth={1.5} />
-              </div>
-              <h2 className="text-xl font-black font-outfit mb-3">No alerts yet</h2>
-              <p className="text-white/40 text-sm mb-7">
+              <BellOff size={44} strokeWidth={1.5} className="mx-auto mb-5" style={{ color: "rgba(255,255,255,0.2)" }} />
+              <h2 className="text-xl font-bold text-white mb-3">No alerts yet</h2>
+              <p className="text-sm mb-7" style={{ color: "rgba(255,255,255,0.4)" }}>
                 Go to any product page and set a target price to get started.
               </p>
-              <Link
-                href="/"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white font-black text-xs uppercase tracking-widest transition-all"
-              >
-                Browse products
-              </Link>
+              <Link href="/" className="dk-btn-primary inline-flex items-center gap-2 text-xs uppercase tracking-widest dk-focus">Browse products</Link>
             </div>
           ) : (
-            <div className="space-y-3">
+            <motion.div variants={stagger} initial="hidden" animate="visible" className="space-y-3">
               {alerts.map((a) => (
-                <AlertCard
-                  key={a.id}
-                  alert={a}
-                  email={email}
-                  onUpdate={handleUpdate}
-                  onDelete={handleDelete}
-                />
+                <motion.div key={a.id} variants={item}>
+                  <AlertCard alert={a} email={email!} onUpdate={handleUpdate} onDelete={handleDelete} />
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           )}
 
           {/* How it works */}
-          <div className="mt-8 nm-raised rounded-2xl p-6">
-            <h3 className="font-black font-outfit text-xs uppercase tracking-widest text-indigo-400 mb-4">
-              How alerts work
-            </h3>
+          <div className="mt-8 rounded-2xl p-6" style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)" }}>
+            <h3 className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: "#a78bfa" }}>How alerts work</h3>
             <div className="space-y-2.5">
               {[
-                { icon: "01", text: "Set a target price on any product page" },
-                { icon: "02", text: "We check prices every 15 minutes" },
-                { icon: "03", text: "Email sent the instant price drops below your target" },
-                { icon: "04", text: `Free: ${FREE_LIMIT} active alerts · Premium: unlimited` },
-              ].map((s, i) => (
-                <div key={i} className="flex items-center gap-3 text-sm text-white/50">
-                  <span className="w-6 h-6 nm-raised rounded-full flex items-center justify-center text-[10px] font-mono text-white/80 shrink-0">{s.icon}</span>
-                  <span>{s.text}</span>
+                "Set a target price on any product page",
+                "We check prices every 15 minutes",
+                "Email sent the instant price drops below your target",
+                `Free: ${FREE_LIMIT} active alerts · Premium: unlimited`,
+              ].map((text, i) => (
+                <div key={i} className="flex items-center gap-3 text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
+                  <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] flex-shrink-0" style={{ background: "var(--bg2)", border: "1px solid var(--border-sm)", color: "rgba(255,255,255,0.8)", fontFamily: "var(--font-ibm-plex-mono), monospace" }}>
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <span>{text}</span>
                 </div>
               ))}
             </div>

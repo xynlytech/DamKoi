@@ -3,17 +3,18 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { Mail, Lock, CheckCircle2, Loader2, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail]   = useState("");
+  const [pw, setPw]         = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "err">("idle");
-  const [msg, setMsg] = useState("");
+  const [msg, setMsg]       = useState("");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -22,162 +23,93 @@ export default function RegisterPage() {
   }, [router]);
 
   const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setMsg("");
-
-    if (password.length < 8) {
-      setStatus("err");
-      setMsg("Password must be at least 8 characters.");
-      return;
-    }
-    if (password !== confirm) {
-      setStatus("err");
-      setMsg("Passwords do not match.");
-      return;
-    }
-
+    e.preventDefault(); setMsg("");
+    if (pw.length < 8)   { setStatus("err"); setMsg("Password must be at least 8 characters."); return; }
+    if (pw !== confirm)  { setStatus("err"); setMsg("Passwords do not match."); return; }
     setStatus("loading");
-
     const { data, error } = await supabase.auth.signUp({
       email: email.trim().toLowerCase(),
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
+      password: pw,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     });
-
     if (error) {
       setStatus("err");
-      setMsg(
-        error.message.includes("already registered")
-          ? "Account already exists. Sign in instead."
-          : error.message
-      );
+      setMsg(error.message.includes("already registered") ? "Account already exists. Sign in instead." : error.message);
       return;
     }
-
-    // If email confirmation is disabled in Supabase, session is set immediately
-    if (data.session) {
-      router.push("/dashboard");
-      return;
-    }
-
-    // Email confirmation required
+    if (data.session) { router.push("/dashboard"); return; }
     setStatus("done");
   };
 
   if (status === "done") {
     return (
-      <div className="min-h-[70vh] flex items-center justify-center px-4">
-        <div className="w-full max-w-md">
-          <div className="nm-raised rounded-2xl p-8 text-center">
-            <div className="flex justify-center mb-5 text-emerald-400">
-              <CheckCircle2 size={48} strokeWidth={1.5} />
-            </div>
-            <h2 className="text-xl font-black font-outfit mb-3">Check your inbox</h2>
-            <p className="text-white/50 text-sm leading-relaxed mb-6">
-              We sent a confirmation link to{" "}
-              <span className="text-white font-bold">{email}</span>.
-              Click it to activate your account.
+      <div className="min-h-[80vh] flex items-center justify-center px-4">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
+          <div className="rounded-2xl p-8 text-center" style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)" }}>
+            <CheckCircle2 size={44} strokeWidth={1.5} className="mx-auto mb-5" style={{ color: "var(--green)" }} />
+            <h2 className="text-xl font-bold text-white mb-3">Check your inbox</h2>
+            <p className="text-sm leading-relaxed mb-6" style={{ color: "rgba(255,255,255,0.5)" }}>
+              We sent a confirmation link to <span className="text-white font-semibold">{email}</span>. Click it to activate your account.
             </p>
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 nm-btn-primary px-6 py-3 rounded-xl text-xs uppercase tracking-widest font-black"
-            >
+            <Link href="/login" className="dk-btn-primary inline-flex items-center gap-2 text-xs uppercase tracking-widest dk-focus">
               Back to Sign In
             </Link>
           </div>
-        </div>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-[70vh] flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-[80vh] flex items-center justify-center px-4">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="w-full max-w-md"
+      >
         <div className="flex justify-center mb-8">
-          <div className="w-14 h-14 nm-raised rounded-2xl flex items-center justify-center overflow-hidden">
+          <div className="w-12 h-12 rounded-2xl overflow-hidden" style={{ background: "var(--bg2)", border: "1px solid var(--border-sm)" }}>
             <img src="/dk-logo.svg" alt="DamKoi" className="w-full h-full object-contain" />
           </div>
         </div>
 
-        <div className="nm-raised rounded-2xl p-8">
-          <h1 className="text-2xl font-black font-outfit text-center mb-1">Create Account</h1>
-          <p className="text-white/40 text-sm text-center mb-8">
-            Free. No credit card required.
-          </p>
+        <div className="rounded-2xl p-8" style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)" }}>
+          <h1 className="text-2xl font-bold text-center text-white mb-1">Create Account</h1>
+          <p className="text-sm text-center mb-8" style={{ color: "rgba(255,255,255,0.4)" }}>Free. No credit card required.</p>
 
           <form onSubmit={submit} className="flex flex-col gap-4">
             <div className="relative">
-              <Mail size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 pointer-events-none" />
-              <input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoFocus
-                className="w-full nm-inset rounded-xl pl-10 pr-4 py-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all"
-              />
+              <Mail size={14} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "rgba(255,255,255,0.25)" }} />
+              <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus className="dk-input pl-10" />
             </div>
 
             <div className="relative">
-              <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 pointer-events-none" />
-              <input
-                type={showPw ? "text" : "password"}
-                placeholder="Password (min 8 chars)"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={8}
-                className="w-full nm-inset rounded-xl pl-10 pr-11 py-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPw((p) => !p)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/50 transition-colors"
-              >
+              <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "rgba(255,255,255,0.25)" }} />
+              <input type={showPw ? "text" : "password"} placeholder="Password (min 8 chars)" value={pw} onChange={(e) => setPw(e.target.value)} required minLength={8} className="dk-input pl-10 pr-11" />
+              <button type="button" onClick={() => setShowPw((p) => !p)} className="absolute right-4 top-1/2 -translate-y-1/2 transition-colors dk-focus" style={{ color: "rgba(255,255,255,0.25)" }}>
                 {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
 
             <div className="relative">
-              <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 pointer-events-none" />
-              <input
-                type={showPw ? "text" : "password"}
-                placeholder="Confirm password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                required
-                className="w-full nm-inset rounded-xl pl-10 pr-4 py-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all"
-              />
+              <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "rgba(255,255,255,0.25)" }} />
+              <input type={showPw ? "text" : "password"} placeholder="Confirm password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required className="dk-input pl-10" />
             </div>
 
-            {status === "err" && (
-              <p className="text-xs text-rose-400 -mt-1">{msg}</p>
-            )}
+            {status === "err" && <p className="text-xs -mt-1" style={{ color: "var(--red)" }}>{msg}</p>}
 
-            <button
-              type="submit"
-              disabled={status === "loading"}
-              className="w-full py-3.5 nm-btn-primary rounded-xl text-xs uppercase tracking-widest font-black disabled:opacity-50 flex items-center justify-center gap-2 mt-1"
-            >
-              {status === "loading" ? (
-                <><Loader2 size={14} className="animate-spin" /> Creating account…</>
-              ) : (
-                "Create Account"
-              )}
+            <button type="submit" disabled={status === "loading"} className="dk-btn-primary w-full text-xs uppercase tracking-widest mt-1 disabled:opacity-50">
+              {status === "loading" ? <><Loader2 size={14} className="animate-spin" /> Creating account…</> : "Create Account"}
             </button>
           </form>
 
-          <p className="text-center text-[12px] text-white/30 mt-6">
+          <p className="text-center text-xs mt-6" style={{ color: "rgba(255,255,255,0.3)" }}>
             Already have an account?{" "}
-            <Link href="/login" className="text-indigo-400 hover:text-indigo-300 font-bold transition-colors">
-              Sign in
-            </Link>
+            <Link href="/login" className="font-semibold transition-colors dk-focus" style={{ color: "#a78bfa" }}>Sign in</Link>
           </p>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
