@@ -12,7 +12,7 @@ export default function PrivacyPage() {
       <div className="dk-card p-8 md:p-12">
         <h1 className="text-3xl font-black tracking-tight mb-2">Privacy Policy</h1>
         <p className="text-white/40 text-sm mb-10">
-          Last updated: April 2025 &nbsp;·&nbsp; Effective immediately
+          Last updated: May 2026 &nbsp;·&nbsp; Effective immediately
         </p>
 
         <Section title="Who We Are">
