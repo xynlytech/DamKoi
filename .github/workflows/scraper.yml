@@ -58,7 +58,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        shard: [0, 1, 2]   # 3 parallel jobs × 3,000 products = 9,000 per run
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]  # 10 parallel jobs × 3,000 = 30,000 per run
       fail-fast: false      # one shard failing doesn't cancel others
     defaults:
       run:
@@ -76,8 +76,8 @@ jobs:
         run: |
           pip install playwright playwright-stealth
           playwright install chromium --with-deps
-      - name: Scrape shard ${{ matrix.shard }}/3
-        run: python run_cron.py scrape ${{ matrix.shard }} 3
+      - name: Scrape shard ${{ matrix.shard }}/10
+        run: python run_cron.py scrape ${{ matrix.shard }} 10
 
   # ── 3. Alerts: check prices and notify users ──────────────────────
   alerts:

@@ -35,11 +35,18 @@ async def run_harvest():
 
 
 async def run_scrape(shard_index: int = 0, total_shards: int = 1):
-    from app.scraper.tasks import scrape_hot_products, scrape_longtail_products
-    # Only shard 0 handles hot products (they're shared priority, not sharded)
+    from app.scraper.tasks import (
+        scrape_hot_products,
+        scrape_tracked_products,
+        scrape_longtail_products,
+    )
+    # Shard 0 handles priority products first:
+    #   hot (10+ alerts) and tracked (1+ alert) — must be fresh before alert checks run
     if shard_index == 0:
-        print("[cron] Scraping hot products...")
+        print("[cron] Scraping hot products (shard 0 priority)...")
         await scrape_hot_products()
+        print("[cron] Scraping tracked products (shard 0 priority)...")
+        await scrape_tracked_products()
     print(f"[cron] Scraping longtail products (shard {shard_index}/{total_shards})...")
     await scrape_longtail_products(shard_index=shard_index, total_shards=total_shards)
     print("[cron] Scrape done.")

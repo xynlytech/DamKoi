@@ -972,23 +972,85 @@ async def harvest_new_products():
 
 
 async def cleanup_snapshots():
-    """Delete old debug snapshots and raw HTML from database (PRD section 9)."""
+    """
+    Two-pass cleanup to keep DB storage within Supabase 500MB free tier.
+
+    Price history retention policy:
+      - Last 7 days   → keep every snapshot (full resolution for charts/alerts)
+      - 7–90 days     → keep 1 per day per product (daily close price)
+      - 90 days+      → keep 1 per week per product (weekly close price)
+
+    This allows price trend charts to work indefinitely while preventing
+    unbounded DB growth. At 30K products × 4 runs/day, without pruning
+    the snapshots table would grow ~12 MB/day and exhaust 500 MB in ~40 days.
+    With pruning it stabilises at ~50-80 MB total.
+    """
     print(f"[CLEANUP] [{datetime.now()}] Starting snapshot cleanup...")
+    try:
+        from sqlalchemy import text
+        from app.database import async_session_factory
+
+        async with async_session_factory() as db:
+            # Pass 1: collapse 7-90 day snapshots to 1 per day per product
+            r1 = await db.execute(text("""
+                DELETE FROM price_snapshots
+                WHERE id IN (
+                    SELECT id FROM (
+                        SELECT id,
+                               ROW_NUMBER() OVER (
+                                   PARTITION BY product_id, DATE(scraped_at AT TIME ZONE 'UTC')
+                                   ORDER BY scraped_at ASC
+                               ) AS rn
+                        FROM price_snapshots
+                        WHERE scraped_at < NOW() - INTERVAL '7 days'
+                          AND scraped_at >= NOW() - INTERVAL '90 days'
+                    ) ranked
+                    WHERE rn > 1
+                )
+            """))
+            daily_pruned = r1.rowcount or 0
+
+            # Pass 2: collapse 90+ day snapshots to 1 per week per product
+            r2 = await db.execute(text("""
+                DELETE FROM price_snapshots
+                WHERE id IN (
+                    SELECT id FROM (
+                        SELECT id,
+                               ROW_NUMBER() OVER (
+                                   PARTITION BY product_id,
+                                                DATE_TRUNC('week', scraped_at AT TIME ZONE 'UTC')
+                                   ORDER BY scraped_at ASC
+                               ) AS rn
+                        FROM price_snapshots
+                        WHERE scraped_at < NOW() - INTERVAL '90 days'
+                    ) ranked
+                    WHERE rn > 1
+                )
+            """))
+            weekly_pruned = r2.rowcount or 0
+
+            await db.commit()
+
+        print(f"   [OK] Pruned {daily_pruned} daily duplicates, {weekly_pruned} weekly duplicates.")
+
+    except Exception as e:
+        logger.error("DB snapshot pruning failed: %s", e, exc_info=True)
+
+    # Clean local HTML debug files older than 48h
     try:
         snapshot_dir = os.path.join(os.getcwd(), "debug_snapshots")
         if os.path.exists(snapshot_dir):
             now = time.time()
-            deleted_files = 0
-            for f in os.listdir(snapshot_dir):
-                f_path = os.path.join(snapshot_dir, f)
-                if os.stat(f_path).st_mtime < now - (48 * 3600):
-                    os.remove(f_path)
-                    deleted_files += 1
-            print(f"   [OK] Deleted {deleted_files} local HTML snapshots.")
-
-        print("[OK] Snapshot cleanup complete.")
+            deleted = sum(
+                1 for f in os.listdir(snapshot_dir)
+                if os.stat(fp := os.path.join(snapshot_dir, f)).st_mtime < now - 172800
+                and not os.remove(fp)
+            )
+            print(f"   [OK] Deleted {deleted} local HTML debug files.")
     except Exception as e:
-        logger.error(f"Snapshot cleanup failed: {e}")
+        logger.error("Local snapshot cleanup failed: %s", e)
+
+    print("[OK] Cleanup complete.")
 
 
 async def run_continuous_backfill(batch_size: int = 50):
