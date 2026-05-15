@@ -159,10 +159,29 @@ export default function HeroSection() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-6 leading-tight text-white"
+          className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-6 leading-none text-white"
         >
-          Stop falling for{" "}
-          <span style={{ color: "var(--lav)" }}>fake discounts</span>
+          Stop paying for{" "}
+          <span style={{ position: "relative", display: "inline-block" }}>
+            <span style={{ color: "var(--text-faint)" }}>fake</span>
+            <motion.span
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ delay: 0.9, duration: 0.35, ease: "easeOut" }}
+              style={{
+                position: "absolute",
+                left: "-4%",
+                top: "52%",
+                width: "108%",
+                height: "3px",
+                background: "var(--red)",
+                transformOrigin: "left center",
+                transform: "translateY(-50%) rotate(-3deg)",
+                borderRadius: "2px",
+              }}
+            />
+          </span>{" "}
+          <span style={{ color: "var(--lav)" }}>discounts.</span>
         </motion.h1>
 
         <motion.p
