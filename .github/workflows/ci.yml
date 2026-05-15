@@ -89,6 +89,8 @@ jobs:
         working-directory: web
         env:
           NEXT_PUBLIC_API_URL: https://api.damkoi.com/v1
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder_anon_key_for_build
         run: npm run build
 
   # ── Lint ───────────────────────────────────────────────────────
