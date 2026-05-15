@@ -1,4 +1,4 @@
-(()=>{var N="https://damkoi.xynly.com";async function S(i,e={}){return new Promise((t,s)=>{chrome.runtime.sendMessage({type:i,...e},a=>{chrome.runtime.lastError?s(new Error(chrome.runtime.lastError.message)):a&&a.success?t(a.data):s(new Error(a?.error||"Unknown error"))})})}var ue={EMAIL:"email",SMS:"sms",PUSH:"push"},he=ue.EMAIL,ve=60*60*1e3;function j(i,e){return`damkoi:${i}:${e}`}function P(i){try{let e=localStorage.getItem(i);if(!e)return null;let{data:t,timestamp:s}=JSON.parse(e);return Date.now()-s>ve?(localStorage.removeItem(i),null):t}catch(e){return console.warn("[DamKoi Cache] Failed to read cache:",e),null}}function R(i,e){try{localStorage.setItem(i,JSON.stringify({data:e,timestamp:Date.now()}))}catch(t){console.warn("[DamKoi Cache] Failed to save cache:",t)}}function W(i){return i>=8?"#10b981":i>=6?"#f59e0b":i>=4?"#ef4444":"#dc2626"}function G(i){return i>=8?"score-green":i>=6?"score-amber":"score-red"}function f(i){return i?`\u09F3${(i/100).toLocaleString("en-BD")}`:"\u2014"}function Y(i,e,t,s=[he]){return{product_id:i,target_price:parseInt(e)*100,email:t.trim(),notify_via:s}}function T(i,e,t){if(!i)return;let s=e==="success",a=e==="info";i.textContent=t,i.classList.remove("dk-status-success","dk-status-error","dk-status-info"),s?i.classList.add("dk-status-success"):a?i.classList.add("dk-status-info"):i.classList.add("dk-status-error")}function J(i){return i&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(i.trim())}function X(i){let e=parseInt(i);return!isNaN(e)&&e>0}var ke={renderDealGauge(i,e){let t=document.getElementById(e);if(!t)return;let a=Math.min(Math.max(i,0),10)/10,n=W(i),h=Math.PI*40,d=h*(1-a);t.innerHTML=`
+(()=>{var N="https://damkoi.xynly.com";async function S(i,t={}){return new Promise((e,s)=>{chrome.runtime.sendMessage({type:i,...t},a=>{chrome.runtime.lastError?s(new Error(chrome.runtime.lastError.message)):a&&a.success?e(a.data):s(new Error(a?.error||"Unknown error"))})})}var ut={EMAIL:"email",SMS:"sms",PUSH:"push"},ht=ut.EMAIL,vt=60*60*1e3;function j(i,t){return`damkoi:v2:${i}:${t}`}function P(i){try{let t=localStorage.getItem(i);if(!t)return null;let{data:e,timestamp:s}=JSON.parse(t);return Date.now()-s>vt?(localStorage.removeItem(i),null):e}catch(t){return console.warn("[DamKoi Cache] Failed to read cache:",t),null}}function R(i,t){try{localStorage.setItem(i,JSON.stringify({data:t,timestamp:Date.now()}))}catch(e){console.warn("[DamKoi Cache] Failed to save cache:",e)}}function W(i){return i>=8?"#10b981":i>=6?"#f59e0b":i>=4?"#ef4444":"#dc2626"}function G(i){return i>=8?"score-green":i>=6?"score-amber":"score-red"}function f(i){return i?`\u09F3${(i/100).toLocaleString("en-BD")}`:"\u2014"}function Y(i,t,e,s=[ht]){return{product_id:i,target_price:parseInt(t)*100,email:e.trim(),notify_via:s}}function T(i,t,e){if(!i)return;let s=t==="success",a=t==="info";i.textContent=e,i.classList.remove("dk-status-success","dk-status-error","dk-status-info"),s?i.classList.add("dk-status-success"):a?i.classList.add("dk-status-info"):i.classList.add("dk-status-error")}function J(i){return i&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(i.trim())}function X(i){let t=parseInt(i);return!isNaN(t)&&t>0}var kt={renderDealGauge(i,t){let e=document.getElementById(t);if(!e)return;let a=Math.min(Math.max(i,0),10)/10,n=W(i),h=Math.PI*40,d=h*(1-a);e.innerHTML=`
       <div class="damkoi-gauge-container">
         <svg width="100" height="60" viewBox="0 0 100 60">
           <path d="M10 50 A40 40 0 0 1 90 50"
@@ -18,7 +18,7 @@
         <div class="damkoi-gauge-value ${G(i)}">${i}</div>
         <div class="damkoi-gauge-label">Deal Score</div>
       </div>
-    `},renderPriceChart(i,e){let t=document.getElementById(e);if(!t||!i||i.length<2){t.innerHTML='<div class="damkoi-no-data">Not enough data for chart</div>';return}let s=[...i].sort((m,b)=>new Date(m.scraped_at)-new Date(b.scraped_at)),a=s.map(m=>m.price),n=Math.min(...a)*.95,h=Math.max(...a)*1.05-n,d=280,c=120,p=10,l=d-p*2,u=c-p*2,v=s.map((m,b)=>{let L=p+b*(l/(s.length-1)),H=p+(u-(m.price-n)/h*u);return{x:L,y:H}}),g=v.map((m,b)=>`${b===0?"M":"L"} ${m.x} ${m.y}`).join(" "),A=`${g} L ${v[v.length-1].x} ${c-p} L ${v[0].x} ${c-p} Z`;t.innerHTML=`
+    `},renderPriceChart(i,t){let e=document.getElementById(t);if(!e||!i||i.length<2){e.innerHTML='<div class="damkoi-no-data">Not enough data for chart</div>';return}let s=[...i].sort((m,b)=>new Date(m.scraped_at)-new Date(b.scraped_at)),a=s.map(m=>m.price),n=Math.min(...a)*.95,h=Math.max(...a)*1.05-n,d=280,c=120,p=10,l=d-p*2,u=c-p*2,v=s.map((m,b)=>{let L=p+b*(l/(s.length-1)),H=p+(u-(m.price-n)/h*u);return{x:L,y:H}}),g=v.map((m,b)=>`${b===0?"M":"L"} ${m.x} ${m.y}`).join(" "),A=`${g} L ${v[v.length-1].x} ${c-p} L ${v[0].x} ${c-p} Z`;e.innerHTML=`
       <div class="damkoi-chart-container">
         <svg width="${d}" height="${c}" viewBox="0 0 ${d} ${c}">
           <defs>
@@ -38,13 +38,13 @@
           `).join("")}
         </svg>
       </div>
-    `}},K=ke;var w={summary:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',history:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',alternatives:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 21v-8"/><path d="m7 16 5 5 5-5"/></svg>',alerts:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>',close:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'};var Z="damkoi-inline-root";var ge=['[class*="pdp-product-price"]','[class*="product-price"]','[class*="pdp-info-block"]',".pdp-product-main--price",'[class*="pdp-block"]',"#module_add_to_cart",'[class*="add-to-cart"]','form[action*="cart"]','[class*="pdp-product-detail"]'],o={bg:"#FAFAF9",raised:"rgba(255, 255, 255, 0.45)",inset:"rgba(0, 0, 0, 0.04)",border:"rgba(255, 255, 255, 0.5)",accent:"#7c3aed",primary:"#7c3aed",success:"#059669",danger:"#DC2626",warn:"#D97706",text:"#0C0A09",muted:"#44403C",dim:"#A8A29E"},x={trophy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>',check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>',clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',xmark:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',chart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',buy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>',wait:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',tag:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>',bell:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>'},F={BEST_PRICE:{icon:x.trophy,label:"Best Price",color:o.success,bg:"rgba(16,185,129,0.12)",rec:"buy"},GOOD_DEAL:{icon:x.check,label:"Good Deal",color:"#34d399",bg:"rgba(52,211,153,0.1)",rec:"buy"},FAIR_PRICE:{icon:x.clock,label:"Fair Price",color:o.warn,bg:"rgba(245,158,11,0.1)",rec:"wait"},FAKE_DISCOUNT:{icon:x.xmark,label:"Fake Discount",color:o.danger,bg:"rgba(239,68,68,0.1)",rec:"wait"},INSUFFICIENT_DATA:{icon:x.chart,label:"Not Enough Data",color:o.muted,bg:"rgba(123,123,158,0.1)",rec:null}};function me(i){return i>=9?o.success:i>=7?"#34d399":i>=5?o.warn:o.danger}function B(i,e=480,t=130){if(!i||i.length<2)return{svg:`<div style="text-align:center;color:${o.dim};font-size:12px;padding:28px 0;">
+    `}},K=kt;var w={summary:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',history:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',alternatives:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 21v-8"/><path d="m7 16 5 5 5-5"/></svg>',alerts:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>',close:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'};var Z="damkoi-inline-root";var gt=['[class*="pdp-product-price"]','[class*="product-price"]','[class*="pdp-info-block"]',".pdp-product-main--price",'[class*="pdp-block"]',"#module_add_to_cart",'[class*="add-to-cart"]','form[action*="cart"]','[class*="pdp-product-detail"]'],o={bg:"#FAFAF9",raised:"rgba(255, 255, 255, 0.45)",inset:"rgba(0, 0, 0, 0.04)",border:"rgba(255, 255, 255, 0.5)",accent:"#7c3aed",primary:"#7c3aed",success:"#059669",danger:"#DC2626",warn:"#D97706",text:"#0C0A09",muted:"#44403C",dim:"#A8A29E"},x={trophy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>',check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>',clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',xmark:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',chart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',buy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>',wait:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',tag:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>',bell:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>'},F={BEST_PRICE:{icon:x.trophy,label:"Best Price",color:o.success,bg:"rgba(16,185,129,0.12)",rec:"buy"},GOOD_DEAL:{icon:x.check,label:"Good Deal",color:"#34d399",bg:"rgba(52,211,153,0.1)",rec:"buy"},FAIR_PRICE:{icon:x.clock,label:"Fair Price",color:o.warn,bg:"rgba(245,158,11,0.1)",rec:"wait"},FAKE_DISCOUNT:{icon:x.xmark,label:"Fake Discount",color:o.danger,bg:"rgba(239,68,68,0.1)",rec:"wait"},INSUFFICIENT_DATA:{icon:x.chart,label:"Not Enough Data",color:o.muted,bg:"rgba(123,123,158,0.1)",rec:null}};function mt(i){return i>=9?o.success:i>=7?"#34d399":i>=5?o.warn:o.danger}function B(i,t=480,e=130){if(!i||i.length<2)return{svg:`<div style="text-align:center;color:${o.dim};font-size:12px;padding:28px 0;">
               Not enough price data yet \u2014 check back in a few hours as we build your history.
-            </div>`,initInteractivity:()=>{}};let s=[...i].sort((k,y)=>new Date(k.scraped_at)-new Date(y.scraped_at)),a=s.map(k=>k.price),n=Math.min(...a),r=Math.max(...a),h=r-n||1,d={top:12,right:56,bottom:26,left:10},c=e-d.left-d.right,p=t-d.top-d.bottom,l=k=>d.left+k/(s.length-1)*c,u=k=>d.top+p-(k-n)/h*p,v=s.map((k,y)=>`${y===0?"M":"L"}${l(y).toFixed(1)},${u(k.price).toFixed(1)}`).join(" "),g=`${v} L${l(s.length-1).toFixed(1)},${(d.top+p).toFixed(1)} L${d.left},${(d.top+p).toFixed(1)} Z`,m=[0,Math.floor(s.length/2),s.length-1].map(k=>{let $=new Date(s[k].scraped_at).toLocaleDateString("en-BD",{month:"short",day:"numeric"});return`<text x="${l(k).toFixed(1)}" y="${t-5}" text-anchor="middle"
-              fill="${o.dim}" font-size="9" font-family="Inter,sans-serif">${$}</text>`}).join(""),b=u(n),L=u(r),H=a.lastIndexOf(n),q=`dkg_${Math.random().toString(36).slice(2,7)}`,ie=s.map((k,y)=>{let $=k.price===n&&y===H,E=y===s.length-1;if(!$&&!E)return"";let _=$?o.success:o.accent,I=E?5:4;return`<circle cx="${l(y).toFixed(1)}" cy="${u(k.price).toFixed(1)}" r="${I}"
+            </div>`,initInteractivity:()=>{}};let s=[...i].sort((k,y)=>new Date(k.scraped_at)-new Date(y.scraped_at)),a=s.map(k=>k.price),n=Math.min(...a),r=Math.max(...a),h=r-n||1,d={top:12,right:56,bottom:26,left:10},c=t-d.left-d.right,p=e-d.top-d.bottom,l=k=>d.left+k/(s.length-1)*c,u=k=>d.top+p-(k-n)/h*p,v=s.map((k,y)=>`${y===0?"M":"L"}${l(y).toFixed(1)},${u(k.price).toFixed(1)}`).join(" "),g=`${v} L${l(s.length-1).toFixed(1)},${(d.top+p).toFixed(1)} L${d.left},${(d.top+p).toFixed(1)} Z`,m=[0,Math.floor(s.length/2),s.length-1].map(k=>{let $=new Date(s[k].scraped_at).toLocaleDateString("en-BD",{month:"short",day:"numeric"});return`<text x="${l(k).toFixed(1)}" y="${e-5}" text-anchor="middle"
+              fill="${o.dim}" font-size="9" font-family="Inter,sans-serif">${$}</text>`}).join(""),b=u(n),L=u(r),H=a.lastIndexOf(n),q=`dkg_${Math.random().toString(36).slice(2,7)}`,it=s.map((k,y)=>{let $=k.price===n&&y===H,E=y===s.length-1;if(!$&&!E)return"";let _=$?o.success:o.accent,I=E?5:4;return`<circle cx="${l(y).toFixed(1)}" cy="${u(k.price).toFixed(1)}" r="${I}"
       fill="${_}" stroke="${o.bg}" stroke-width="1.5"
-      style="filter:drop-shadow(0 0 4px ${_});"/>`}).join(""),C=`dksvg_${Math.random().toString(36).slice(2,7)}`,se=`
-    <svg id="${C}" width="${e}" height="${t}" viewBox="0 0 ${e} ${t}"
+      style="filter:drop-shadow(0 0 4px ${_});"/>`}).join(""),C=`dksvg_${Math.random().toString(36).slice(2,7)}`,st=`
+    <svg id="${C}" width="${t}" height="${e}" viewBox="0 0 ${t} ${e}"
          style="display:block;overflow:visible;cursor:crosshair;">
       <defs>
         <linearGradient id="${q}" x1="0" y1="0" x2="0" y2="1">
@@ -54,9 +54,9 @@
       </defs>
 
       <!-- Grid lines -->
-      <line x1="${d.left}" y1="${L.toFixed(1)}" x2="${e-d.right}" y2="${L.toFixed(1)}"
+      <line x1="${d.left}" y1="${L.toFixed(1)}" x2="${t-d.right}" y2="${L.toFixed(1)}"
             stroke="rgba(0,0,0,0.06)" stroke-dasharray="3 3" stroke-width="1"/>
-      <line x1="${d.left}" y1="${b.toFixed(1)}" x2="${e-d.right}" y2="${b.toFixed(1)}"
+      <line x1="${d.left}" y1="${b.toFixed(1)}" x2="${t-d.right}" y2="${b.toFixed(1)}"
             stroke="rgba(16,185,129,0.12)" stroke-dasharray="3 3" stroke-width="1"/>
 
       <!-- Area + line -->
@@ -65,16 +65,16 @@
             stroke-linecap="round" stroke-linejoin="round"/>
 
       <!-- Price labels right side -->
-      <text x="${e-d.right+4}" y="${(L+4).toFixed(1)}"
+      <text x="${t-d.right+4}" y="${(L+4).toFixed(1)}"
             fill="${o.muted}" font-size="9" font-family="Inter,sans-serif">${f(r)}</text>
-      <text x="${e-d.right+4}" y="${(b+4).toFixed(1)}"
+      <text x="${t-d.right+4}" y="${(b+4).toFixed(1)}"
             fill="${o.success}" font-size="9" font-family="Inter,sans-serif">${f(n)}</text>
 
       <!-- Key dots -->
-      ${ie}
+      ${it}
 
       <!-- Hover crosshair (hidden by default) -->
-      <line id="${C}_hline" x1="0" y1="0" x2="0" y2="${t-d.bottom}"
+      <line id="${C}_hline" x1="0" y1="0" x2="0" y2="${e-d.bottom}"
             stroke="${o.accent}" stroke-width="1" stroke-dasharray="3 2" opacity="0"
             style="pointer-events:none;"/>
       <circle id="${C}_hdot" cx="0" cy="0" r="5"
@@ -93,7 +93,7 @@
       color:${o.text};font-family:Inter,sans-serif;
       box-shadow:-2px -2px 6px rgba(255,255,255,0.8),2px 2px 8px rgba(0,0,0,0.1);
       pointer-events:none;white-space:nowrap;z-index:10;
-    "></div>`;function ae(k){let y=k.getElementById(C),$=k.getElementById(`${C}_hline`),E=k.getElementById(`${C}_hdot`),_=k.getElementById(`${C}_tip`);if(!y||!$||!E||!_)return;let I=y.parentElement;I&&(I.style.position="relative"),y.addEventListener("mousemove",oe=>{let D=y.getBoundingClientRect(),re=(oe.clientX-D.left)/D.width*e,ne=Math.max(d.left,Math.min(e-d.right,re)),de=Math.round((ne-d.left)/c*(s.length-1)),U=Math.max(0,Math.min(s.length-1,de)),z=s[U],M=l(U),V=u(z.price);$.setAttribute("x1",M.toFixed(1)),$.setAttribute("x2",M.toFixed(1)),$.setAttribute("opacity","0.7"),E.setAttribute("cx",M.toFixed(1)),E.setAttribute("cy",V.toFixed(1)),E.setAttribute("opacity","1");let ce=new Date(z.scraped_at).toLocaleDateString("en-BD",{month:"short",day:"numeric",year:"numeric"});_.innerHTML=`<span style="color:${o.dim}">${ce}</span>&nbsp;&nbsp;<strong style="color:${o.accent}">${f(z.price)}</strong>`,_.style.display="block";let le=M/e*D.width+(M>e*.65?-(180+8):12),pe=V/t*D.height-16;_.style.left=`${le}px`,_.style.top=`${pe}px`}),y.addEventListener("mouseleave",()=>{$.setAttribute("opacity","0"),E.setAttribute("opacity","0"),_.style.display="none"})}return{svg:se,initInteractivity:ae}}var fe=`
+    "></div>`;function at(k){let y=k.getElementById(C),$=k.getElementById(`${C}_hline`),E=k.getElementById(`${C}_hdot`),_=k.getElementById(`${C}_tip`);if(!y||!$||!E||!_)return;let I=y.parentElement;I&&(I.style.position="relative"),y.addEventListener("mousemove",ot=>{let D=y.getBoundingClientRect(),rt=(ot.clientX-D.left)/D.width*t,nt=Math.max(d.left,Math.min(t-d.right,rt)),dt=Math.round((nt-d.left)/c*(s.length-1)),U=Math.max(0,Math.min(s.length-1,dt)),z=s[U],M=l(U),V=u(z.price);$.setAttribute("x1",M.toFixed(1)),$.setAttribute("x2",M.toFixed(1)),$.setAttribute("opacity","0.7"),E.setAttribute("cx",M.toFixed(1)),E.setAttribute("cy",V.toFixed(1)),E.setAttribute("opacity","1");let ct=new Date(z.scraped_at).toLocaleDateString("en-BD",{month:"short",day:"numeric",year:"numeric"});_.innerHTML=`<span style="color:${o.dim}">${ct}</span>&nbsp;&nbsp;<strong style="color:${o.accent}">${f(z.price)}</strong>`,_.style.display="block";let lt=M/t*D.width+(M>t*.65?-(180+8):12),pt=V/e*D.height-16;_.style.left=`${lt}px`,_.style.top=`${pt}px`}),y.addEventListener("mouseleave",()=>{$.setAttribute("opacity","0"),E.setAttribute("opacity","0"),_.style.display="none"})}return{svg:st,initInteractivity:at}}var ft=`
   @import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700&family=Rubik:wght@500;700;800&display=swap');
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -277,22 +277,22 @@
   .dk-skel-footer { display:flex; justify-content:space-between; gap:10px; }
   .dk-skel-foot-l { height:22px; flex:1; border-radius:6px; }
   .dk-skel-btn    { height:30px; width:90px; border-radius:8px; }
-`;function ye(i){if(!i||i.length===0)return"";let e=i.map((t,s)=>{let a=t.min_spend?`Min spend: \u09F3${(t.min_spend/100).toFixed(0)}`:"No minimum spend",n=t.expires_at?`\xB7 Expires ${new Date(t.expires_at).toLocaleDateString("en-BD",{month:"short",day:"numeric"})}`:"";return`
+`;function yt(i){if(!i||i.length===0)return"";let t=i.map((e,s)=>{let a=e.min_spend?`Min spend: \u09F3${(e.min_spend/100).toFixed(0)}`:"No minimum spend",n=e.expires_at?`\xB7 Expires ${new Date(e.expires_at).toLocaleDateString("en-BD",{month:"short",day:"numeric"})}`:"";return`
       <div class="dk-coupon-card">
         <div class="dk-coupon-left">
-          <div class="dk-coupon-code">${t.code}</div>
+          <div class="dk-coupon-code">${e.code}</div>
           <div class="dk-coupon-meta">${a}${n}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;">
-          <div class="dk-coupon-badge">${t.display_discount}</div>
-          <button class="dk-coupon-copy" data-dk-copy="${t.code}" id="dkcp_${s}">Copy</button>
+          <div class="dk-coupon-badge">${e.display_discount}</div>
+          <button class="dk-coupon-copy" data-dk-copy="${e.code}" id="dkcp_${s}">Copy</button>
         </div>
       </div>`}).join("");return`
     <div class="dk-divider"></div>
     <div class="dk-coupons">
       <div class="dk-coupon-title" style="display:flex;align-items:center;gap:5px;">${x.tag} Available Coupons</div>
-      <div class="dk-coupon-list">${e}</div>
-    </div>`}function be(i){i.querySelectorAll("[data-dk-copy]").forEach(e=>{e.addEventListener("click",async()=>{let t=e.dataset.dkCopy;try{await navigator.clipboard.writeText(t),e.textContent="\u2705 Copied!",e.classList.add("copied"),setTimeout(()=>{e.textContent="Copy",e.classList.remove("copied")},2e3)}catch{e.textContent=t,e.select?.()}})})}function xe(){return`
+      <div class="dk-coupon-list">${t}</div>
+    </div>`}function bt(i){i.querySelectorAll("[data-dk-copy]").forEach(t=>{t.addEventListener("click",async()=>{let e=t.dataset.dkCopy;try{await navigator.clipboard.writeText(e),t.textContent="\u2705 Copied!",t.classList.add("copied"),setTimeout(()=>{t.textContent="Copy",t.classList.remove("copied")},2e3)}catch{t.textContent=e,t.select?.()}})})}function xt(){return`
     <div id="dkw-skeleton">
       <!-- Brand bar -->
       <div style="display:flex;align-items:center;justify-content:space-between;padding:0 0 4px;">
@@ -329,18 +329,18 @@
         <div class="dk-skel dk-skel-foot-l"></div>
         <div class="dk-skel dk-skel-btn"></div>
       </div>
-    </div>`}function we(i){let e=me(i),s=Math.PI*24,a=s*(1-i/10);return`
+    </div>`}function wt(i){let t=mt(i),s=Math.PI*24,a=s*(1-i/10);return`
     <svg width="58" height="36" viewBox="0 0 58 36" style="overflow:visible;">
       <path d="M5 30 A24 24 0 0 1 53 30" fill="none" stroke="rgba(0,0,0,0.06)" stroke-width="4.5" stroke-linecap="round"/>
-      <path d="M5 30 A24 24 0 0 1 53 30" fill="none" stroke="${e}"
+      <path d="M5 30 A24 24 0 0 1 53 30" fill="none" stroke="${t}"
             stroke-width="4.5" stroke-linecap="round"
             stroke-dasharray="${s}" stroke-dashoffset="${a}"
-            style="filter:drop-shadow(0 0 4px ${e});transition:stroke-dashoffset 0.9s cubic-bezier(.34,1.56,.64,1);"/>
-      <text x="29" y="29" text-anchor="middle" fill="${e}"
+            style="filter:drop-shadow(0 0 4px ${t});transition:stroke-dashoffset 0.9s cubic-bezier(.34,1.56,.64,1);"/>
+      <text x="29" y="29" text-anchor="middle" fill="${t}"
             font-size="13" font-weight="900" font-family="Inter,sans-serif">${i}</text>
       <text x="29" y="35" text-anchor="middle" fill="${o.dim}"
             font-size="6.5" font-family="Inter,sans-serif">/10</text>
-    </svg>`}function $e(i,e){let t=F[i.label]||F.INSUFFICIENT_DATA;if(!t.rec)return"";if(t.rec==="buy"){let s=e>0?`You save <strong style="color:${o.success}">${e}%</strong> vs the 30-day average.`:"This is at or below its typical price.";return`
+    </svg>`}function $t(i,t){let e=F[i.label]||F.INSUFFICIENT_DATA;if(!e.rec)return"";if(e.rec==="buy"){let s=t>0?`You save <strong style="color:${o.success}">${t}%</strong> vs the 30-day average.`:"This is at or below its typical price.";return`
       <div class="dk-rec">
         <div class="dk-rec-icon" style="color:${o.success}">${x.buy}</div>
         <div>
@@ -354,13 +354,13 @@
           <div class="dk-rec-title" style="color:${o.warn}">Consider Waiting</div>
           <div class="dk-rec-sub">${i.explanation}</div>
         </div>
-      </div>`}function _e(i){if(!i||i.length===0)return"";let e=i.slice(0,3).map(t=>{let s=t.image_url?`<img class="dk-alt-img" src="${t.image_url}" alt="" loading="lazy"/>`:`<img class="dk-alt-img" src="${chrome.runtime.getURL("icons/dk_logo.svg")}" style="background:#fff;object-fit:contain;padding:4px;" />`,a=t.savings>0?`<span class="dk-alt-save">Save ${f(t.savings)}</span>`:"";return`
-      <div class="dk-alt-item" data-url="${t.url}">
+      </div>`}function _t(i){if(!i||i.length===0)return"";let t=i.slice(0,3).map(e=>{let s=e.image_url?`<img class="dk-alt-img" src="${e.image_url}" alt="" loading="lazy"/>`:`<img class="dk-alt-img" src="${chrome.runtime.getURL("icons/dk_logo.svg")}" style="background:#fff;object-fit:contain;padding:4px;" />`,a=e.savings>0?`<span class="dk-alt-save">Save ${f(e.savings)}</span>`:"";return`
+      <div class="dk-alt-item" data-url="${e.url}">
         ${s}
         <div class="dk-alt-info">
-          <div class="dk-alt-name">${t.title}</div>
+          <div class="dk-alt-name">${e.title}</div>
           <div>
-            <span class="dk-alt-price">${f(t.current_price)}</span>
+            <span class="dk-alt-price">${f(e.current_price)}</span>
             ${a}
           </div>
         </div>
@@ -369,8 +369,8 @@
     <div class="dk-divider" style="margin-bottom:12px;"></div>
     <div class="dk-alts">
       <div class="dk-alts-title" style="display:flex;align-items:center;gap:5px;">${x.chart} Look-alike Deals</div>
-      <div class="dk-alt-list" id="dk-alt-list">${e}</div>
-    </div>`}function Ce(i,e,t,s,a=[]){let{product:n,verdict:r}=i,h=F[r.label]||F.INSUFFICIENT_DATA,d=h.color,c=r.avg_30d&&n.current_price&&r.avg_30d>n.current_price?Math.round((r.avg_30d-n.current_price)/r.avg_30d*100):0,p=i.price_history||[];return`
+      <div class="dk-alt-list" id="dk-alt-list">${t}</div>
+    </div>`}function Ct(i,t,e,s,a=[]){let{product:n,verdict:r}=i,h=F[r.label]||F.INSUFFICIENT_DATA,d=h.color,c=r.avg_30d&&n.current_price&&r.avg_30d>n.current_price?Math.round((r.avg_30d-n.current_price)/r.avg_30d*100):0,p=i.price_history||[];return`
   <div id="dkw">
 
     <!-- Top bar -->
@@ -384,12 +384,12 @@
         <span class="dk-verdict-pill" style="color:${d};background:${h.bg};">
           ${h.icon} ${h.label}
         </span>
-        ${we(r.deal_score)}
+        ${wt(r.deal_score)}
       </div>
     </div>
 
     <!-- Recommendation card -->
-    ${$e(r,c)}
+    ${$t(r,c)}
 
     <!-- Price stats (4 tiles) -->
     <div class="dk-stats">
@@ -411,7 +411,7 @@
         </div>
       </div>
       <div class="dk-chart-inner" id="dk-chart-inner">
-        ${t.svg}
+        ${e.svg}
       </div>
       <div class="dk-chart-legend">
         <span><span class="dk-legend-dot" style="background:${o.accent};"></span>Price line</span>
@@ -421,10 +421,10 @@
     </div>
 
     <!-- Look-alike alternatives -->
-    ${e?_e(e):'<div class="dk-divider"></div><div class="dk-loading"><span class="dk-spinner"></span>Loading similar products\u2026</div>'}
+    ${t?_t(t):'<div class="dk-divider"></div><div class="dk-loading"><span class="dk-spinner"></span>Loading similar products\u2026</div>'}
 
     <!-- Coupons -->
-    ${ye(a)}
+    ${yt(a)}
 
     <!-- Footer: explanation + alert CTA -->
     <div class="dk-footer">
@@ -444,7 +444,7 @@
       <div class="dk-status" id="dk-status"></div>
     </div>
 
-  </div>`}function Q(i,e){if(!i||i.length===0||e==="ALL")return i;let t=e==="1M"?30:90,s=Date.now()-t*864e5,a=i.filter(n=>new Date(n.scraped_at).getTime()>=s);return a.length>=2?a:i}function Ee(i,e,t,s,a=[]){be(i),i.querySelectorAll(".dk-range-tab").forEach(d=>{d.addEventListener("click",()=>{let c=d.dataset.range;if(c===s)return;s=c;let p=Q(e.price_history||[],c),l=B(p,460,130),u=i.getElementById("dk-chart-inner");u&&(u.innerHTML=l.svg,l.initInteractivity(i)),i.querySelectorAll(".dk-range-tab").forEach(v=>v.classList.toggle("active",v.dataset.range===c))})});let n=i.getElementById("dk-alert-btn"),r=i.getElementById("dk-alert-form");n?.addEventListener("click",()=>{let d=r.style.display!=="none";r.style.display=d?"none":"block",n.innerHTML=d?`${x.bell} Alert me`:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Cancel'}),i.getElementById("dk-submit")?.addEventListener("click",async()=>{let d=i.getElementById("dk-email")?.value?.trim(),c=parseFloat(i.getElementById("dk-target")?.value||"0"),p=i.getElementById("dk-status"),l=i.getElementById("dk-submit"),u=(v,g)=>{p.textContent=v,p.style.color=g};if(!d||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d))return u("Enter a valid email address.",o.danger);if(!c||c<=0)return u("Enter a valid target price.",o.danger);l.disabled=!0,u("Setting alert\u2026",o.muted);try{await S("CREATE_ALERT",{payload:{product_id:e.product.id,target_price:Math.round(c*100),email:d,channel:"email"}}),u(`Alert set! We'll email you when price drops to \u09F3${c.toLocaleString("en-BD")}.`,o.success),n.innerHTML=`${x.check} Alert set`}catch{u("Failed to set alert \u2014 please try again.",o.danger)}finally{l.disabled=!1}}),i.getElementById("dk-alt-list")?.addEventListener("click",d=>{let c=d.target.closest("[data-url]");c?.dataset?.url&&(window.location.href=c.dataset.url)})}function Se(){for(let i of ge){let e=document.querySelector(i);if(e)return e}return null}async function ee(i){document.getElementById(Z)?.remove();let e=Se();if(!e){console.warn("[DamKoi] No injection target found");return}let t=document.createElement("div");t.id=Z;let s=t.attachShadow({mode:"open"}),a=document.createElement("style");a.textContent=fe,s.appendChild(a);let n=document.createElement("div");s.appendChild(n),e.insertAdjacentElement("afterend",t),n.innerHTML=xe();let r="3M",h=Q(i.price_history||[],r),d=B(h,460,130);await new Promise(g=>requestAnimationFrame(g));let c=i.product.id,[p,l]=await Promise.allSettled([fetch(`${N}/v1/products/${c}/alternatives`).then(g=>g.ok?g.json():[]),fetch(`${N}/v1/products/${c}/coupons`).then(g=>g.ok?g.json():[])]),u=p.status==="fulfilled"?p.value||[]:[],v=l.status==="fulfilled"?l.value||[]:[];n.style.transition="opacity 0.25s ease",n.style.opacity="0",await new Promise(g=>setTimeout(g,120)),n.innerHTML=Ce(i,u,B(h,460,130),r,v),B(h,460,130).initInteractivity(s),Ee(s,i,u,r,v),n.style.opacity="1"}var O=class{constructor(){this.data=null,this.sidebar=null,this.currentTab="summary",this.alternativesCache=null,this.alertFormState={}}async init(){if(this.platform=this.detectPlatform(),!!this.platform){if(this.platform==="daraz-checkout"||this.platform==="pickaboo-checkout"){console.log("[DamKoi] Checkout detected. Launching coupon magic..."),this.initCouponMagic();return}console.log(`[DamKoi] Content script starting on ${this.platform}...`),this.data=await this.fetchData(window.location.href),this.data&&!this.data.notTracked&&(await this.enrichPriceHistory(),ee(this.data)),this.renderSidebar()}}async enrichPriceHistory(){if(this.data?.product?.id)try{let e=await S("FETCH_HISTORY",{productId:this.data.product.id,days:90});this.data.price_history=e.prices||[]}catch(e){console.warn("[DamKoi] Could not fetch history:",e),this.data.price_history=[]}}detectPlatform(){let{hostname:e,href:t}=window.location;return e.includes("daraz.com.bd")?t.includes("cart.daraz.com.bd")||t.includes("checkout.daraz.com.bd")?"daraz-checkout":/daraz\.com\.bd\/.*i\d+-s\d+/i.test(t)||t.includes("daraz.com.bd/products/")?"daraz":null:e.includes("cartup.com.bd")?t.includes("/products/")?"cartup":null:e.includes("rokomari.com")?/\/book\/\d+/.test(t)?"rokomari":null:e.includes("pickaboo.com")?t.includes("pickaboo.com/checkout/")?"pickaboo-checkout":t.includes("/product/")?"pickaboo":null:e.includes("chaldal.com")?t.includes("/p/")||t.split("/").length>3?"chaldal":null:e.includes("othoba.com")&&t.includes("/product/")?"othoba":null}async fetchData(e){try{let t=j("product",e),s=P(t);if(s)return console.log("[DamKoi] Loaded from cache:",e),s;let a=await S("FETCH_VERDICT",{url:e});return R(t,a),a}catch(t){return console.error("[DamKoi] Fetch failed:",t),{notTracked:!0,connectionError:!t.message?.startsWith("404")}}}detectPaymentMethod(){let e=["bkash","nagad","rocket","upay","tap","card","cod"],t=()=>{let a=[...document.querySelectorAll('[class*="payment"][class*="active"], [class*="payment"][class*="selected"], [class*="cashier"][class*="active"], [aria-checked="true"][class*="payment"]'),...document.querySelectorAll(".cashier-active, .payment-method-active, .pay-method--active")];for(let n of a){let r=(n.textContent||"").toLowerCase(),h=[...n.querySelectorAll("img")].map(c=>(c.alt||"").toLowerCase()).join(" "),d=r+" "+h;for(let c of e)if(d.includes(c))return c}return null};this._paymentMethod=t(),new MutationObserver(()=>{let a=t();a!==this._paymentMethod&&(this._paymentMethod=a,this._updateCouponWidgetLabel())}).observe(document.body,{subtree:!0,attributes:!0,attributeFilter:["class","aria-checked"]}),document.addEventListener("click",a=>{a.target.closest('[class*="payment"], [class*="cashier"], [class*="pay-method"]')&&setTimeout(()=>{let r=t();r!==this._paymentMethod&&(this._paymentMethod=r,this._updateCouponWidgetLabel())},300)},!0)}_updateCouponWidgetLabel(){let e=document.getElementById("dk-payment-label");if(!e)return;let t=this._paymentMethod;if(t){let s={bkash:"bKash",nagad:"Nagad",rocket:"Rocket",upay:"Upay",card:"Card",cod:"Cash on Delivery"};e.textContent=`Showing ${s[t]||t} codes`,e.style.color=t==="bkash"?"#e91e8c":t==="nagad"?"#f97316":"#a78bfa"}else e.textContent="Showing all codes",e.style.color="rgba(255,255,255,0.4)"}async initCouponMagic(){this._paymentMethod=null,this.detectPaymentMethod();let e=document.createElement("div");e.id="damkoi-coupon-widget",e.innerHTML=`
+  </div>`}function Q(i,t){if(!i||i.length===0||t==="ALL")return i;let e=t==="1M"?30:90,s=Date.now()-e*864e5,a=i.filter(n=>new Date(n.scraped_at).getTime()>=s);return a.length>=2?a:i}function Et(i,t,e,s,a=[]){bt(i),i.querySelectorAll(".dk-range-tab").forEach(d=>{d.addEventListener("click",()=>{let c=d.dataset.range;if(c===s)return;s=c;let p=Q(t.price_history||[],c),l=B(p,460,130),u=i.getElementById("dk-chart-inner");u&&(u.innerHTML=l.svg,l.initInteractivity(i)),i.querySelectorAll(".dk-range-tab").forEach(v=>v.classList.toggle("active",v.dataset.range===c))})});let n=i.getElementById("dk-alert-btn"),r=i.getElementById("dk-alert-form");n?.addEventListener("click",()=>{let d=r.style.display!=="none";r.style.display=d?"none":"block",n.innerHTML=d?`${x.bell} Alert me`:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Cancel'}),i.getElementById("dk-submit")?.addEventListener("click",async()=>{let d=i.getElementById("dk-email")?.value?.trim(),c=parseFloat(i.getElementById("dk-target")?.value||"0"),p=i.getElementById("dk-status"),l=i.getElementById("dk-submit"),u=(v,g)=>{p.textContent=v,p.style.color=g};if(!d||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d))return u("Enter a valid email address.",o.danger);if(!c||c<=0)return u("Enter a valid target price.",o.danger);l.disabled=!0,u("Setting alert\u2026",o.muted);try{await S("CREATE_ALERT",{payload:{product_id:t.product.id,target_price:Math.round(c*100),email:d,channel:"email"}}),u(`Alert set! We'll email you when price drops to \u09F3${c.toLocaleString("en-BD")}.`,o.success),n.innerHTML=`${x.check} Alert set`}catch{u("Failed to set alert \u2014 please try again.",o.danger)}finally{l.disabled=!1}}),i.getElementById("dk-alt-list")?.addEventListener("click",d=>{let c=d.target.closest("[data-url]");c?.dataset?.url&&(window.location.href=c.dataset.url)})}function St(){for(let i of gt){let t=document.querySelector(i);if(t)return t}return null}async function tt(i){document.getElementById(Z)?.remove();let t=St();if(!t){console.warn("[DamKoi] No injection target found");return}let e=document.createElement("div");e.id=Z;let s=e.attachShadow({mode:"open"}),a=document.createElement("style");a.textContent=ft,s.appendChild(a);let n=document.createElement("div");s.appendChild(n),t.insertAdjacentElement("afterend",e),n.innerHTML=xt();let r="3M",h=Q(i.price_history||[],r),d=B(h,460,130);await new Promise(g=>requestAnimationFrame(g));let c=i.product.id,[p,l]=await Promise.allSettled([fetch(`${N}/v1/products/${c}/alternatives`).then(g=>g.ok?g.json():[]),fetch(`${N}/v1/products/${c}/coupons`).then(g=>g.ok?g.json():[])]),u=p.status==="fulfilled"?p.value||[]:[],v=l.status==="fulfilled"?l.value||[]:[];n.style.transition="opacity 0.25s ease",n.style.opacity="0",await new Promise(g=>setTimeout(g,120)),n.innerHTML=Ct(i,u,B(h,460,130),r,v),B(h,460,130).initInteractivity(s),Et(s,i,u,r,v),n.style.opacity="1"}var O=class{constructor(){this.data=null,this.sidebar=null,this.currentTab="summary",this.alternativesCache=null,this.alertFormState={}}async init(){if(this.platform=this.detectPlatform(),!!this.platform){if(this.platform==="daraz-checkout"||this.platform==="pickaboo-checkout"){console.log("[DamKoi] Checkout detected. Launching coupon magic..."),this.initCouponMagic();return}console.log(`[DamKoi] Content script starting on ${this.platform}...`),this.data=await this.fetchData(window.location.href),this.data&&!this.data.notTracked&&(await this.enrichPriceHistory(),tt(this.data)),this.renderSidebar()}}async enrichPriceHistory(){if(this.data?.product?.id)try{let t=await S("FETCH_HISTORY",{productId:this.data.product.id,days:90});this.data.price_history=t.prices||[]}catch(t){console.warn("[DamKoi] Could not fetch history:",t),this.data.price_history=[]}}detectPlatform(){let{hostname:t,href:e}=window.location;return t.includes("daraz.com.bd")?e.includes("cart.daraz.com.bd")||e.includes("checkout.daraz.com.bd")?"daraz-checkout":/daraz\.com\.bd\/.*i\d+-s\d+/i.test(e)||e.includes("daraz.com.bd/products/")?"daraz":null:t.includes("cartup.com.bd")?e.includes("/products/")?"cartup":null:t.includes("rokomari.com")?/\/book\/\d+/.test(e)?"rokomari":null:t.includes("pickaboo.com")?e.includes("pickaboo.com/checkout/")?"pickaboo-checkout":e.includes("/product/")?"pickaboo":null:t.includes("chaldal.com")?e.includes("/p/")||e.split("/").length>3?"chaldal":null:t.includes("othoba.com")&&e.includes("/product/")?"othoba":null}async fetchData(t){try{let e=j("product",t),s=P(e);if(s?.product&&s?.verdict)return console.log("[DamKoi] Loaded from cache:",t),s;let a=await S("FETCH_VERDICT",{url:t});return R(e,a),a}catch(e){return console.error("[DamKoi] Fetch failed:",e),{notTracked:!0,connectionError:!e.message?.startsWith("404")}}}detectPaymentMethod(){let t=["bkash","nagad","rocket","upay","tap","card","cod"],e=()=>{let a=[...document.querySelectorAll('[class*="payment"][class*="active"], [class*="payment"][class*="selected"], [class*="cashier"][class*="active"], [aria-checked="true"][class*="payment"]'),...document.querySelectorAll(".cashier-active, .payment-method-active, .pay-method--active")];for(let n of a){let r=(n.textContent||"").toLowerCase(),h=[...n.querySelectorAll("img")].map(c=>(c.alt||"").toLowerCase()).join(" "),d=r+" "+h;for(let c of t)if(d.includes(c))return c}return null};this._paymentMethod=e(),new MutationObserver(()=>{let a=e();a!==this._paymentMethod&&(this._paymentMethod=a,this._updateCouponWidgetLabel())}).observe(document.body,{subtree:!0,attributes:!0,attributeFilter:["class","aria-checked"]}),document.addEventListener("click",a=>{a.target.closest('[class*="payment"], [class*="cashier"], [class*="pay-method"]')&&setTimeout(()=>{let r=e();r!==this._paymentMethod&&(this._paymentMethod=r,this._updateCouponWidgetLabel())},300)},!0)}_updateCouponWidgetLabel(){let t=document.getElementById("dk-payment-label");if(!t)return;let e=this._paymentMethod;if(e){let s={bkash:"bKash",nagad:"Nagad",rocket:"Rocket",upay:"Upay",card:"Card",cod:"Cash on Delivery"};t.textContent=`Showing ${s[e]||e} codes`,t.style.color=e==="bkash"?"#e91e8c":e==="nagad"?"#f97316":"#a78bfa"}else t.textContent="Showing all codes",t.style.color="rgba(255,255,255,0.4)"}async initCouponMagic(){this._paymentMethod=null,this.detectPaymentMethod();let t=document.createElement("div");t.id="damkoi-coupon-widget",t.innerHTML=`
       <div style="background: rgba(10,10,12,0.95); border: 1px solid rgba(99,102,241,0.3); border-radius: 12px; padding: 16px; width: 300px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); backdrop-filter: blur(12px); color: white; font-family: system-ui, sans-serif; z-index: 999999; position: fixed; bottom: 20px; right: 20px;">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
           <div style="display: flex; align-items: center; gap: 8px;">
@@ -460,7 +460,7 @@
           Auto-Apply Coupons
         </button>
       </div>
-    `,document.body.appendChild(e),this._updateCouponWidgetLabel(),document.getElementById("dk-apply-btn").onclick=async()=>{let t=document.getElementById("dk-apply-btn");t.innerText="Testing Coupons...",t.style.background="#4f46e5",t.style.opacity="0.7",t.disabled=!0;try{let s=window.location.hostname.includes("daraz"),a=await S("FETCH_COUPONS",{platform:s?"daraz":"pickaboo",paymentMethod:this._paymentMethod||void 0});if(!a||a.length===0){t.innerText="No valid coupons found",t.disabled=!1;return}let n=s?'input[placeholder*="oupon" i], input[name*="coupon" i], .next-input.next-medium input':'input[placeholder*="oupon" i], input[name*="coupon" i], .coupon-input input, #coupon-code',r=s?'button[data-spm*="coupon"], .next-btn.next-btn-primary.next-btn-medium, button[class*="couponApply"]':'button[class*="coupon"], .apply-coupon-btn, button[id*="couponApply"]',h=s?'.checkout-order-total-discount, [class*="discount"][class*="total"], [class*="coupon"][class*="discount"]':'.order-summary .discount-amount, [class*="discount-amount"]',d=0,c=null;for(let p=0;p<a.length;p++){let l=a[p];t.innerText=`Testing ${l.code} (${p+1}/${a.length})`;let u=document.querySelector(n),v=document.querySelector(r);if(u&&v){u.value=l.code,u.dispatchEvent(new Event("input",{bubbles:!0})),u.dispatchEvent(new Event("change",{bubbles:!0})),v.click(),await new Promise(A=>setTimeout(A,2e3));let g=document.querySelector(h);if(g){let A=g.innerText.match(/[\d,]+/);if(A){let m=parseInt(A[0].replace(/,/g,""));m>d&&(d=m,c=l.code)}}}}if(c){t.innerText=`Applying best: ${c}`;let p=document.querySelector(n),l=document.querySelector(r);p&&l&&(p.value=c,p.dispatchEvent(new Event("input",{bubbles:!0})),l.click(),await new Promise(u=>setTimeout(u,1e3))),t.innerText=`Saved \u09F3${d.toLocaleString("en-BD")}!`,t.style.background="#10b981",t.disabled=!1}else t.innerText="No coupons worked",t.style.background="#3f3f46",t.disabled=!1}catch(s){console.error("[DamKoi]",s),t.innerText="Error trying coupons",t.disabled=!1}}}renderSidebar(){this.sidebar&&this.sidebar.remove(),this.sidebar=document.createElement("div"),this.sidebar.id="damkoi-sidebar",this.sidebar.innerHTML=`
+    `,document.body.appendChild(t),this._updateCouponWidgetLabel(),document.getElementById("dk-apply-btn").onclick=async()=>{let e=document.getElementById("dk-apply-btn");e.innerText="Testing Coupons...",e.style.background="#4f46e5",e.style.opacity="0.7",e.disabled=!0;try{let s=window.location.hostname.includes("daraz"),a=await S("FETCH_COUPONS",{platform:s?"daraz":"pickaboo",paymentMethod:this._paymentMethod||void 0});if(!a||a.length===0){e.innerText="No valid coupons found",e.disabled=!1;return}let n=s?'input[placeholder*="oupon" i], input[name*="coupon" i], .next-input.next-medium input':'input[placeholder*="oupon" i], input[name*="coupon" i], .coupon-input input, #coupon-code',r=s?'button[data-spm*="coupon"], .next-btn.next-btn-primary.next-btn-medium, button[class*="couponApply"]':'button[class*="coupon"], .apply-coupon-btn, button[id*="couponApply"]',h=s?'.checkout-order-total-discount, [class*="discount"][class*="total"], [class*="coupon"][class*="discount"]':'.order-summary .discount-amount, [class*="discount-amount"]',d=0,c=null;for(let p=0;p<a.length;p++){let l=a[p];e.innerText=`Testing ${l.code} (${p+1}/${a.length})`;let u=document.querySelector(n),v=document.querySelector(r);if(u&&v){u.value=l.code,u.dispatchEvent(new Event("input",{bubbles:!0})),u.dispatchEvent(new Event("change",{bubbles:!0})),v.click(),await new Promise(A=>setTimeout(A,2e3));let g=document.querySelector(h);if(g){let A=g.innerText.match(/[\d,]+/);if(A){let m=parseInt(A[0].replace(/,/g,""));m>d&&(d=m,c=l.code)}}}}if(c){e.innerText=`Applying best: ${c}`;let p=document.querySelector(n),l=document.querySelector(r);p&&l&&(p.value=c,p.dispatchEvent(new Event("input",{bubbles:!0})),l.click(),await new Promise(u=>setTimeout(u,1e3))),e.innerText=`Saved \u09F3${d.toLocaleString("en-BD")}!`,e.style.background="#10b981",e.disabled=!1}else e.innerText="No coupons worked",e.style.background="#3f3f46",e.disabled=!1}catch(s){console.error("[DamKoi]",s),e.innerText="Error trying coupons",e.disabled=!1}}}renderSidebar(){this.sidebar&&this.sidebar.remove(),this.sidebar=document.createElement("div"),this.sidebar.id="damkoi-sidebar",this.sidebar.innerHTML=`
       <nav class="damkoi-nav">
         <img src="${chrome.runtime.getURL("icons/dk_logo.svg")}" style="width:28px;height:28px;margin-bottom:20px;opacity:0.9;" />
         <div class="damkoi-nav-item active" data-tab="summary">${w.summary}</div>
@@ -488,7 +488,7 @@
           </div>
         </div>
       </main>
-    `,document.body.appendChild(this.sidebar),this.setupEvents(),this.data&&!this.data.notTracked?this.switchTab("summary"):this.data&&this.switchTab("summary")}setupEvents(){this.sidebar.querySelector(".damkoi-close").onclick=()=>{this.sidebar.classList.toggle("collapsed")},this.sidebar.querySelectorAll(".damkoi-nav-item").forEach(e=>{e.onclick=t=>{let s=this.sidebar.classList.contains("collapsed");this.switchTab(e.dataset.tab),s?this.sidebar.classList.remove("collapsed"):(this.currentTab,e.dataset.tab)}})}switchTab(e){if(this.currentTab===e&&!this.sidebar?.classList.contains("collapsed"))return;this.currentTab=e,this.sidebar.querySelectorAll(".damkoi-nav-item").forEach(a=>{a.classList.toggle("active",a.dataset.tab===e)});let t=this.sidebar.querySelector("#damkoi-content");t.innerHTML="";let s=document.createElement("div");if(s.className="damkoi-section active",t.appendChild(s),!this.data||this.data.notTracked){this.renderNotTracked(s,e);return}switch(e){case"summary":this.renderSummary(s);break;case"history":this.renderHistory(s);break;case"alternatives":this.renderAlternatives(s);break;case"alerts":this.renderAlerts(s);break}}renderNotTracked(e,t){let s="https://damkoi.xynly.com",a=encodeURIComponent(window.location.href);if(this.data?.connectionError){e.innerHTML=`
+    `,document.body.appendChild(this.sidebar),this.setupEvents(),this.data&&!this.data.notTracked?this.switchTab("summary"):this.data&&this.switchTab("summary")}setupEvents(){this.sidebar.querySelector(".damkoi-close").onclick=()=>{this.sidebar.classList.toggle("collapsed")},this.sidebar.querySelectorAll(".damkoi-nav-item").forEach(t=>{t.onclick=e=>{let s=this.sidebar.classList.contains("collapsed");this.switchTab(t.dataset.tab),s?this.sidebar.classList.remove("collapsed"):(this.currentTab,t.dataset.tab)}})}switchTab(t){if(this.currentTab===t&&!this.sidebar?.classList.contains("collapsed"))return;this.currentTab=t,this.sidebar.querySelectorAll(".damkoi-nav-item").forEach(a=>{a.classList.toggle("active",a.dataset.tab===t)});let e=this.sidebar.querySelector("#damkoi-content");e.innerHTML="";let s=document.createElement("div");if(s.className="damkoi-section active",e.appendChild(s),!this.data||this.data.notTracked){this.renderNotTracked(s,t);return}switch(t){case"summary":this.renderSummary(s);break;case"history":this.renderHistory(s);break;case"alternatives":this.renderAlternatives(s);break;case"alerts":this.renderAlerts(s);break}}renderNotTracked(t,e){let s="https://damkoi.xynly.com",a=encodeURIComponent(window.location.href);if(!this.data||this.data.connectionError){t.innerHTML=`
         <div class="dk-error-state">
           <div class="dk-es-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -509,7 +509,7 @@
             </button>
           </div>
         </div>
-      `;return}if(t==="summary"){e.innerHTML=`
+      `;return}if(e==="summary"){t.innerHTML=`
         <div class="dk-not-tracked">
           <div class="dk-nt-anim-wrap">
             <div class="dk-nt-ring"></div>
@@ -550,7 +550,7 @@
             Set Alert on Web App
           </a>
         </div>
-      `;return}let n={history:{icon:w.history,title:"Price History",desc:"No data yet \u2014 we just added this product. Check back in 15\u201330 minutes."},alternatives:{icon:w.alternatives,title:"Alternatives",desc:"We'll surface similar products once our system indexes this item."},alerts:{icon:w.alerts,title:"Price Alerts",desc:"Set alerts once we collect the first price point. Almost there!"}},r=n[t]||n.history;e.innerHTML=`
+      `;return}let n={history:{icon:w.history,title:"Price History",desc:"No data yet \u2014 we just added this product. Check back in 15\u201330 minutes."},alternatives:{icon:w.alternatives,title:"Alternatives",desc:"We'll surface similar products once our system indexes this item."},alerts:{icon:w.alerts,title:"Price Alerts",desc:"Set alerts once we collect the first price point. Almost there!"}},r=n[e]||n.history;t.innerHTML=`
       <div class="dk-tab-empty">
         <span class="dk-te-icon">${r.icon}</span>
         <h3>${r.title}</h3>
@@ -560,13 +560,13 @@
           Open DamKoi
         </a>
       </div>
-    `}renderSummary(e){let{verdict:t,product:s}=this.data,n={FAKE_DISCOUNT:"verdict-fake",BEST_PRICE:"verdict-best",GOOD_DEAL:"verdict-good",FAIR_PRICE:"verdict-fair",INSUFFICIENT_DATA:"verdict-pending"}[t.label]||"verdict-fair";e.innerHTML=`
+    `}renderSummary(t){let{verdict:e,product:s}=this.data,n={FAKE_DISCOUNT:"verdict-fake",BEST_PRICE:"verdict-best",GOOD_DEAL:"verdict-good",FAIR_PRICE:"verdict-fair",INSUFFICIENT_DATA:"verdict-pending"}[e.label]||"verdict-fair";t.innerHTML=`
       <div class="damkoi-card damkoi-score-card" style="margin-bottom:12px;">
         <div id="damkoi-gauge"></div>
       </div>
       <div class="damkoi-card" style="margin-bottom:12px;">
-        <span class="verdict-badge ${n}">${t.display}</span>
-        <p style="font-size:11px;color:rgba(226,226,240,0.55);line-height:1.6;margin-top:4px;">${t.explanation}</p>
+        <span class="verdict-badge ${n}">${e.display}</span>
+        <p style="font-size:11px;color:rgba(226,226,240,0.55);line-height:1.6;margin-top:4px;">${e.explanation}</p>
       </div>
       <div class="damkoi-price-grid">
         <div class="damkoi-price-item">
@@ -575,18 +575,18 @@
         </div>
         <div class="damkoi-price-item">
           <div class="damkoi-label">30-Day Avg</div>
-          <div class="damkoi-value">\u09F3${t.avg_30d?(t.avg_30d/100).toLocaleString("en-BD"):"\u2014"}</div>
+          <div class="damkoi-value">\u09F3${e.avg_30d?(e.avg_30d/100).toLocaleString("en-BD"):"\u2014"}</div>
         </div>
         <div class="damkoi-price-item">
           <div class="damkoi-label">All-Time Low</div>
-          <div class="damkoi-value success">\u09F3${t.all_time_low?(t.all_time_low/100).toLocaleString("en-BD"):"\u2014"}</div>
+          <div class="damkoi-value success">\u09F3${e.all_time_low?(e.all_time_low/100).toLocaleString("en-BD"):"\u2014"}</div>
         </div>
         <div class="damkoi-price-item">
           <div class="damkoi-label">Confidence</div>
-          <div class="damkoi-value">${t.data_points||"\u2014"} pts</div>
+          <div class="damkoi-value">${e.data_points||"\u2014"} pts</div>
         </div>
       </div>
-    `,K.renderDealGauge(t.deal_score,"damkoi-gauge")}renderHistory(e){e.innerHTML=`
+    `,K.renderDealGauge(e.deal_score,"damkoi-gauge")}renderHistory(t){t.innerHTML=`
       <h3 style="display:flex;align-items:center;gap:6px;"><span style="width:16px;height:16px;display:inline-block;">${w.history}</span> Price Trend</h3>
       <p style="font-size: 11px; margin: 4px 0 15px; color: rgba(255,255,255,0.4);">Last 30 data points</p>
       <div id="damkoi-sparkline"></div>
@@ -601,7 +601,7 @@
           <div class="damkoi-value">${this.data.data_points}</div>
         </div>
       </div>
-    `,K.renderPriceChart(this.data.price_history,"damkoi-sparkline")}renderAlternatives(e){e.innerHTML=`<h3 style="display:flex;align-items:center;gap:6px;"><span style="width:16px;height:16px;display:inline-block;">${w.alternatives}</span> Look-Alike Deals</h3><div id="damkoi-alternatives-list">Loading...</div>`,this.alternativesCache?this.displayAlternatives(e,this.alternativesCache):this.fetchAlternatives(e)}async fetchAlternatives(e){let t=e.querySelector("#damkoi-alternatives-list");try{let s=j("alternatives",this.data.product.id),a=P(s);if(a){this.alternativesCache=a,this.displayAlternatives(e,a);return}let r=(await S("FETCH_ALTERNATIVES",{productId:this.data.product.id})).alternatives||[];this.alternativesCache=r,R(s,r),this.displayAlternatives(e,r)}catch{t.innerHTML='<div style="padding: 20px; text-align: center; color: #ef4444;">Failed to load alternatives.</div>'}}displayAlternatives(e,t){let s=e.querySelector("#damkoi-alternatives-list"),a=t.filter(r=>!r.is_original_request);if(a.length===0){s.innerHTML='<div style="padding:20px;text-align:center;color:var(--dk-dim);">No cheaper alternatives in this category yet.</div>';return}let n=this.data.product.current_price;s.innerHTML=a.map((r,h)=>{let d=n&&r.current_price?n-r.current_price:0;return`
+    `,K.renderPriceChart(this.data.price_history,"damkoi-sparkline")}renderAlternatives(t){t.innerHTML=`<h3 style="display:flex;align-items:center;gap:6px;"><span style="width:16px;height:16px;display:inline-block;">${w.alternatives}</span> Look-Alike Deals</h3><div id="damkoi-alternatives-list">Loading...</div>`,this.alternativesCache?this.displayAlternatives(t,this.alternativesCache):this.fetchAlternatives(t)}async fetchAlternatives(t){let e=t.querySelector("#damkoi-alternatives-list");try{let s=j("alternatives",this.data.product.id),a=P(s);if(a){this.alternativesCache=a,this.displayAlternatives(t,a);return}let r=(await S("FETCH_ALTERNATIVES",{productId:this.data.product.id})).alternatives||[];this.alternativesCache=r,R(s,r),this.displayAlternatives(t,r)}catch{e.innerHTML='<div style="padding: 20px; text-align: center; color: #ef4444;">Failed to load alternatives.</div>'}}displayAlternatives(t,e){let s=t.querySelector("#damkoi-alternatives-list"),a=e.filter(r=>!r.is_original_request);if(a.length===0){s.innerHTML='<div style="padding:20px;text-align:center;color:var(--dk-dim);">No cheaper alternatives in this category yet.</div>';return}let n=this.data.product.current_price;s.innerHTML=a.map((r,h)=>{let d=n&&r.current_price?n-r.current_price:0;return`
       <div class="damkoi-card" style="margin-bottom:10px;display:flex;gap:12px;cursor:pointer;" data-alt-url="${r.url}" data-alt-idx="${h}">
         ${r.image_url?`<img src="${r.image_url}" style="width:46px;height:46px;border-radius:8px;object-fit:cover;flex-shrink:0;box-shadow:var(--dk-insetSh);" />`:`<img src="${chrome.runtime.getURL("icons/dk_logo.svg")}" style="width:46px;height:46px;border-radius:8px;background:#fff;object-fit:contain;padding:6px;box-shadow:var(--dk-insetSh);flex-shrink:0;" />`}
         <div style="flex:1;min-width:0;">
@@ -615,7 +615,7 @@
           </div>
         </div>
       </div>
-    `}).join(""),s.addEventListener("click",r=>{let h=r.target.closest("[data-alt-url]");h&&(window.location.href=h.dataset.altUrl)})}renderAlerts(e){let t=Math.floor(this.data.product.current_price/100*.9),s=this.alertFormState.email||"",a=this.alertFormState.price||t;e.innerHTML=`
+    `}).join(""),s.addEventListener("click",r=>{let h=r.target.closest("[data-alt-url]");h&&(window.location.href=h.dataset.altUrl)})}renderAlerts(t){let e=Math.floor(this.data.product.current_price/100*.9),s=this.alertFormState.email||"",a=this.alertFormState.price||e;t.innerHTML=`
       <h3 style="display:flex;align-items:center;gap:6px;"><span style="width:16px;height:16px;display:inline-block;">${w.alerts}</span> Set Price Alert</h3>
       <p style="margin: 8px 0 20px; font-size: 12px; color: rgba(255,255,255,0.4);">
         Get an email the instant this product drops below your target.
@@ -627,4 +627,4 @@
       </div>
       <button class="damkoi-btn" id="save-alert">Update Alert</button>
       <div id="alert-status" class="damkoi-status-pill"></div>
-    `;let n=e.querySelector("#save-alert"),r=e.querySelector("#alert-email"),h=e.querySelector("#alert-price");n.replaceWith(n.cloneNode(!0)),e.querySelector("#save-alert").addEventListener("click",async()=>{let c=r.value.trim(),p=h.value.trim(),l=e.querySelector("#alert-status");if(!J(c)){T(l,"error","Enter a valid email address");return}if(!X(p)){T(l,"error","Enter a valid price");return}this.alertFormState={email:c,price:p},T(l,"info","Saving...");try{let u=Y(this.data.product.id,p,c);await S("CREATE_ALERT",{payload:u}),T(l,"success","Tracking active!")}catch{T(l,"error","Error saving alert")}})}},te=new O;document.readyState==="complete"?te.init():window.addEventListener("load",()=>te.init());})();
+    `;let n=t.querySelector("#save-alert"),r=t.querySelector("#alert-email"),h=t.querySelector("#alert-price");n.replaceWith(n.cloneNode(!0)),t.querySelector("#save-alert").addEventListener("click",async()=>{let c=r.value.trim(),p=h.value.trim(),l=t.querySelector("#alert-status");if(!J(c)){T(l,"error","Enter a valid email address");return}if(!X(p)){T(l,"error","Enter a valid price");return}this.alertFormState={email:c,price:p},T(l,"info","Saving...");try{let u=Y(this.data.product.id,p,c);await S("CREATE_ALERT",{payload:u}),T(l,"success","Tracking active!")}catch{T(l,"error","Error saving alert")}})}},et=new O;document.readyState==="complete"?et.init():window.addEventListener("load",()=>et.init());})();

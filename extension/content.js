@@ -95,16 +95,16 @@ class DamKoiExtension {
 
   async fetchData(url) {
     try {
-      // Check cache first
+      // Check cache first — only accept cache entries with real product data
       const cacheKey = getCacheKey('product', url);
       const cached = getFromCache(cacheKey);
-      if (cached) {
+      if (cached?.product && cached?.verdict) {
         console.log('[DamKoi] Loaded from cache:', url);
         return cached;
       }
 
       const data = await safeFetch('FETCH_VERDICT', { url });
-      
+
       // Cache the result
       saveToCache(cacheKey, data);
       return data;
@@ -395,7 +395,7 @@ class DamKoiExtension {
     const WEB = 'https://damkoi.xynly.com';
     const currentUrl = encodeURIComponent(window.location.href);
 
-    if (this.data?.connectionError) {
+    if (!this.data || this.data.connectionError) {
       container.innerHTML = `
         <div class="dk-error-state">
           <div class="dk-es-icon">

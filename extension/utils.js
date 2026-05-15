@@ -54,7 +54,7 @@ const RECENT_VERDICTS_KEY = 'damkoi:recent-verdicts';
 // ── Cache Key Generation ──────────────────────────
 
 export function getCacheKey(type, identifier) {
-  return `damkoi:${type}:${identifier}`;
+  return `damkoi:v2:${type}:${identifier}`;
 }
 
 // ── Generic Cache Operations ─────────────────────
