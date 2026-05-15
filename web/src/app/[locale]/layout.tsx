@@ -73,10 +73,10 @@ export default async function RootLayout({
 
               {/* Desktop Nav */}
               <nav className="hidden md:flex items-center gap-5">
-                <Link href={`/${locale}/`}         className="text-xs font-medium transition-colors uppercase tracking-widest dk-focus" style={{ color: "var(--text-muted)" }} onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "var(--text-secondary)")} onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "var(--text-muted)")}>Home</Link>
-                <Link href={`/${locale}/deals`}     className="text-xs font-medium transition-colors uppercase tracking-widest dk-focus" style={{ color: "var(--text-muted)" }} onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "var(--text-secondary)")} onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "var(--text-muted)")}>Deals</Link>
-                <Link href={`/${locale}/dashboard`} className="text-xs font-medium transition-colors uppercase tracking-widest dk-focus" style={{ color: "var(--text-muted)" }} onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "var(--text-secondary)")} onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "var(--text-muted)")}>Dashboard</Link>
-                <Link href={`/${locale}/alerts`}    className="text-xs font-medium transition-colors uppercase tracking-widest dk-focus" style={{ color: "var(--text-muted)" }} onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "var(--text-secondary)")} onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "var(--text-muted)")}>Alerts</Link>
+                <Link href={`/${locale}/`}         className="dk-nav-link text-xs font-medium uppercase tracking-widest dk-focus">Home</Link>
+                <Link href={`/${locale}/deals`}     className="dk-nav-link text-xs font-medium uppercase tracking-widest dk-focus">Deals</Link>
+                <Link href={`/${locale}/dashboard`} className="dk-nav-link text-xs font-medium uppercase tracking-widest dk-focus">Dashboard</Link>
+                <Link href={`/${locale}/alerts`}    className="dk-nav-link text-xs font-medium uppercase tracking-widest dk-focus">Alerts</Link>
                 <NavAuthButton />
                 <ThemeToggle />
                 <Link href={`/${locale}/install`} className="dk-btn-primary text-xs px-4 py-2.5 dk-focus">

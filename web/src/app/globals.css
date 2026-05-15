@@ -339,6 +339,14 @@ html[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
   border-bottom: 1px solid var(--border-sm);
 }
 
+/* ── Nav link ───────────────────────────────────────────── */
+
+.dk-nav-link {
+  color: var(--text-muted);
+  transition: color 150ms ease;
+}
+.dk-nav-link:hover { color: var(--text-secondary); }
+
 /* ── Focus ring ─────────────────────────────────────────── */
 
 .dk-focus:focus-visible {
