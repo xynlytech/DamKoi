@@ -6,7 +6,7 @@ export function OPTIONS() {
 }
 
 export async function GET(_req: NextRequest) {
-  const token = process.env.GITHUB_TOKEN;
+  const token = process.env.GH_PAT;
   if (!token) {
     return NextResponse.json({ runs: [] }, { headers: cors() });
   }

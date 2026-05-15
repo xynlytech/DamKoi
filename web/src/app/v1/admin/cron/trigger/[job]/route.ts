@@ -15,7 +15,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ jo
   }
 
   // Trigger GitHub Actions workflow via API
-  const token = process.env.GITHUB_TOKEN;
+  const token = process.env.GH_PAT;
   if (!token) {
     return NextResponse.json({ detail: 'GITHUB_TOKEN not configured' }, { status: 503, headers: cors() });
   }
