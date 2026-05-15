@@ -265,25 +265,27 @@ class DarazScraper:
         except Exception as se:
             print(f"   ⚠️ Could not save debug snapshot: {se}")
 
-    async def scrape_batch(self, urls: List[str]) -> List[ScrapedProduct]:
+    async def scrape_batch(self, urls: List[str], concurrency: int = 4) -> List[ScrapedProduct]:
         """
-        Scrape multiple products with delays between requests.
-
-        Args:
-            urls: List of Daraz product URLs
-
-        Returns:
-            List of successfully scraped products
+        Scrape multiple products with up to `concurrency` pages running in parallel.
+        Default 4 concurrent pages — safe under Akamai, ~4x faster than sequential.
         """
         results = []
-        for i, url in enumerate(urls):
-            print(f"📦 Scraping {i+1}/{len(urls)}: {url[:80]}...")
-            product = await self.scrape_product(url)
-            if product:
-                results.append(product)
-                print(f"   ✅ {product.title[:50]}... — ৳{product.price / 100:,.0f}")
-            else:
-                print(f"   ❌ Failed")
+        sem = asyncio.Semaphore(concurrency)
+        lock = asyncio.Lock()
+
+        async def _one(i: int, url: str):
+            async with sem:
+                print(f"Scraping {i+1}/{len(urls)}: {url[:80]}...")
+                product = await self.scrape_product(url)
+                if product:
+                    async with lock:
+                        results.append(product)
+                    print(f"   [OK] {product.title[:50]} — ৳{product.price / 100:,.0f}")
+                else:
+                    print(f"   [FAIL] {url[:60]}")
+
+        await asyncio.gather(*[_one(i, url) for i, url in enumerate(urls)])
         return results
 
     # ── Primary: __NEXT_DATA__ extraction ─────────────────────

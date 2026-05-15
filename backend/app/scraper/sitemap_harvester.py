@@ -101,10 +101,11 @@ class SitemapHarvester:
             ]
 
         all_discovered = set()
-        for s in sitemaps[:20]: # Start with top 20 for safety
+        for s in sitemaps[:50]:
             urls = await self.extract_urls_from_sitemap(s)
             all_discovered.update(urls)
-            if len(all_discovered) > 50000: break # Safety cap
+            if len(all_discovered) > 200000:
+                break
             
         log.info(f"🎉 Total URLs discovered: {len(all_discovered)}")
         

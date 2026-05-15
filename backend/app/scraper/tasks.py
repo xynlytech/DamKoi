@@ -317,23 +317,69 @@ async def scrape_via_api(limit: int = 5000) -> int:
     return len(scraped)
 
 
+async def scrape_via_http(limit: int = 3000) -> int:
+    """
+    Medium path: fetch prices via plain HTTP (no Playwright).
+    Extracts __NEXT_DATA__ JSON from Daraz SSR pages.
+    ~20x faster than Playwright. Skipped if Akamai blocks (yield < 10%).
+    Returns number of products updated.
+    """
+    from app.scraper.daraz_http import scrape_batch_http
+
+    print(f"[SCRAPER] [{datetime.now()}] Starting Daraz HTTP price fetch (limit={limit})...")
+
+    async with async_session_factory() as db:
+        result = await db.execute(
+            select(Product.id, Product.url)
+            .where(Product.is_active == True, Product.platform == "daraz")
+            .order_by(Product.last_scraped_at.asc().nullsfirst())
+            .limit(limit)
+        )
+        products = result.all()
+
+    if not products:
+        print("   [HTTP] No Daraz products to scrape.")
+        return 0
+
+    urls = [p.url for p in products]
+    print(f"   [HTTP] Fetching {len(urls)} product pages...")
+    scraped = await scrape_batch_http(urls, concurrency=20)
+
+    # If success rate < 10% treat as blocked — return 0 to trigger Playwright fallback
+    if len(scraped) < max(1, len(urls) * 0.10):
+        print(f"   [HTTP] Low yield ({len(scraped)}/{len(urls)}) — likely Akamai blocked. Falling back.")
+        return 0
+
+    agent = ScrapeAgent(batch_name="DarazHTTP", platform="daraz")
+    await agent._save_results(scraped)
+    print(f"   [HTTP] Done: {len(scraped)}/{len(urls)} products updated.")
+    return len(scraped)
+
+
 async def scrape_longtail_products():
-    """Scrape all active products — API-first, Playwright fallback."""
+    """Scrape all active products — API → HTTP → Playwright fallback chain."""
     print(f"[SCRAPER] [{datetime.now()}] Starting long-tail product scrape...")
 
-    # Try fast API path first
+    # 1. Fastest: Daraz Affiliate API (HTTP, no parsing needed)
     api_count = await scrape_via_api(limit=5000)
     if api_count > 0:
-        print(f"   [OK] API path scraped {api_count} products. Skipping Playwright.")
+        print(f"   [OK] API path scraped {api_count} products. Skipping HTTP/Playwright.")
         return
 
-    # Playwright fallback
+    # 2. Fast: plain HTTP, extract __NEXT_DATA__ from SSR pages
+    http_count = await scrape_via_http(limit=3000)
+    if http_count > 0:
+        print(f"   [OK] HTTP path scraped {http_count} products. Skipping Playwright.")
+        return
+
+    # 3. Slowest fallback: Playwright (4 concurrent pages)
+    print("   [PLAYWRIGHT] Falling back to Playwright scraper...")
     async with async_session_factory() as db:
         result = await db.execute(
             select(Product.id, Product.url)
             .where(Product.is_active == True)
             .order_by(Product.last_scraped_at.asc().nullsfirst())
-            .limit(1000)  # batch limit to avoid timeout
+            .limit(1500)
         )
         products = result.all()
 

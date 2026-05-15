@@ -20,6 +20,7 @@ redis==5.2.1
 
 # HTTP Client (for internal calls + Rokomari/Chaldal scrapers)
 httpx==0.28.1
+h2==4.1.0
 
 # HTML Parsing (for server-rendered scrapers: Rokomari)
 beautifulsoup4==4.13.3
