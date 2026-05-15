@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cors } from '@/lib/supabase-server';
+import { cors, verifyAdmin } from '@/lib/supabase-server';
 
 const VALID_JOBS = ['alerts', 'coupons', 'digest', 'matching', 'backfill', 'cleanup', 'scrape', 'harvest', 'all'];
 
@@ -7,17 +7,19 @@ export function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: cors() });
 }
 
-export async function POST(_req: NextRequest, { params }: { params: Promise<{ job: string }> }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ job: string }> }) {
+  const auth = await verifyAdmin(req);
+  if (auth instanceof NextResponse) return auth;
+
   const { job } = await params;
 
   if (!VALID_JOBS.includes(job)) {
     return NextResponse.json({ detail: `Unknown job: ${job}` }, { status: 400, headers: cors() });
   }
 
-  // Trigger GitHub Actions workflow via API
   const token = process.env.GH_PAT;
   if (!token) {
-    return NextResponse.json({ detail: 'GITHUB_TOKEN not configured' }, { status: 503, headers: cors() });
+    return NextResponse.json({ detail: 'GH_PAT not configured' }, { status: 503, headers: cors() });
   }
 
   const resp = await fetch(

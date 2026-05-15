@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient, cors } from '@/lib/supabase-server';
+import { createServerClient, cors, verifyAdmin } from '@/lib/supabase-server';
 
 export function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: cors() });
 }
 
 export async function GET(req: NextRequest) {
+  const auth = await verifyAdmin(req);
+  if (auth instanceof NextResponse) return auth;
+
   const { searchParams } = req.nextUrl;
   const platform = searchParams.get('platform') || '';
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
@@ -27,6 +30,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await verifyAdmin(req);
+  if (auth instanceof NextResponse) return auth;
+
   const body = await req.json().catch(() => null);
   if (!body?.code) return NextResponse.json({ detail: 'code required' }, { status: 400, headers: cors() });
   const db = createServerClient();

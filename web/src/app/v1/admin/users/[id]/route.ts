@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient, cors } from '@/lib/supabase-server';
+import { createServerClient, cors, verifyAdmin } from '@/lib/supabase-server';
 
 export function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: cors() });
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await verifyAdmin(req);
+  if (auth instanceof NextResponse) return auth;
+
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
   const db = createServerClient();

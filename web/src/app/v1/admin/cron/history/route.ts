@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cors } from '@/lib/supabase-server';
+import { cors, verifyAdmin } from '@/lib/supabase-server';
 
 export function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: cors() });
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
+  const auth = await verifyAdmin(req);
+  if (auth instanceof NextResponse) return auth;
+
   const token = process.env.GH_PAT;
   if (!token) {
     return NextResponse.json({ runs: [] }, { headers: cors() });

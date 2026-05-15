@@ -1,34 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient, cors } from '@/lib/supabase-server';
+import { createServerClient, cors, verifyAdmin } from '@/lib/supabase-server';
 
 export function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: cors() });
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
+  const auth = await verifyAdmin(req);
+  if (auth instanceof NextResponse) return auth;
+
   const db = createServerClient();
-  const since1h = new Date(Date.now() - 60 * 60 * 1000).toISOString();
   const since6h = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
-  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const today = new Date(); today.setHours(0, 0, 0, 0);
 
-  const [last1h, last6h, last24h, lastSnap] = await Promise.all([
-    db.from('price_snapshots').select('id', { count: 'exact', head: true }).gte('scraped_at', since1h),
-    db.from('price_snapshots').select('id', { count: 'exact', head: true }).gte('scraped_at', since6h),
-    db.from('price_snapshots').select('id', { count: 'exact', head: true }).gte('scraped_at', since24h),
-    db.from('price_snapshots').select('scraped_at').order('scraped_at', { ascending: false }).limit(1).single(),
-  ]);
+  const { data: products } = await db
+    .from('products')
+    .select('platform, last_scraped_at')
+    .eq('is_active', true)
+    .limit(5000);
 
-  const lastAt = lastSnap.data?.scraped_at ?? null;
-  const status = (last6h.count ?? 0) > 0 ? 'healthy' : (last24h.count ?? 0) > 0 ? 'stale' : 'dead';
+  const byPlatform: Record<string, { total: number; lastScrape: string | null }> = {};
+  for (const p of products ?? []) {
+    const plat = p.platform as string;
+    if (!byPlatform[plat]) byPlatform[plat] = { total: 0, lastScrape: null };
+    byPlatform[plat].total++;
+    if (p.last_scraped_at) {
+      if (!byPlatform[plat].lastScrape || p.last_scraped_at > byPlatform[plat].lastScrape!) {
+        byPlatform[plat].lastScrape = p.last_scraped_at;
+      }
+    }
+  }
 
-  return NextResponse.json({
-    status,
-    last_scrape_at: lastAt,
-    snapshots_1h: last1h.count ?? 0,
-    snapshots_6h: last6h.count ?? 0,
-    snapshots_24h: last24h.count ?? 0,
-    scrapers: [
-      { platform: 'daraz', status, last_run_at: lastAt },
-    ],
-  }, { headers: cors() });
+  const { data: snapsToday } = await db
+    .from('price_snapshots')
+    .select('product_id, scraped_at, products(platform)')
+    .gte('scraped_at', today.toISOString())
+    .limit(5000) as { data: Array<{ scraped_at: string; products: { platform: string } | null }> | null };
+
+  const snapsByPlatform: Record<string, number> = {};
+  for (const s of snapsToday ?? []) {
+    const plat = s.products?.platform;
+    if (plat) snapsByPlatform[plat] = (snapsByPlatform[plat] ?? 0) + 1;
+  }
+
+  const result = Object.entries(byPlatform).map(([platform, { total, lastScrape }]) => {
+    const hoursAgo = lastScrape
+      ? Math.floor((Date.now() - new Date(lastScrape).getTime()) / (60 * 60 * 1000))
+      : null;
+    const status = hoursAgo == null ? 'unknown' : hoursAgo < 7 ? 'healthy' : hoursAgo < 25 ? 'stale' : 'dead';
+    return {
+      platform,
+      status,
+      total_products: total,
+      recently_scraped_6h: 0,
+      snaps_today: snapsByPlatform[platform] ?? 0,
+      hours_since_last_scrape: hoursAgo,
+    };
+  });
+
+  return NextResponse.json(result, { headers: cors() });
 }
