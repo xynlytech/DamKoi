@@ -13,7 +13,7 @@
  *   ✅ Auto-injects below price section — zero user interaction
  */
 
-import { API_BASE, safeFetch, formatBDT } from './utils.js';
+import { safeFetch, formatBDT } from './utils.js';
 
 /* ── Constants ───────────────────────────────────────────── */
 
@@ -678,7 +678,7 @@ function buildHTML(data, alts, chartObj, activeRange, coupons = []) {
       <div class="dk-chart-header">
         <span class="dk-chart-title" style="display:flex;align-items:center;gap:5px;">${IC.chart} Price History</span>
         <div class="dk-range-tabs">
-          ${['1M','3M','ALL'].map(r =>
+          ${['1M','3M','6M','ALL'].map(r =>
             `<button class="dk-range-tab${r === activeRange ? ' active' : ''}" data-range="${r}">${r}</button>`
           ).join('')}
         </div>
@@ -689,9 +689,12 @@ function buildHTML(data, alts, chartObj, activeRange, coupons = []) {
       <div class="dk-chart-legend">
         <span><span class="dk-legend-dot" style="background:${C.accent};"></span>Price line</span>
         <span><span class="dk-legend-dot" style="background:${C.success};"></span>All-time low</span>
-        <span><span class="dk-legend-dot" style="background:${C.accent};filter:drop-shadow(0 0 3px ${C.accent});"></span>Now &nbsp; ${priceHistory.length} data points</span>
+        <span style="color:${C.dim};font-size:9px;">Based on ${verdict.data_points || priceHistory.length} price recordings</span>
       </div>
     </div>
+
+    <!-- Should you buy now? -->
+    ${buildHorizonSection(verdict, product)}
 
     <!-- Look-alike alternatives -->
     ${alts ? buildAltsList(alts) : `<div class="dk-divider"></div><div class="dk-loading"><span class="dk-spinner"></span>Loading similar products…</div>`}
@@ -725,10 +728,59 @@ function buildHTML(data, alts, chartObj, activeRange, coupons = []) {
 function filterByRange(history, range) {
   if (!history || history.length === 0) return history;
   if (range === 'ALL') return history;
-  const days = range === '1M' ? 30 : 90;
+  const days = range === '1M' ? 30 : range === '3M' ? 90 : 180;
   const cutoff = Date.now() - days * 86_400_000;
   const filtered = history.filter(p => new Date(p.scraped_at).getTime() >= cutoff);
-  return filtered.length >= 2 ? filtered : history; // fall back if too sparse
+  return filtered.length >= 2 ? filtered : history;
+}
+
+/* ── Time-Horizon Recommendation ────────────────────────── */
+
+function getHorizonRecommendation(horizon, verdict, product) {
+  const score = verdict.deal_score;
+  const curr  = product.current_price;
+  const avg   = verdict.avg_30d;
+  const atl   = verdict.all_time_low;
+
+  if (horizon === 'days') {
+    if (score >= 8) return { action: 'buy',  text: 'Price is at a good point right now. Unlikely to drop further in 2-3 days.' };
+    if (score >= 6) return { action: 'wait', text: 'Fair price but not exceptional. Small chance of a short-term dip.' };
+    return { action: 'wait', text: 'Price is above average. Wait for a deal notification.' };
+  }
+  if (horizon === 'week') {
+    const pctBelow = avg && avg > curr ? Math.round((avg - curr) / avg * 100) : 0;
+    if (pctBelow >= 10) return { action: 'buy',  text: `${pctBelow}% below 30-day average. This week is a good window.` };
+    if (pctBelow >= 5)  return { action: 'buy',  text: `Slightly below average. Reasonable to buy this week.` };
+    return { action: 'wait', text: 'Prices on this item can fluctuate. Set an alert for your target price.' };
+  }
+  // month
+  if (atl && curr <= atl * 1.03) return { action: 'buy',  text: 'At or near its all-time low. This level rarely lasts a month.' };
+  if (atl && curr > atl) {
+    const roomToDrop = Math.round((curr - atl) / curr * 100);
+    if (roomToDrop > 15) return { action: 'wait', text: `All-time low is ${formatBDT(atl)} — ${roomToDrop}% below current. Worth waiting.` };
+  }
+  return { action: 'neutral', text: 'No strong signal for the next month. Set an alert at your target price.' };
+}
+
+function buildHorizonSection(verdict, product) {
+  return `
+    <div class="dk-horizon-section" id="dk-horizon-section">
+      <div class="dk-horizon-header">Should you buy now?</div>
+      <div class="dk-horizon-tabs">
+        <button class="dk-horizon-tab active" data-hz="days">2-3 Days</button>
+        <button class="dk-horizon-tab" data-hz="week">1 Week</button>
+        <button class="dk-horizon-tab" data-hz="month">1 Month</button>
+      </div>
+      <div class="dk-horizon-rec" id="dk-horizon-rec">${renderHorizonRec(getHorizonRecommendation('days', verdict, product))}</div>
+    </div>`;
+}
+
+function renderHorizonRec(rec) {
+  const icon  = rec.action === 'buy'  ? IC.buy  :
+                rec.action === 'wait' ? IC.wait : IC.clock;
+  const color = rec.action === 'buy'  ? '#059669' :
+                rec.action === 'wait' ? '#D97706' : '#A8A29E';
+  return `<div class="dk-hz-rec-inner" style="color:${color}">${icon}<span>${rec.text}</span></div>`;
 }
 
 /* ── Wire interactivity ──────────────────────────────────── */
@@ -755,6 +807,18 @@ function wireWidget(shadowRoot, data, alts, currentRange, coupons = []) {
 
       shadowRoot.querySelectorAll('.dk-range-tab').forEach(t =>
         t.classList.toggle('active', t.dataset.range === range));
+    });
+  });
+
+  // Time horizon tabs
+  shadowRoot.querySelectorAll('.dk-horizon-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const hz  = tab.dataset.hz;
+      const rec = getHorizonRecommendation(hz, data.verdict, data.product);
+      const recEl = shadowRoot.getElementById('dk-horizon-rec');
+      if (recEl) recEl.innerHTML = renderHorizonRec(rec);
+      shadowRoot.querySelectorAll('.dk-horizon-tab').forEach(t =>
+        t.classList.toggle('active', t.dataset.hz === hz));
     });
   });
 
@@ -863,14 +927,14 @@ async function injectWidget(data) {
   // Small rAF to let the skeleton paint before doing heavy work
   await new Promise(r => requestAnimationFrame(r));
 
-  // Fetch alternatives + coupons concurrently
+  // Fetch alternatives + coupons concurrently (proxied through background to avoid CORS)
   const productId = data.product.id;
   const [altsResult, couponsResult] = await Promise.allSettled([
-    fetch(`${API_BASE}/v1/products/${productId}/alternatives`).then(r => r.ok ? r.json() : []),
-    fetch(`${API_BASE}/v1/products/${productId}/coupons`).then(r => r.ok ? r.json() : []),
+    safeFetch('FETCH_ALTERNATIVES',    { productId }),
+    safeFetch('FETCH_PRODUCT_COUPONS', { productId }),
   ]);
-  const alts    = altsResult.status    === 'fulfilled' ? (altsResult.value || [])    : [];
-  const coupons = couponsResult.status === 'fulfilled' ? (couponsResult.value || []) : [];
+  const alts    = altsResult.status    === 'fulfilled' ? (altsResult.value?.alternatives || altsResult.value || [])    : [];
+  const coupons = couponsResult.status === 'fulfilled' ? (couponsResult.value?.coupons   || couponsResult.value || []) : [];
 
   // ── Step 3: Swap skeleton → real widget (smooth fade) ────────────────
   mount.style.transition = 'opacity 0.25s ease';
@@ -878,8 +942,10 @@ async function injectWidget(data) {
 
   await new Promise(r => setTimeout(r, 120)); // brief fade-out
 
-  mount.innerHTML = buildHTML(data, alts, buildChart(filtered, 460, 130), activeRange, coupons);
-  buildChart(filtered, 460, 130).initInteractivity(shadow);
+  // Build chart once and reuse (avoids triple SVG generation)
+  const finalChart = buildChart(filtered, 460, 130);
+  mount.innerHTML = buildHTML(data, alts, finalChart, activeRange, coupons);
+  finalChart.initInteractivity(shadow);
   wireWidget(shadow, data, alts, activeRange, coupons);
 
   mount.style.opacity = '1'; // fade-in with real content

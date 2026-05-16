@@ -229,6 +229,149 @@ export function isValidPrice(price) {
   return !isNaN(parsed) && parsed > 0;
 }
 
+// ── Recent Views (chrome.storage.local) ──────────
+
+const RECENT_VIEWS_KEY         = 'damkoi:recent-views';
+const RECENT_VIEWS_ENABLED_KEY = 'damkoi:recent-views-enabled';
+const MAX_RECENT_VIEWS         = 20;
+
+export async function isRecentViewsEnabled() {
+  return new Promise(resolve => {
+    chrome.storage.local.get(RECENT_VIEWS_ENABLED_KEY, result => {
+      // Default to enabled
+      resolve(result[RECENT_VIEWS_ENABLED_KEY] !== false);
+    });
+  });
+}
+
+export async function setRecentViewsEnabled(enabled) {
+  return new Promise(resolve => {
+    chrome.storage.local.set({ [RECENT_VIEWS_ENABLED_KEY]: enabled }, resolve);
+  });
+}
+
+export async function getRecentViews() {
+  return new Promise(resolve => {
+    chrome.storage.local.get(RECENT_VIEWS_KEY, result => {
+      resolve(result[RECENT_VIEWS_KEY] || []);
+    });
+  });
+}
+
+export async function saveRecentView(product, verdict) {
+  const enabled = await isRecentViewsEnabled();
+  if (!enabled) return;
+
+  const views = await getRecentViews();
+  const entry = {
+    id:          product.id,
+    title:       product.title,
+    url:         product.url,
+    image_url:   product.image_url || null,
+    platform:    product.platform,
+    price:       product.current_price,
+    deal_score:  verdict?.deal_score ?? null,
+    label:       verdict?.label ?? null,
+    viewed_at:   Date.now(),
+  };
+
+  // Remove duplicate if already in list
+  const filtered = views.filter(v => v.id !== entry.id);
+  const updated  = [entry, ...filtered].slice(0, MAX_RECENT_VIEWS);
+
+  return new Promise(resolve => {
+    chrome.storage.local.set({ [RECENT_VIEWS_KEY]: updated }, resolve);
+  });
+}
+
+export async function clearRecentViews() {
+  return new Promise(resolve => {
+    chrome.storage.local.remove(RECENT_VIEWS_KEY, resolve);
+  });
+}
+
+// ── Coupon votes (chrome.storage.local) ──────────
+
+const COUPON_VOTES_KEY = 'damkoi:coupon-votes';
+
+export async function getCouponVotes() {
+  return new Promise(resolve => {
+    chrome.storage.local.get(COUPON_VOTES_KEY, result => {
+      resolve(result[COUPON_VOTES_KEY] || {});
+    });
+  });
+}
+
+export async function voteCoupon(couponId, helpful) {
+  const votes = await getCouponVotes();
+  votes[couponId] = helpful; // true = thumbs up, false = thumbs down
+  return new Promise(resolve => {
+    chrome.storage.local.set({ [COUPON_VOTES_KEY]: votes }, resolve);
+  });
+}
+
+// ── Saved email preference ────────────────────────
+
+const SAVED_EMAIL_KEY = 'damkoi:saved-email';
+
+export async function getSavedEmail() {
+  return new Promise(resolve => {
+    chrome.storage.local.get(SAVED_EMAIL_KEY, result => {
+      resolve(result[SAVED_EMAIL_KEY] || '');
+    });
+  });
+}
+
+export async function setSavedEmail(email) {
+  return new Promise(resolve => {
+    chrome.storage.local.set({ [SAVED_EMAIL_KEY]: email }, resolve);
+  });
+}
+
+// ── Auto-apply coupon preference ─────────────────
+
+const AUTO_APPLY_KEY = 'damkoi:auto-apply-coupons';
+
+export async function getAutoApply() {
+  return new Promise(resolve => {
+    chrome.storage.local.get(AUTO_APPLY_KEY, result => {
+      resolve(result[AUTO_APPLY_KEY] !== false); // default on
+    });
+  });
+}
+
+export async function setAutoApply(enabled) {
+  return new Promise(resolve => {
+    chrome.storage.local.set({ [AUTO_APPLY_KEY]: enabled }, resolve);
+  });
+}
+
+// ── Time-Horizon Buy Recommendation ──────────────
+
+export function getHorizonRecommendation(horizon, verdict, product) {
+  const score = verdict.deal_score;
+  const curr  = product.current_price;
+  const avg   = verdict.avg_30d;
+  const atl   = verdict.all_time_low;
+
+  if (horizon === 'days') {
+    if (score >= 8) return { action: 'buy',     text: 'Price is at a good point right now. Unlikely to drop further in 2–3 days.' };
+    if (score >= 6) return { action: 'neutral',  text: 'Fair price but not exceptional. Small chance of a short-term dip.' };
+    return              { action: 'wait',    text: 'Price is above average. Wait for a deal notification.' };
+  }
+  if (horizon === 'week') {
+    const pct = avg ? Math.round((avg - curr) / avg * 100) : 0;
+    if (pct >= 10) return { action: 'buy',  text: `${pct}% below 30-day average. This week is a good window.` };
+    return               { action: 'wait', text: 'Prices on this item can fluctuate. Set an alert for your target price.' };
+  }
+  if (atl && curr <= atl * 1.03) return { action: 'buy', text: 'At or near all-time low. This level rarely lasts a month.' };
+  if (atl && avg) {
+    const room = Math.round((curr - atl) / curr * 100);
+    if (room > 15) return { action: 'wait', text: `All-time low is ৳${(atl / 100).toLocaleString('en-BD')} — ${room}% below current. Worth waiting.` };
+  }
+  return { action: 'neutral', text: 'No strong signal for the next month. Set an alert at your target price.' };
+}
+
 // ── Extract product ID from Daraz URL ──────────
 
 export function extractProductIdFromUrl(url) {

@@ -727,3 +727,63 @@ body {
   color: var(--w40);
   font-weight: 500;
 }
+
+/* ── Horizon Section ─────────────────────────────────────── */
+
+.horizon-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--w40);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 8px;
+}
+
+.horizon-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.horizon-tab {
+  flex: 1;
+  padding: 6px 4px;
+  background: var(--w5);
+  border: 1px solid var(--border-sm);
+  border-radius: 8px;
+  color: var(--w40);
+  font-size: 10px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--t);
+  text-align: center;
+}
+
+.horizon-tab:hover { color: var(--w); }
+
+.horizon-tab.active {
+  background: rgba(124,58,237,0.2);
+  border-color: var(--purple);
+  color: var(--w);
+}
+
+.horizon-rec { min-height: 56px; }
+
+.horizon-rec-inner {
+  padding: 10px 12px;
+  border-radius: 0 8px 8px 0;
+}
+
+.horizon-action {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  margin-bottom: 4px;
+}
+
+.horizon-text {
+  font-size: 11px;
+  color: var(--w70);
+  line-height: 1.55;
+}

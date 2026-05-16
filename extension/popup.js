@@ -27,7 +27,8 @@ import {
   recordPerformanceMetric,
   ALERT_CHANNELS,
   DEFAULT_ALERT_CHANNEL,
-  extractProductIdFromUrl
+  extractProductIdFromUrl,
+  getHorizonRecommendation,
 } from './utils.js';
 import { getFromStorage, saveToStorage } from './storage.js';
 import { runCouponInjector } from './coupon_injector.js';
@@ -204,6 +205,9 @@ function renderVerdict(data, fromCache = false) {
   // ── Alert setup ──
   setupAlertButton(product);
 
+  // ── Time-horizon section ──
+  setupHorizonSection(verdict, product);
+
   // ── Extension badge ──
   chrome.runtime.sendMessage({ type: 'UPDATE_BADGE', score: verdict.deal_score });
 
@@ -347,6 +351,42 @@ function setupUrlInput() {
 
   input?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') btn?.click();
+  });
+}
+
+// ── Horizon Section ──────────────────────────────
+
+function setupHorizonSection(verdict, product) {
+  const section = document.getElementById('horizon-section');
+  const recEl   = document.getElementById('horizon-rec');
+  if (!section || !recEl) return;
+
+  section.classList.remove('hidden');
+
+  let currentHorizon = 'days';
+
+  function renderRec(horizon) {
+    const rec = getHorizonRecommendation(horizon, verdict, product);
+    const colorMap = { buy: '#22c55e', wait: '#f59e0b', neutral: '#a78bfa' };
+    const color = colorMap[rec.action] || '#a78bfa';
+    const label = { buy: 'BUY NOW', wait: 'WAIT', neutral: 'NEUTRAL' }[rec.action] || rec.action.toUpperCase();
+    recEl.innerHTML = `
+      <div class="horizon-rec-inner" style="border-left:3px solid ${color};background:${color}18;">
+        <div class="horizon-action" style="color:${color}">${label}</div>
+        <div class="horizon-text">${rec.text}</div>
+      </div>
+    `;
+  }
+
+  renderRec(currentHorizon);
+
+  document.querySelectorAll('.horizon-tab').forEach(tab => {
+    tab.onclick = () => {
+      document.querySelectorAll('.horizon-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      currentHorizon = tab.dataset.horizon;
+      renderRec(currentHorizon);
+    };
   });
 }
 

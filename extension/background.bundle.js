@@ -1,1 +1,96 @@
-(()=>{var i="https://damkoi.xynly.com";var s={EMAIL:"email",SMS:"sms",PUSH:"push"},d=s.EMAIL,u=60*60*1e3;chrome.runtime.onMessage.addListener((t,c,e)=>{let r={FETCH_VERDICT:()=>n(`/v1/products/lookup?url=${encodeURIComponent(t.url)}`),FETCH_HISTORY:()=>n(`/v1/products/${t.productId}/price-history?days=${t.days||90}`),FETCH_ALTERNATIVES:()=>n(`/v1/products/${t.productId}/compare`),FETCH_COMPARE:()=>n(`/v1/products/${t.productId}/compare`),FETCH_COUPONS:()=>{let o=new URLSearchParams;t.cartTotal&&o.set("cart_total",t.cartTotal),t.paymentMethod&&o.set("payment_method",t.paymentMethod);let a=o.toString();return n(`/v1/coupons/${t.platform||"daraz"}${a?`?${a}`:""}`)},LOG_COUPON:()=>n("/v1/telemetry/coupon",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(t.payload)}),CREATE_ALERT:()=>n("/v1/alerts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(t.payload)}),UPDATE_BADGE:()=>(l(t.score,c.tab?.id),Promise.resolve({success:!0}))};if(r[t.type])return console.log(`[DamKoi] Handling ${t.type}:`,t),r[t.type]().then(o=>{console.log(`[DamKoi] ${t.type} success:`,o),e({success:!0,data:o})}).catch(o=>{console.error(`[DamKoi] ${t.type} error:`,o),e({success:!1,error:o.message})}),!0});function l(t,c){if(!c)return;let e,r;t>=8?(e="#10b981",r=`${t}`):t>=6?(e="#f59e0b",r=`${t}`):t>=4?(e="#ef4444",r=`${t}`):(e="#dc2626",r=`${t}`),chrome.action.setBadgeBackgroundColor({color:e,tabId:c}),chrome.action.setBadgeText({text:r,tabId:c})}async function n(t,c={}){let e=await fetch(`${i}${t}`,c);if(!e.ok){let r=await e.json().catch(()=>({}));throw new Error(`${e.status}: ${r.detail||`API error ${e.status}`}`)}return e.json()}chrome.alarms.create("cache-cleanup",{periodInMinutes:60});chrome.alarms.onAlarm.addListener(t=>{t.name==="cache-cleanup"&&console.log("[DamKoi] Running cache cleanup...")});chrome.runtime.onInstalled.addListener(t=>{t.reason==="install"&&console.log("[DamKoi] Extension installed! Welcome.")});})();
+(() => {
+  // utils.js
+  var API_BASE = true ? "http://127.0.0.1:8000" : "http://127.0.0.1:8000";
+  var ALERT_CHANNELS = {
+    EMAIL: "email",
+    SMS: "sms",
+    PUSH: "push"
+  };
+  var DEFAULT_ALERT_CHANNEL = ALERT_CHANNELS.EMAIL;
+  var CACHE_TTL = 60 * 60 * 1e3;
+
+  // background.js
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    const handlers = {
+      "FETCH_VERDICT": () => fetchApi(`/v1/products/lookup?url=${encodeURIComponent(message.url)}`),
+      "FETCH_HISTORY": () => fetchApi(`/v1/products/${message.productId}/price-history?days=${message.days || 90}`),
+      "FETCH_ALTERNATIVES": () => fetchApi(`/v1/products/${message.productId}/alternatives`),
+      "FETCH_COMPARE": () => fetchApi(`/v1/products/${message.productId}/compare`),
+      "FETCH_PRODUCT_COUPONS": () => fetchApi(`/v1/products/${message.productId}/coupons`),
+      "GET_ALERTS_BY_EMAIL": () => fetchApi(`/v1/alerts/by-email?email=${encodeURIComponent(message.email)}`),
+      "FETCH_COUPONS": () => {
+        const params = new URLSearchParams();
+        if (message.cartTotal)
+          params.set("cart_total", message.cartTotal);
+        if (message.paymentMethod)
+          params.set("payment_method", message.paymentMethod);
+        const qs = params.toString();
+        return fetchApi(`/v1/coupons/${message.platform || "daraz"}${qs ? `?${qs}` : ""}`);
+      },
+      "LOG_COUPON": () => fetchApi(`/v1/telemetry/coupon`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(message.payload)
+      }),
+      "CREATE_ALERT": () => fetchApi(`/v1/alerts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(message.payload)
+      }),
+      "UPDATE_BADGE": () => {
+        updateBadge(message.score, sender.tab?.id);
+        return Promise.resolve({ success: true });
+      }
+    };
+    if (handlers[message.type]) {
+      console.log(`[DamKoi] Handling ${message.type}:`, message);
+      handlers[message.type]().then((data) => {
+        console.log(`[DamKoi] ${message.type} success:`, data);
+        sendResponse({ success: true, data });
+      }).catch((err) => {
+        console.error(`[DamKoi] ${message.type} error:`, err);
+        sendResponse({ success: false, error: err.message });
+      });
+      return true;
+    }
+  });
+  function updateBadge(score, tabId) {
+    if (!tabId)
+      return;
+    let color, text;
+    if (score >= 8) {
+      color = "#10b981";
+      text = `${score}`;
+    } else if (score >= 6) {
+      color = "#f59e0b";
+      text = `${score}`;
+    } else if (score >= 4) {
+      color = "#ef4444";
+      text = `${score}`;
+    } else {
+      color = "#dc2626";
+      text = `${score}`;
+    }
+    chrome.action.setBadgeBackgroundColor({ color, tabId });
+    chrome.action.setBadgeText({ text, tabId });
+  }
+  async function fetchApi(path, options = {}) {
+    const resp = await fetch(`${API_BASE}${path}`, options);
+    if (!resp.ok) {
+      const errorData = await resp.json().catch(() => ({}));
+      throw new Error(`${resp.status}: ${errorData.detail || `API error ${resp.status}`}`);
+    }
+    return resp.json();
+  }
+  chrome.alarms.create("cache-cleanup", { periodInMinutes: 60 });
+  chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === "cache-cleanup") {
+      console.log("[DamKoi] Running cache cleanup...");
+    }
+  });
+  chrome.runtime.onInstalled.addListener((details) => {
+    if (details.reason === "install") {
+      console.log("[DamKoi] Extension installed! Welcome.");
+    }
+  });
+})();

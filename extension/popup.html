@@ -94,6 +94,18 @@
       <!-- Price chart (wired to visualizer.js after load) -->
       <div id="price-chart-container" class="price-chart-wrapper hidden"></div>
 
+      <!-- Should you buy now? -->
+      <div id="horizon-section" class="hidden">
+        <div class="divider"></div>
+        <div class="horizon-label">Should you buy now?</div>
+        <div class="horizon-tabs">
+          <button class="horizon-tab active" data-horizon="days">2-3 Days</button>
+          <button class="horizon-tab" data-horizon="week">1 Week</button>
+          <button class="horizon-tab" data-horizon="month">1 Month</button>
+        </div>
+        <div id="horizon-rec" class="horizon-rec"></div>
+      </div>
+
       <!-- Alternatives -->
       <div id="alternatives-section" class="hidden">
         <div class="divider"></div>

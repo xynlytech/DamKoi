@@ -13,28 +13,30 @@ import { API_BASE } from './utils.js';
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const handlers = {
-    'FETCH_VERDICT':      () => fetchApi(`/v1/products/lookup?url=${encodeURIComponent(message.url)}`),
-    'FETCH_HISTORY':      () => fetchApi(`/v1/products/${message.productId}/price-history?days=${message.days || 90}`),
-    'FETCH_ALTERNATIVES': () => fetchApi(`/v1/products/${message.productId}/compare`),
-    'FETCH_COMPARE':      () => fetchApi(`/v1/products/${message.productId}/compare`),
-    'FETCH_COUPONS':      () => {
+    'FETCH_VERDICT':         () => fetchApi(`/v1/products/lookup?url=${encodeURIComponent(message.url)}`),
+    'FETCH_HISTORY':         () => fetchApi(`/v1/products/${message.productId}/price-history?days=${message.days || 90}`),
+    'FETCH_ALTERNATIVES':    () => fetchApi(`/v1/products/${message.productId}/alternatives`),
+    'FETCH_COMPARE':         () => fetchApi(`/v1/products/${message.productId}/compare`),
+    'FETCH_PRODUCT_COUPONS': () => fetchApi(`/v1/products/${message.productId}/coupons`),
+    'GET_ALERTS_BY_EMAIL':   () => fetchApi(`/v1/alerts/by-email?email=${encodeURIComponent(message.email)}`),
+    'FETCH_COUPONS':         () => {
                                const params = new URLSearchParams();
                                if (message.cartTotal) params.set('cart_total', message.cartTotal);
                                if (message.paymentMethod) params.set('payment_method', message.paymentMethod);
                                const qs = params.toString();
                                return fetchApi(`/v1/coupons/${message.platform || 'daraz'}${qs ? `?${qs}` : ''}`);
                              },
-    'LOG_COUPON':         () => fetchApi(`/v1/telemetry/coupon`, {
+    'LOG_COUPON':            () => fetchApi(`/v1/telemetry/coupon`, {
                                method: 'POST',
                                headers: { 'Content-Type': 'application/json' },
                                body: JSON.stringify(message.payload)
                              }),
-    'CREATE_ALERT':       () => fetchApi(`/v1/alerts`, {
+    'CREATE_ALERT':          () => fetchApi(`/v1/alerts`, {
                                method: 'POST',
                                headers: { 'Content-Type': 'application/json' },
                                body: JSON.stringify(message.payload)
                              }),
-    'UPDATE_BADGE':       () => { updateBadge(message.score, sender.tab?.id); return Promise.resolve({ success: true }); }
+    'UPDATE_BADGE':          () => { updateBadge(message.score, sender.tab?.id); return Promise.resolve({ success: true }); }
   };
 
   if (handlers[message.type]) {
