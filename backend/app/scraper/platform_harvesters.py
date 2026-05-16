@@ -12,6 +12,7 @@ Platforms handled: rokomari, pickaboo, cartup, chaldal, othoba
 """
 
 import asyncio
+import gzip
 import logging
 import random
 import re
@@ -47,6 +48,12 @@ async def _fetch_text(client: httpx.AsyncClient, url: str) -> str:
             timeout=_TIMEOUT,
         )
         if resp.status_code == 200:
+            # Handle gzip-compressed sitemaps (.xml.gz or Content-Encoding: gzip)
+            if url.endswith(".gz") or resp.headers.get("content-encoding") == "gzip":
+                try:
+                    return gzip.decompress(resp.content).decode("utf-8", errors="replace")
+                except Exception:
+                    pass
             return resp.text
     except Exception as exc:
         log.debug("Fetch error %s: %s", url, exc)
@@ -291,23 +298,9 @@ def _cartup_extract_id(url: str) -> Optional[str]:
 
 
 async def harvest_cartup() -> int:
-    found: Set[str] = set()
-    log.info("Cartup: starting harvest...")
-
-    async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-        for sitemap_url in [
-            "https://www.cartup.com.bd/sitemap.xml",
-            "https://www.cartup.com.bd/sitemap_index.xml",
-        ]:
-            urls = await _collect_from_sitemap(client, sitemap_url, _CARTUP_PRODUCT_RE)
-            if urls:
-                found.update(urls)
-                log.info("Cartup: %d URLs from %s", len(urls), sitemap_url)
-                break
-
-    seeded = await _seed_db(found, "cartup", _cartup_extract_id)
-    log.info("Cartup: seeded %d new (found %d URLs)", seeded, len(found))
-    return seeded
+    # cartup.com.bd DNS is currently dead — skip to avoid CI timeouts
+    log.info("Cartup: domain unreachable — skipping harvest.")
+    return 0
 
 
 # ── Chaldal ───────────────────────────────────────────────────────────────────
