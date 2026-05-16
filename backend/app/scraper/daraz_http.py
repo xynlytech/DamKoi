@@ -1,11 +1,11 @@
 """
 DamKoi — Daraz HTTP Scraper
 
-Plain httpx-based price fetching — extracts __NEXT_DATA__ from SSR HTML.
-~20x faster than Playwright because there is no browser overhead.
+Plain httpx-based price fetching — extracts __moduleData__ (current Daraz format)
+or __NEXT_DATA__ (legacy) from SSR HTML. ~20x faster than Playwright.
 
 Used as the primary fast path when the Daraz Affiliate API is not configured.
-Falls back gracefully to Playwright if Akamai blocks the requests (yield < 10%).
+Falls back gracefully to Playwright if blocking (yield < 10%).
 """
 
 import asyncio
@@ -25,6 +25,11 @@ logger = logging.getLogger(__name__)
 _NEXT_DATA_RE = re.compile(
     r'<script\s+id=["\']__NEXT_DATA__["\'][^>]*>(.*?)</script>',
     re.DOTALL | re.IGNORECASE,
+)
+
+_MODULE_DATA_RE = re.compile(
+    r'var\s+__moduleData__\s*=\s*(\{)',
+    re.DOTALL,
 )
 
 _EXT_ID_RE = re.compile(r"i(\d+)(?:-s\d+)?\.html")
@@ -299,6 +304,101 @@ def _parse_product(url: str, data: dict) -> Optional[ScrapedProduct]:
     )
 
 
+def _extract_module_data_json(html: str) -> Optional[dict]:
+    """Extract and parse var __moduleData__ = {...} from Daraz PDP HTML."""
+    m = _MODULE_DATA_RE.search(html)
+    if not m:
+        return None
+    start = m.start(1)
+    depth = 0
+    for i, c in enumerate(html[start:start + 2_000_000]):
+        if c == '{':
+            depth += 1
+        elif c == '}':
+            depth -= 1
+            if depth == 0:
+                try:
+                    return json.loads(html[start: start + i + 1])
+                except json.JSONDecodeError:
+                    return None
+    return None
+
+
+def _parse_module_data_product(url: str, data: dict) -> Optional[ScrapedProduct]:
+    """Map __moduleData__ dict (current Daraz PDP format) to ScrapedProduct."""
+    try:
+        fields = data["data"]["root"]["fields"]
+    except (KeyError, TypeError):
+        return None
+
+    tracking = fields.get("tracking") or {}
+    product = fields.get("product") or {}
+    primary = fields.get("primaryKey") or {}
+    sku_infos = fields.get("skuInfos") or {}
+
+    title = (tracking.get("pdt_name") or product.get("title") or "").strip()
+    if not title:
+        return None
+
+    price = _parse_price_to_paisa(tracking.get("pdt_price"))
+    if not price:
+        return None
+
+    external_id = str(primary.get("itemId") or "").strip()
+    if not external_id:
+        m = _EXT_ID_RE.search(url)
+        external_id = m.group(1) if m else ""
+    if not external_id:
+        return None
+
+    # original_price — try to derive from pdt_discount (e.g. "50%" or "৳ 200")
+    original_price: Optional[int] = None
+    disc_raw = str(tracking.get("pdt_discount") or "").strip()
+    if disc_raw.endswith("%"):
+        try:
+            disc_pct = float(disc_raw.rstrip("%"))
+            if 0 < disc_pct < 100:
+                original_price = int(price / (1 - disc_pct / 100))
+        except (ValueError, ZeroDivisionError):
+            pass
+    elif disc_raw:
+        original_price = _parse_price_to_paisa(disc_raw) or None
+
+    discount_pct = None
+    if original_price and original_price > price:
+        discount_pct = int((original_price - price) / original_price * 100)
+
+    # in_stock — operation.disable == False means in stock
+    default_sku = str(primary.get("defaultSkuId") or primary.get("skuId") or "0")
+    sku_obj = sku_infos.get(default_sku) or sku_infos.get("0") or {}
+    op = sku_obj.get("operation") or {}
+    in_stock = not op.get("disable", False)
+
+    image_url = tracking.get("pdt_photo") or product.get("image") or None
+
+    cats = tracking.get("pdt_category") or []
+    category = cats[-1] if isinstance(cats, list) and cats else None
+
+    brand_raw = product.get("brand") or {}
+    brand = brand_raw.get("name") if isinstance(brand_raw, dict) else (brand_raw or None)
+    if not brand:
+        brand = tracking.get("brand_name") or None
+
+    return ScrapedProduct(
+        external_id=external_id,
+        url=url,
+        title=title,
+        price=price,
+        original_price=original_price,
+        discount_pct=discount_pct,
+        in_stock=in_stock,
+        category=category,
+        brand=brand or None,
+        image_url=image_url,
+        platform="daraz",
+    )
+
+
 async def _fetch_one(
     client: httpx.AsyncClient,
     url: str,
@@ -313,11 +413,21 @@ async def _fetch_one(
                 return None
             if resp.status_code != 200:
                 return None
-            m = _NEXT_DATA_RE.search(resp.text)
-            if not m:
-                return None
-            data = json.loads(m.group(1))
-            return _parse_product(url, data)
+            html = resp.text
+            # Try current format first (__moduleData__), then legacy (__NEXT_DATA__)
+            module_data = _extract_module_data_json(html)
+            if module_data:
+                result = _parse_module_data_product(url, module_data)
+                if result:
+                    return result
+            m = _NEXT_DATA_RE.search(html)
+            if m:
+                try:
+                    data = json.loads(m.group(1))
+                    return _parse_product(url, data)
+                except json.JSONDecodeError:
+                    pass
+            return None
         except Exception as e:
             logger.debug("HTTP fetch failed %s: %s", url, e)
             return None
