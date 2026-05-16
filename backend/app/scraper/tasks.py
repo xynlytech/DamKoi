@@ -378,7 +378,7 @@ async def scrape_via_http(limit: int = 3000, offset: int = 0) -> int:
 
     urls = [p.url for p in products]
     print(f"   [HTTP] Fetching {len(urls)} product pages...")
-    scraped = await scrape_batch_http(urls, concurrency=20)
+    scraped = await scrape_batch_http(urls, concurrency=10)
 
     # If success rate < 10% treat as blocked — return 0 to trigger Playwright fallback
     if len(scraped) < max(1, len(urls) * 0.10):
@@ -470,7 +470,7 @@ async def _scrape_urls_fast(urls: list[str], label: str = "") -> int:
     from app.scraper.daraz_http import scrape_batch_http
 
     # Try HTTP scraper (fast, no browser)
-    scraped = await scrape_batch_http(urls, concurrency=20)
+    scraped = await scrape_batch_http(urls, concurrency=10)
 
     if len(scraped) >= max(1, len(urls) * 0.10):
         agent = ScrapeAgent(batch_name=f"HTTP-{label}", platform="daraz")
