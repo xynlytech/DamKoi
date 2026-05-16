@@ -405,7 +405,7 @@ async def _fetch_one(
     sem: asyncio.Semaphore,
 ) -> Optional[ScrapedProduct]:
     async with sem:
-        await asyncio.sleep(random.uniform(0.3, 1.0))
+        await asyncio.sleep(random.uniform(0.5, 1.5))
         try:
             headers = {**_HEADERS_BASE, "User-Agent": random.choice(USER_AGENTS)}
             resp = await client.get(url, headers=headers, follow_redirects=True)
@@ -435,7 +435,7 @@ async def _fetch_one(
 
 async def scrape_batch_http(
     urls: List[str],
-    concurrency: int = 20,
+    concurrency: int = 10,
 ) -> List[ScrapedProduct]:
     """
     Fetch prices for many Daraz product pages via plain HTTP.

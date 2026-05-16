@@ -209,8 +209,12 @@ class DarazScraper:
                 await page.set_viewport_size({"width": 1366 + random.randint(-50, 50), "height": 768 + random.randint(-50, 50)})
                 await page.goto(url, wait_until="networkidle", timeout=30000)
 
-            # Try primary extraction (__NEXT_DATA__)
-            product = await self._extract_from_next_data(page, url)
+            # Try __moduleData__ first (current Daraz format)
+            product = await self._extract_from_module_data(page, url)
+
+            # Try legacy __NEXT_DATA__
+            if not product:
+                product = await self._extract_from_next_data(page, url)
 
             # Fallback to DOM extraction
             if not product:
@@ -288,7 +292,27 @@ class DarazScraper:
         await asyncio.gather(*[_one(i, url) for i, url in enumerate(urls)])
         return results
 
-    # ── Primary: __NEXT_DATA__ extraction ─────────────────────
+    # ── Primary: __moduleData__ extraction (current Daraz format) ──
+
+    async def _extract_from_module_data(
+        self, page: Page, url: str
+    ) -> Optional[ScrapedProduct]:
+        """Extract product data from Daraz's __moduleData__ JS variable (current format)."""
+        try:
+            from app.scraper.daraz_http import (
+                _extract_module_data_json,
+                _parse_module_data_product,
+            )
+            html = await page.content()
+            data = _extract_module_data_json(html)
+            if not data:
+                return None
+            return _parse_module_data_product(url, data)
+        except Exception as e:
+            print(f"   ⚠️ __moduleData__ extraction failed: {e}")
+            return None
+
+    # ── Legacy: __NEXT_DATA__ extraction ───────────────────────
 
     async def _extract_from_next_data(
         self, page: Page, url: str
