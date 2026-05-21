@@ -240,10 +240,17 @@ def _parse_product(url: str, data: dict) -> Optional[ScrapedProduct]:
     price: Optional[int] = None
     original_price: Optional[int] = None
 
-    sku = prod.get("skuInfos", {})
-    if isinstance(sku, dict):
-        price = _parse_price_to_paisa(sku.get("price"))
-        original_price = _parse_price_to_paisa(sku.get("originalPrice"))
+    # skuInfos is {skuId: {price, originalPrice, ...}} — pick the first/cheapest entry
+    sku_infos = prod.get("skuInfos", {})
+    if isinstance(sku_infos, dict) and sku_infos:
+        # Prefer the entry that has an explicit "price" key
+        sku_entry = next(
+            (v for v in sku_infos.values() if isinstance(v, dict) and v.get("price")),
+            next(iter(sku_infos.values()), {}),
+        )
+        if isinstance(sku_entry, dict):
+            price = _parse_price_to_paisa(sku_entry.get("price"))
+            original_price = _parse_price_to_paisa(sku_entry.get("originalPrice"))
 
     if not price:
         price = _parse_price_to_paisa(prod.get("price"))
@@ -254,7 +261,8 @@ def _parse_product(url: str, data: dict) -> Optional[ScrapedProduct]:
         pi = prod.get("priceInfo", {})
         if isinstance(pi, dict):
             price = _parse_price_to_paisa(pi.get("price"))
-            original_price = _parse_price_to_paisa(pi.get("originalPrice"))
+            if not original_price:
+                original_price = _parse_price_to_paisa(pi.get("originalPrice"))
 
     if not price:
         return None
@@ -340,10 +348,6 @@ def _parse_module_data_product(url: str, data: dict) -> Optional[ScrapedProduct]
     if not title:
         return None
 
-    price = _parse_price_to_paisa(tracking.get("pdt_price"))
-    if not price:
-        return None
-
     external_id = str(primary.get("itemId") or "").strip()
     if not external_id:
         m = _EXT_ID_RE.search(url)
@@ -351,26 +355,51 @@ def _parse_module_data_product(url: str, data: dict) -> Optional[ScrapedProduct]
     if not external_id:
         return None
 
-    # original_price — try to derive from pdt_discount (e.g. "50%" or "৳ 200")
-    original_price: Optional[int] = None
-    disc_raw = str(tracking.get("pdt_discount") or "").strip()
-    if disc_raw.endswith("%"):
-        try:
-            disc_pct = float(disc_raw.rstrip("%"))
-            if 0 < disc_pct < 100:
-                original_price = int(price / (1 - disc_pct / 100))
-        except (ValueError, ZeroDivisionError):
-            pass
-    elif disc_raw:
-        original_price = _parse_price_to_paisa(disc_raw) or None
+    # Resolve the default SKU object — contains the accurate checkout price
+    default_sku = str(primary.get("defaultSkuId") or primary.get("skuId") or "0")
+    sku_obj = sku_infos.get(default_sku) or sku_infos.get("0") or {}
+    if not sku_obj and sku_infos:
+        sku_obj = next(iter(sku_infos.values()), {})
+
+    # Sale price: skuInfos.price is the actual checkout/discounted price.
+    # tracking.pdt_price is the list/original price used for analytics revenue tracking —
+    # use it only as a fallback when skuInfos has no price.
+    price = (
+        _parse_price_to_paisa(sku_obj.get("price"))
+        or _parse_price_to_paisa(sku_obj.get("salePrice"))
+        or _parse_price_to_paisa(tracking.get("pdt_price"))
+    )
+    if not price:
+        return None
+
+    # Original/list price: prefer skuInfos fields, then check if pdt_price is
+    # the list price (it will be > price when a discount is active).
+    original_price: Optional[int] = (
+        _parse_price_to_paisa(sku_obj.get("originalPrice"))
+        or _parse_price_to_paisa(sku_obj.get("listPrice"))
+    )
+    if not original_price:
+        pdt_price_raw = _parse_price_to_paisa(tracking.get("pdt_price"))
+        if pdt_price_raw and pdt_price_raw > price:
+            # pdt_price is the original/MRP — use it directly
+            original_price = pdt_price_raw
+        else:
+            disc_raw = str(tracking.get("pdt_discount") or "").strip()
+            if disc_raw.endswith("%"):
+                try:
+                    disc_pct = float(disc_raw.rstrip("%"))
+                    if 0 < disc_pct < 100:
+                        original_price = int(price / (1 - disc_pct / 100))
+                except (ValueError, ZeroDivisionError):
+                    pass
+            elif disc_raw:
+                original_price = _parse_price_to_paisa(disc_raw) or None
 
     discount_pct = None
     if original_price and original_price > price:
         discount_pct = int((original_price - price) / original_price * 100)
 
     # in_stock — operation.disable == False means in stock
-    default_sku = str(primary.get("defaultSkuId") or primary.get("skuId") or "0")
-    sku_obj = sku_infos.get(default_sku) or sku_infos.get("0") or {}
     op = sku_obj.get("operation") or {}
     in_stock = not op.get("disable", False)
 
