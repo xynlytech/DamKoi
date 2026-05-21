@@ -7,6 +7,5 @@ export function OPTIONS() {
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   await params;
-  // AI lens — coming soon
-  return NextResponse.json({ insights: [], summary: null }, { headers: cors() });
+  return NextResponse.json({ detail: 'Not available yet' }, { status: 404, headers: cors() });
 }
