@@ -268,6 +268,122 @@ async def get_db_analytics(
     }
 
 
+# ── Analytics (30-day time-series) ───────────────────────────────────────────
+
+@router.get("/analytics")
+async def get_analytics(
+    _: User = Depends(verify_supabase_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    from sqlalchemy import text
+
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    week_start  = today_start - timedelta(days=6)
+    month_start = today_start - timedelta(days=29)
+
+    # Products added per day — last 30 days
+    prod_trend_rows = await db.execute(text("""
+        SELECT DATE(first_seen_at AT TIME ZONE 'UTC') AS day, COUNT(*) AS count
+        FROM products
+        WHERE first_seen_at >= NOW() - INTERVAL '30 days'
+        GROUP BY day
+        ORDER BY day ASC
+    """))
+    products_trend = [
+        {"date": str(r.day), "count": int(r.count)}
+        for r in prod_trend_rows
+    ]
+
+    # Price snapshots per day — last 30 days
+    snap_trend_rows = await db.execute(text("""
+        SELECT DATE(scraped_at AT TIME ZONE 'UTC') AS day, COUNT(*) AS count
+        FROM price_snapshots
+        WHERE scraped_at >= NOW() - INTERVAL '30 days'
+        GROUP BY day
+        ORDER BY day ASC
+    """))
+    snapshots_trend = [
+        {"date": str(r.day), "count": int(r.count)}
+        for r in snap_trend_rows
+    ]
+
+    # Per-platform breakdown
+    platform_rows = await db.execute(text("""
+        SELECT platform,
+               COUNT(*) AS total,
+               COUNT(last_scraped_at) AS priced,
+               COUNT(*) - COUNT(last_scraped_at) AS stubs
+        FROM products
+        GROUP BY platform
+        ORDER BY total DESC
+    """))
+    platforms = [
+        {"platform": r.platform, "total": int(r.total), "priced": int(r.priced), "stubs": int(r.stubs)}
+        for r in platform_rows
+    ]
+
+    # Catalog summary
+    total_products = (await db.execute(select(func.count(Product.id)))).scalar() or 0
+    priced = (await db.execute(
+        select(func.count(Product.id)).where(Product.last_scraped_at.isnot(None))
+    )).scalar() or 0
+    stubs = total_products - priced
+
+    added_today = (await db.execute(
+        select(func.count(Product.id)).where(Product.first_seen_at >= today_start)
+    )).scalar() or 0
+    added_7d = (await db.execute(
+        select(func.count(Product.id)).where(Product.first_seen_at >= week_start)
+    )).scalar() or 0
+    added_30d = (await db.execute(
+        select(func.count(Product.id)).where(Product.first_seen_at >= month_start)
+    )).scalar() or 0
+
+    # Total snapshots
+    total_snaps = (await db.execute(select(func.count(PriceSnapshot.id)))).scalar() or 0
+    snaps_today = (await db.execute(
+        select(func.count(PriceSnapshot.id)).where(PriceSnapshot.scraped_at >= today_start)
+    )).scalar() or 0
+    snaps_7d = (await db.execute(
+        select(func.count(PriceSnapshot.id)).where(PriceSnapshot.scraped_at >= week_start)
+    )).scalar() or 0
+
+    # DB storage
+    size_rows = await db.execute(text("""
+        SELECT COALESCE(SUM(pg_total_relation_size(relid)), 0) AS total_bytes
+        FROM pg_catalog.pg_statio_user_tables
+    """))
+    total_db_bytes = int(size_rows.scalar() or 0)
+    supabase_limit = 500 * 1024 * 1024
+
+    return {
+        "products_trend": products_trend,
+        "snapshots_trend": snapshots_trend,
+        "platforms": platforms,
+        "catalog": {
+            "total": total_products,
+            "priced": priced,
+            "stubs": stubs,
+            "quality_pct": round(priced / total_products * 100, 1) if total_products else 0,
+            "added_today": added_today,
+            "added_7d": added_7d,
+            "added_30d": added_30d,
+        },
+        "snapshots": {
+            "total": total_snaps,
+            "today": snaps_today,
+            "last_7d": snaps_7d,
+        },
+        "storage": {
+            "used_bytes": total_db_bytes,
+            "used": _fmt_bytes(total_db_bytes),
+            "limit_bytes": supabase_limit,
+            "limit": "500 MB",
+            "usage_pct": round(total_db_bytes / supabase_limit * 100, 1),
+        },
+    }
+
+
 def _fmt_bytes(b: int) -> str:
     for unit in ("B", "KB", "MB", "GB"):
         if b < 1024:

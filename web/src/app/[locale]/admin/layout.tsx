@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import {
   LayoutDashboard, Package, Users, Bell, Tag,
-  Activity, GitMerge, Clock, LogOut, Shield, Menu,
+  Activity, GitMerge, Clock, LogOut, Shield, Menu, BarChart2,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -17,7 +17,8 @@ const NAV = [
   { href: "/admin/users",    label: "Users",        icon: Users },
   { href: "/admin/alerts",   label: "Alerts",       icon: Bell },
   { href: "/admin/coupons",  label: "Coupons",      icon: Tag },
-  { href: "/admin/scrapers", label: "Scrapers",     icon: Activity },
+  { href: "/admin/scrapers",   label: "Scrapers",     icon: Activity },
+  { href: "/admin/analytics", label: "Analytics",    icon: BarChart2 },
   { href: "/admin/compare",  label: "Match Groups", icon: GitMerge },
   { href: "/admin/cron",     label: "Cron Jobs",    icon: Clock },
 ];
