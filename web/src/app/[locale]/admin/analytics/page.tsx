@@ -212,8 +212,8 @@ export default function AnalyticsPage() {
                   />
                   <Tooltip
                     contentStyle={CHART_TOOLTIP_STYLE}
-                    labelFormatter={fmtDate}
-                    formatter={(v: number) => [fmt(v), "New products"]}
+                    labelFormatter={(label) => fmtDate(String(label))}
+                    formatter={(v) => [fmt(Number(v)), "New products"]}
                   />
                   <Area
                     type="monotone"
@@ -254,8 +254,8 @@ export default function AnalyticsPage() {
                   />
                   <Tooltip
                     contentStyle={CHART_TOOLTIP_STYLE}
-                    labelFormatter={fmtDate}
-                    formatter={(v: number) => [fmt(v), "Snapshots"]}
+                    labelFormatter={(label) => fmtDate(String(label))}
+                    formatter={(v) => [fmt(Number(v)), "Snapshots"]}
                   />
                   <Bar dataKey="count" fill="var(--amber)" radius={[3, 3, 0, 0]} opacity={0.85} />
                 </BarChart>
