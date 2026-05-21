@@ -334,18 +334,30 @@ def _extract_module_data_json(html: str) -> Optional[dict]:
     return None
 
 
-# ── Daraz mtop price API ──────────────────────────────────────
+# ── Daraz mtop detail API ─────────────────────────────────────
 #
-# The SSR __moduleData__ blob only carries tracking.pdt_price, which is the
-# LIST/MRP price — not the discounted checkout price the buyer actually sees.
-# Daraz fetches the real price client-side via the signed h5 mtop gateway
-# (mtop.global.detail.web.getDetailInfo). We replicate that call so the HTTP
-# scraper records the same sale price shown on the live page.
+# The SSR PDP HTML is gated by Akamai — on datacenter IPs Daraz serves a 200
+# bot-challenge page with no __moduleData__, and even when it parses, the blob
+# only carries tracking.pdt_price (the LIST/MRP price, not the discounted
+# checkout price the buyer sees). Both problems are solved by calling the same
+# signed h5 mtop gateway the live page uses (mtop.global.detail.web.getDetailInfo):
+# it returns the full product detail incl. the real sale price, it accepts
+# itemId/skuId parsed straight from the product URL (no PDP fetch needed), and
+# the acs-m gateway host is not behind the Akamai page challenge. So mtop is the
+# primary scrape path; the PDP HTML parse is kept only as a fallback.
 
 _MTOP_APPKEY = "12574478"
 _MTOP_API = "mtop.global.detail.web.getDetailInfo"
 _MTOP_V = "1.0"
 _MTOP_GW = f"https://acs-m.daraz.com.bd/h5/{_MTOP_API.lower()}/{_MTOP_V}/"
+
+_URL_ID_RE = re.compile(r"i(\d+)-s(\d+)\.html")
+
+
+def _ids_from_url(url: str) -> Optional[tuple[str, str]]:
+    """Pull (item_id, sku_id) straight from a Daraz product URL."""
+    m = _URL_ID_RE.search(url)
+    return (m.group(1), m.group(2)) if m else None
 
 
 def _ids_from_module_data(data: dict) -> Optional[tuple[str, str, str]]:
@@ -372,18 +384,17 @@ def _price_node_to_paisa(node: dict) -> Optional[int]:
     return _parse_price_to_paisa(node.get("text"))
 
 
-async def _fetch_mtop_price(
+async def _fetch_mtop_module(
     client: httpx.AsyncClient,
-    page_url: str,
     item_id: str,
     sku_id: str,
-    seller_id: str,
+    seller_id: str = "",
 ) -> Optional[dict]:
     """
-    Call the signed mtop getDetailInfo endpoint and return the real price:
-        {"price": <paisa>, "original_price": <paisa|None>, "discount_pct": <int|None>}
-    Returns None if the call fails (caller keeps the SSR fallback price).
+    Call the signed mtop getDetailInfo endpoint and return the parsed `module`
+    dict (full product detail incl. real price). Returns None on failure.
     """
+    page_url = f"https://www.daraz.com.bd/products/-i{item_id}-s{sku_id}.html"
     req_params = f"itemId={item_id}&sellerId={seller_id}&skuId={sku_id}"
     data_str = json.dumps(
         {
@@ -401,7 +412,7 @@ async def _fetch_mtop_price(
         separators=(",", ":"),
     )
 
-    async def _call() -> Optional[dict]:
+    async def _call() -> dict:
         tk = client.cookies.get("_m_h5_tk") or ""
         token = tk.split("_")[0] if tk else ""
         t = str(int(time.time() * 1000))
@@ -435,40 +446,121 @@ async def _fetch_mtop_price(
         ret = (body.get("ret") or [""])[0]
         # First hit usually fails with an empty/expired token but sets the
         # _m_h5_tk cookie — retry once now that we can sign correctly.
+        if not ret.startswith("SUCCESS") and "TOKEN" in ret.upper():
+            body = await _call()
+            ret = (body.get("ret") or [""])[0]
         if not ret.startswith("SUCCESS"):
-            if "TOKEN" in ret.upper():
-                body = await _call()
-                ret = (body.get("ret") or [""])[0]
-            if not ret.startswith("SUCCESS"):
-                return None
+            return None
 
         module_raw = body.get("data", {}).get("module")
-        if not module_raw:
-            return None
-        module = json.loads(module_raw)
-        sku_infos = module.get("skuInfos") or {}
-        sku = sku_infos.get(sku_id) or sku_infos.get("0") or {}
-        if not sku and sku_infos:
-            sku = next(iter(sku_infos.values()), {})
-        price_node = sku.get("price") or {}
-
-        sale = _price_node_to_paisa(price_node.get("salePrice"))
-        if not sale:
-            return None
-        original = _price_node_to_paisa(price_node.get("originalPrice"))
-
-        discount_pct = None
-        if original and original > sale:
-            discount_pct = int((original - sale) / original * 100)
-
-        return {
-            "price": sale,
-            "original_price": original if (original and original > sale) else None,
-            "discount_pct": discount_pct,
-        }
+        return json.loads(module_raw) if module_raw else None
     except Exception as e:
-        logger.debug("mtop price fetch failed for %s: %s", page_url, e)
+        logger.debug("mtop fetch failed for i%s-s%s: %s", item_id, sku_id, e)
         return None
+
+
+def _price_from_module(module: dict, sku_id: str) -> Optional[dict]:
+    """
+    Extract {"price", "original_price", "discount_pct"} (paisa) from a mtop
+    module's skuInfos. Returns None if no sale price is present.
+    """
+    sku_infos = module.get("skuInfos") or {}
+    sku = sku_infos.get(sku_id) or sku_infos.get("0") or {}
+    if not sku and sku_infos:
+        sku = next(iter(sku_infos.values()), {})
+    price_node = sku.get("price") or {}
+
+    sale = _price_node_to_paisa(price_node.get("salePrice"))
+    if not sale:
+        return None
+    original = _price_node_to_paisa(price_node.get("originalPrice"))
+
+    discount_pct = None
+    if original and original > sale:
+        discount_pct = int((original - sale) / original * 100)
+
+    return {
+        "price": sale,
+        "original_price": original if (original and original > sale) else None,
+        "discount_pct": discount_pct,
+    }
+
+
+def _product_from_mtop_module(
+    url: str, module: dict, item_id: str, sku_id: str
+) -> Optional[ScrapedProduct]:
+    """Build a full ScrapedProduct from a mtop detail `module` dict."""
+    price = _price_from_module(module, sku_id)
+    if not price:
+        return None
+
+    tracking = module.get("tracking") or {}
+    product = module.get("product") or {}
+    sku_infos = module.get("skuInfos") or {}
+    sku = sku_infos.get(sku_id) or sku_infos.get("0") or {}
+    if not sku and sku_infos:
+        sku = next(iter(sku_infos.values()), {})
+
+    title = (product.get("title") or tracking.get("pdt_name") or "").strip()
+    if not title:
+        return None
+
+    image_url = tracking.get("pdt_photo") or sku.get("image") or product.get("image") or None
+
+    cats = tracking.get("pdt_category")
+    category = cats[-1] if isinstance(cats, list) and cats else None
+
+    brand_raw = product.get("brand")
+    if isinstance(brand_raw, dict):
+        brand = brand_raw.get("name")
+    elif isinstance(brand_raw, str):
+        brand = brand_raw
+    else:
+        brand = tracking.get("brand_name")
+
+    op = sku.get("operation") or {}
+    in_stock = not op.get("disable", False)
+
+    return ScrapedProduct(
+        external_id=item_id,
+        url=url,
+        title=title,
+        price=price["price"],
+        original_price=price["original_price"],
+        discount_pct=price["discount_pct"],
+        in_stock=in_stock,
+        category=category,
+        brand=brand or None,
+        image_url=image_url,
+        platform="daraz",
+    )
+
+
+async def _scrape_via_mtop(
+    client: httpx.AsyncClient, url: str
+) -> Optional[ScrapedProduct]:
+    """Primary Daraz scrape path — full product via mtop, no PDP fetch."""
+    ids = _ids_from_url(url)
+    if not ids:
+        return None
+    module = await _fetch_mtop_module(client, ids[0], ids[1])
+    if not module:
+        return None
+    return _product_from_mtop_module(url, module, ids[0], ids[1])
+
+
+async def _fetch_mtop_price(
+    client: httpx.AsyncClient,
+    page_url: str,
+    item_id: str,
+    sku_id: str,
+    seller_id: str = "",
+) -> Optional[dict]:
+    """Back-compat helper: real price only, used by the Playwright scraper."""
+    module = await _fetch_mtop_module(client, item_id, sku_id, seller_id)
+    if not module:
+        return None
+    return _price_from_module(module, sku_id)
 
 
 def _parse_module_data_product(url: str, data: dict) -> Optional[ScrapedProduct]:
@@ -575,6 +667,13 @@ async def _fetch_one(
     async with sem:
         await asyncio.sleep(random.uniform(0.5, 1.5))
         try:
+            # Primary: mtop detail API using IDs from the URL. Bypasses the
+            # Akamai PDP page challenge and returns the real sale price.
+            mtop_product = await _scrape_via_mtop(client, url)
+            if mtop_product:
+                return mtop_product
+
+            # Fallback: parse the SSR PDP HTML (older path / non-standard URLs).
             headers = {**_HEADERS_BASE, "User-Agent": random.choice(USER_AGENTS)}
             resp = await client.get(url, headers=headers, follow_redirects=True)
             if resp.status_code in (403, 429, 503):
