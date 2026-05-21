@@ -14,7 +14,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
 
 async function getTopDeals() {
   try {
-    const res = await fetch(`${API}/products/deals?min_score=8&limit=6`, {
+    const res = await fetch(`${API}/products/deals?min_score=6&limit=6`, {
       next: { revalidate: 3600 }, // ISR: revalidate every hour
     });
     if (!res.ok) return [];

@@ -162,6 +162,120 @@ async def get_stats(
     }
 
 
+# ── DB Analytics ─────────────────────────────────────────────────────────────
+
+@router.get("/db-analytics")
+async def get_db_analytics(
+    _: User = Depends(verify_supabase_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    from sqlalchemy import text
+
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    week_start = today_start - timedelta(days=6)
+
+    # Table row counts
+    table_counts_raw = await db.execute(text("""
+        SELECT
+            (SELECT COUNT(*) FROM products)           AS products,
+            (SELECT COUNT(*) FROM price_snapshots)    AS price_snapshots,
+            (SELECT COUNT(*) FROM users)              AS users,
+            (SELECT COUNT(*) FROM alerts)             AS alerts,
+            (SELECT COUNT(*) FROM tracked_products)   AS tracked_products,
+            (SELECT COUNT(*) FROM coupons)            AS coupons,
+            (SELECT COUNT(*) FROM coupon_applications) AS coupon_applications,
+            (SELECT COUNT(*) FROM match_groups)       AS match_groups,
+            (SELECT COUNT(*) FROM push_subscriptions) AS push_subscriptions
+    """))
+    tc = table_counts_raw.fetchone()._mapping
+
+    # Products: stub (never priced) vs real (has price)
+    stub_count = (await db.execute(
+        select(func.count(Product.id)).where(Product.last_scraped_at.is_(None))
+    )).scalar() or 0
+    priced_count = (await db.execute(
+        select(func.count(Product.id)).where(Product.last_scraped_at.isnot(None))
+    )).scalar() or 0
+
+    # Products added in last 7 days
+    products_7d = (await db.execute(
+        select(func.count(Product.id)).where(Product.first_seen_at >= week_start)
+    )).scalar() or 0
+    products_today = (await db.execute(
+        select(func.count(Product.id)).where(Product.first_seen_at >= today_start)
+    )).scalar() or 0
+
+    # Per-platform breakdown
+    platform_rows = await db.execute(text("""
+        SELECT platform,
+               COUNT(*) AS total,
+               COUNT(last_scraped_at) AS priced,
+               COUNT(*) - COUNT(last_scraped_at) AS stubs
+        FROM products
+        GROUP BY platform
+        ORDER BY total DESC
+    """))
+    platforms = [
+        {"platform": r.platform, "total": r.total, "priced": r.priced, "stubs": r.stubs}
+        for r in platform_rows
+    ]
+
+    # Snapshots per day — last 7 days
+    snap_trend_rows = await db.execute(text("""
+        SELECT DATE(scraped_at AT TIME ZONE 'UTC') AS day, COUNT(*) AS count
+        FROM price_snapshots
+        WHERE scraped_at >= NOW() - INTERVAL '7 days'
+        GROUP BY day
+        ORDER BY day ASC
+    """))
+    snapshot_trend = [
+        {"date": str(r.day), "count": r.count}
+        for r in snap_trend_rows
+    ]
+
+    # DB table sizes (Supabase PostgreSQL)
+    size_rows = await db.execute(text("""
+        SELECT relname AS table_name,
+               pg_size_pretty(pg_total_relation_size(relid)) AS size,
+               pg_total_relation_size(relid) AS size_bytes
+        FROM pg_catalog.pg_statio_user_tables
+        ORDER BY pg_total_relation_size(relid) DESC
+        LIMIT 10
+    """))
+    table_sizes = [
+        {"table": r.table_name, "size": r.size, "size_bytes": r.size_bytes}
+        for r in size_rows
+    ]
+
+    total_db_bytes = sum(r["size_bytes"] for r in table_sizes)
+
+    return {
+        "table_counts": dict(tc),
+        "catalog": {
+            "total": int(tc["products"]),
+            "priced": priced_count,
+            "stubs": stub_count,
+            "added_today": products_today,
+            "added_7d": products_7d,
+        },
+        "platforms": platforms,
+        "snapshot_trend": snapshot_trend,
+        "table_sizes": table_sizes,
+        "total_db_size_bytes": total_db_bytes,
+        "total_db_size": _fmt_bytes(total_db_bytes),
+        "supabase_free_limit_bytes": 500 * 1024 * 1024,
+        "supabase_usage_pct": round(total_db_bytes / (500 * 1024 * 1024) * 100, 1),
+    }
+
+
+def _fmt_bytes(b: int) -> str:
+    for unit in ("B", "KB", "MB", "GB"):
+        if b < 1024:
+            return f"{b:.1f} {unit}"
+        b //= 1024
+    return f"{b:.1f} TB"
+
+
 # ── Products ──────────────────────────────────────────────────────────────────
 
 @router.get("/products")

@@ -134,6 +134,7 @@ async def _seed_db(
             "external_id": ext_id,
             "url": url,
             "title": "[Discovered]",
+            "normalized_title": "[Discovered]",
             "is_active": True,
         })
 

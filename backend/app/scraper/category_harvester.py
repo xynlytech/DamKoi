@@ -244,6 +244,7 @@ class CategoryHarvester:
                 "external_id": m.group(1),
                 "url": url,
                 "title": "[Discovered]",
+                "normalized_title": "[Discovered]",
                 "is_active": True,
             })
 

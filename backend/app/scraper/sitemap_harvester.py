@@ -126,11 +126,13 @@ class SitemapHarvester:
             ext_id = url_to_ext_id(url)
             if not ext_id: continue
             
+            title = f"[Discovered {datetime.now().strftime('%Y-%m-%d')}]"
             to_insert.append({
                 "platform": "daraz",
                 "external_id": ext_id,
                 "url": url,
-                "title": f"[Discovered {datetime.now().strftime('%Y-%m-%d')}]",
+                "title": title,
+                "normalized_title": title,
                 "is_active": True,
                 "first_seen_at": datetime.utcnow()
             })
