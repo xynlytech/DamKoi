@@ -9,10 +9,12 @@ Falls back gracefully to Playwright if blocking (yield < 10%).
 """
 
 import asyncio
+import hashlib
 import json
 import logging
 import random
 import re
+import time
 from typing import Optional, List
 
 import httpx
@@ -332,6 +334,143 @@ def _extract_module_data_json(html: str) -> Optional[dict]:
     return None
 
 
+# ── Daraz mtop price API ──────────────────────────────────────
+#
+# The SSR __moduleData__ blob only carries tracking.pdt_price, which is the
+# LIST/MRP price — not the discounted checkout price the buyer actually sees.
+# Daraz fetches the real price client-side via the signed h5 mtop gateway
+# (mtop.global.detail.web.getDetailInfo). We replicate that call so the HTTP
+# scraper records the same sale price shown on the live page.
+
+_MTOP_APPKEY = "12574478"
+_MTOP_API = "mtop.global.detail.web.getDetailInfo"
+_MTOP_V = "1.0"
+_MTOP_GW = f"https://acs-m.daraz.com.bd/h5/{_MTOP_API.lower()}/{_MTOP_V}/"
+
+
+def _ids_from_module_data(data: dict) -> Optional[tuple[str, str, str]]:
+    """Pull (item_id, sku_id, seller_id) from a __moduleData__ dict."""
+    try:
+        pk = data["data"]["root"]["fields"]["primaryKey"]
+    except (KeyError, TypeError):
+        return None
+    item_id = str(pk.get("itemId") or "").strip()
+    sku_id = str(pk.get("defaultSkuId") or pk.get("skuId") or "").strip()
+    seller_id = str(pk.get("sellerId") or "").strip()
+    if not (item_id and sku_id):
+        return None
+    return item_id, sku_id, seller_id
+
+
+def _price_node_to_paisa(node: dict) -> Optional[int]:
+    """Convert a Daraz price node ({value, text}) to integer paisa."""
+    if not isinstance(node, dict):
+        return None
+    val = node.get("value")
+    if isinstance(val, (int, float)) and val > 0:
+        return int(round(val * 100))
+    return _parse_price_to_paisa(node.get("text"))
+
+
+async def _fetch_mtop_price(
+    client: httpx.AsyncClient,
+    page_url: str,
+    item_id: str,
+    sku_id: str,
+    seller_id: str,
+) -> Optional[dict]:
+    """
+    Call the signed mtop getDetailInfo endpoint and return the real price:
+        {"price": <paisa>, "original_price": <paisa|None>, "discount_pct": <int|None>}
+    Returns None if the call fails (caller keeps the SSR fallback price).
+    """
+    req_params = f"itemId={item_id}&sellerId={seller_id}&skuId={sku_id}"
+    data_str = json.dumps(
+        {
+            "itemId": item_id,
+            "skuId": sku_id,
+            "pageId": item_id,
+            "sellerId": seller_id,
+            "deviceType": "pc",
+            "path": page_url,
+            "uri": page_url,
+            "headerParams": "{}",
+            "cookieParams": "{}",
+            "requestParams": req_params,
+        },
+        separators=(",", ":"),
+    )
+
+    async def _call() -> Optional[dict]:
+        tk = client.cookies.get("_m_h5_tk") or ""
+        token = tk.split("_")[0] if tk else ""
+        t = str(int(time.time() * 1000))
+        sign = hashlib.md5(
+            f"{token}&{t}&{_MTOP_APPKEY}&{data_str}".encode()
+        ).hexdigest()
+        params = {
+            "jsv": "2.7.2",
+            "appKey": _MTOP_APPKEY,
+            "t": t,
+            "sign": sign,
+            "api": _MTOP_API,
+            "v": _MTOP_V,
+            "type": "originaljson",
+            "dataType": "json",
+            "H5Request": "true",
+            "data": data_str,
+        }
+        r = await client.get(
+            _MTOP_GW,
+            params=params,
+            headers={
+                "User-Agent": random.choice(USER_AGENTS),
+                "Referer": "https://www.daraz.com.bd/",
+            },
+        )
+        return r.json()
+
+    try:
+        body = await _call()
+        ret = (body.get("ret") or [""])[0]
+        # First hit usually fails with an empty/expired token but sets the
+        # _m_h5_tk cookie — retry once now that we can sign correctly.
+        if not ret.startswith("SUCCESS"):
+            if "TOKEN" in ret.upper():
+                body = await _call()
+                ret = (body.get("ret") or [""])[0]
+            if not ret.startswith("SUCCESS"):
+                return None
+
+        module_raw = body.get("data", {}).get("module")
+        if not module_raw:
+            return None
+        module = json.loads(module_raw)
+        sku_infos = module.get("skuInfos") or {}
+        sku = sku_infos.get(sku_id) or sku_infos.get("0") or {}
+        if not sku and sku_infos:
+            sku = next(iter(sku_infos.values()), {})
+        price_node = sku.get("price") or {}
+
+        sale = _price_node_to_paisa(price_node.get("salePrice"))
+        if not sale:
+            return None
+        original = _price_node_to_paisa(price_node.get("originalPrice"))
+
+        discount_pct = None
+        if original and original > sale:
+            discount_pct = int((original - sale) / original * 100)
+
+        return {
+            "price": sale,
+            "original_price": original if (original and original > sale) else None,
+            "discount_pct": discount_pct,
+        }
+    except Exception as e:
+        logger.debug("mtop price fetch failed for %s: %s", page_url, e)
+        return None
+
+
 def _parse_module_data_product(url: str, data: dict) -> Optional[ScrapedProduct]:
     """Map __moduleData__ dict (current Daraz PDP format) to ScrapedProduct."""
     try:
@@ -448,6 +587,15 @@ async def _fetch_one(
             if module_data:
                 result = _parse_module_data_product(url, module_data)
                 if result:
+                    # SSR price is the LIST price — replace it with the real
+                    # discounted price from the signed mtop detail API.
+                    ids = _ids_from_module_data(module_data)
+                    if ids:
+                        real = await _fetch_mtop_price(client, url, *ids)
+                        if real:
+                            result.price = real["price"]
+                            result.original_price = real["original_price"]
+                            result.discount_pct = real["discount_pct"]
                     return result
             m = _NEXT_DATA_RE.search(html)
             if m:

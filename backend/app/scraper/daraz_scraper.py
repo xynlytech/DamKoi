@@ -299,15 +299,32 @@ class DarazScraper:
     ) -> Optional[ScrapedProduct]:
         """Extract product data from Daraz's __moduleData__ JS variable (current format)."""
         try:
+            import httpx
             from app.scraper.daraz_http import (
                 _extract_module_data_json,
                 _parse_module_data_product,
+                _ids_from_module_data,
+                _fetch_mtop_price,
             )
             html = await page.content()
             data = _extract_module_data_json(html)
             if not data:
                 return None
-            return _parse_module_data_product(url, data)
+            product = _parse_module_data_product(url, data)
+            if not product:
+                return None
+            # The SSR blob only carries the LIST price. Replace it with the real
+            # discounted price from the signed mtop detail API (same source the
+            # live page renders).
+            ids = _ids_from_module_data(data)
+            if ids:
+                async with httpx.AsyncClient(timeout=15) as client:
+                    real = await _fetch_mtop_price(client, url, *ids)
+                if real:
+                    product.price = real["price"]
+                    product.original_price = real["original_price"]
+                    product.discount_pct = real["discount_pct"]
+            return product
         except Exception as e:
             print(f"   ⚠️ __moduleData__ extraction failed: {e}")
             return None
