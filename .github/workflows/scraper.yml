@@ -51,16 +51,15 @@ jobs:
       - name: Harvest product URLs (Daraz sitemaps + category pages + all platforms)
         run: python run_cron.py harvest
 
-  # ── 2. Scrape Daraz: parallel price fetching across N shards ──────
+  # ── 2. Scrape Daraz: single shard, mtop HTTP path (no browser) ────
+  # Free-tier friendly: the mtop detail API yields ~97% with plain HTTP, so we
+  # skip the heavy Playwright install and run one shard (limit 3,000 covers the
+  # whole catalog). ~2 min/run keeps us well under GitHub's free 2,000 min/mo.
   scrape:
-    name: Scrape Prices (Shard ${{ matrix.shard }})
+    name: Scrape Prices
     if: ${{ github.event.inputs.job == 'scrape' || github.event.inputs.job == 'all' || github.event.inputs.job == '' || github.event_name == 'schedule' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 60
-    strategy:
-      matrix:
-        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]  # 10 parallel jobs × 3,000 = 30,000 per run
-      fail-fast: false      # one shard failing doesn't cancel others
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: backend
@@ -73,12 +72,8 @@ jobs:
           cache-dependency-path: backend/requirements.txt
       - name: Install deps
         run: pip install -r requirements.txt
-      - name: Install Playwright (Playwright fallback only)
-        run: |
-          pip install playwright playwright-stealth
-          playwright install chromium --with-deps
-      - name: Scrape shard ${{ matrix.shard }}/10
-        run: python run_cron.py scrape ${{ matrix.shard }} 10
+      - name: Scrape all Daraz products (single shard)
+        run: python run_cron.py scrape 0 1
 
   # ── 3. Scrape other platforms: Rokomari, Pickaboo, Cartup, etc. ───
   platforms:
