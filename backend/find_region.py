@@ -1,14 +1,20 @@
 import asyncio
+import os
+import sys
+
 import asyncpg
 
 REGIONS = [
-    "us-east-1", "us-west-1", "us-west-2", "eu-west-1", "eu-west-2", 
-    "eu-west-3", "eu-central-1", "ap-southeast-1", "ap-northeast-1", 
+    "us-east-1", "us-west-1", "us-west-2", "eu-west-1", "eu-west-2",
+    "eu-west-3", "eu-central-1", "ap-southeast-1", "ap-northeast-1",
     "ap-northeast-2", "ap-south-1", "sa-east-1", "ap-southeast-2"
 ]
 
-PROJECT_REF = "hvujgbnqxgqaopnhcmrv"
-PASSWORD = "JbXYejQw564541rMrk"
+# Never hardcode credentials — read from the environment.
+PROJECT_REF = os.environ.get("SUPABASE_PROJECT_REF", "")
+PASSWORD = os.environ.get("SUPABASE_DB_PASSWORD", "")
+if not PROJECT_REF or not PASSWORD:
+    sys.exit("Set SUPABASE_PROJECT_REF and SUPABASE_DB_PASSWORD env vars.")
 
 async def test_region(region):
     # Try both 5432 and 6543 pooler ports
