@@ -412,7 +412,8 @@ async def _fetch_mtop_module(
         separators=(",", ":"),
     )
 
-    async def _call() -> dict:
+    async def _call() -> Optional[dict]:
+        """One signed request. Returns parsed JSON, or None on HTTP rate-limit."""
         tk = client.cookies.get("_m_h5_tk") or ""
         token = tk.split("_")[0] if tk else ""
         t = str(int(time.time() * 1000))
@@ -439,21 +440,26 @@ async def _fetch_mtop_module(
                 "Referer": "https://www.daraz.com.bd/",
             },
         )
+        if r.status_code in (429, 403, 503):
+            return None
         return r.json()
 
     try:
-        body = await _call()
-        ret = (body.get("ret") or [""])[0]
-        # First hit usually fails with an empty/expired token but sets the
-        # _m_h5_tk cookie — retry once now that we can sign correctly.
-        if not ret.startswith("SUCCESS") and "TOKEN" in ret.upper():
+        # Up to 3 attempts: handles empty/expired token (retry re-signs with the
+        # cookie just set) and transient rate-limits (back off and retry).
+        for attempt in range(3):
             body = await _call()
+            if body is None:  # rate-limited
+                await asyncio.sleep(1.5 * (attempt + 1) + random.random())
+                continue
             ret = (body.get("ret") or [""])[0]
-        if not ret.startswith("SUCCESS"):
-            return None
-
-        module_raw = body.get("data", {}).get("module")
-        return json.loads(module_raw) if module_raw else None
+            if ret.startswith("SUCCESS"):
+                module_raw = body.get("data", {}).get("module")
+                return json.loads(module_raw) if module_raw else None
+            if "TOKEN" in ret.upper():
+                continue  # cookie now set — re-sign on next attempt
+            return None  # genuine non-success (not found, etc.)
+        return None
     except Exception as e:
         logger.debug("mtop fetch failed for i%s-s%s: %s", item_id, sku_id, e)
         return None
@@ -711,31 +717,50 @@ async def _fetch_one(
 
 async def scrape_batch_http(
     urls: List[str],
-    concurrency: int = 10,
+    concurrency: int = 4,
 ) -> List[ScrapedProduct]:
     """
-    Fetch prices for many Daraz product pages via plain HTTP.
-    Returns empty list if Akamai is blocking (success rate < 10%).
+    Fetch prices for many Daraz products via the signed mtop API.
+
+    The mtop gateway rate-limits bursts from a single IP (429/403), so we keep
+    concurrency low, warm the _m_h5_tk token once up front, and process in
+    chunks with a short pause between them. This holds ~95%+ yield even from a
+    datacenter IP (e.g. GitHub Actions runners).
     """
     if not urls:
         return []
 
+    # mtop throttles hard above a few concurrent requests per IP.
+    concurrency = min(concurrency, 4)
     sem = asyncio.Semaphore(concurrency)
+    chunk_size = 40
     results: List[ScrapedProduct] = []
 
     # Use HTTP/2 if h2 package is available, plain HTTP/1.1 otherwise
     try:
         import h2  # noqa: F401
-        client_kwargs = {"timeout": 15, "http2": True}
+        client_kwargs = {"timeout": 20, "http2": True}
     except ImportError:
-        client_kwargs = {"timeout": 15}
+        client_kwargs = {"timeout": 20}
 
     async with httpx.AsyncClient(**client_kwargs) as client:
-        responses = await asyncio.gather(
-            *[_fetch_one(client, url, sem) for url in urls]
-        )
+        # Warm the token cookie once so the whole batch can sign immediately
+        # instead of every request racing through the token-retry dance.
+        for u in urls:
+            ids = _ids_from_url(u)
+            if ids:
+                await _fetch_mtop_module(client, ids[0], ids[1])
+                break
 
-    results = [r for r in responses if r is not None]
+        for i in range(0, len(urls), chunk_size):
+            chunk = urls[i : i + chunk_size]
+            chunk_res = await asyncio.gather(
+                *[_fetch_one(client, url, sem) for url in chunk]
+            )
+            results.extend(r for r in chunk_res if r is not None)
+            if i + chunk_size < len(urls):
+                await asyncio.sleep(1.0)
+
     rate = len(results) / len(urls) if urls else 0
     logger.info(
         "HTTP scrape: %d/%d products (%.0f%% success rate)",

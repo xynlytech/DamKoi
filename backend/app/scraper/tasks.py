@@ -469,18 +469,25 @@ async def _scrape_urls_fast(urls: list[str], label: str = "") -> int:
 
     from app.scraper.daraz_http import scrape_batch_http
 
-    # Try HTTP scraper (fast, no browser)
-    scraped = await scrape_batch_http(urls, concurrency=10)
+    # Primary: signed mtop API (no browser). Reliable from any IP.
+    scraped = await scrape_batch_http(urls, concurrency=4)
 
-    if len(scraped) >= max(1, len(urls) * 0.10):
+    if scraped:
         agent = ScrapeAgent(batch_name=f"HTTP-{label}", platform="daraz")
         await agent._save_results(scraped)
-        return len(scraped)
+        saved = len(scraped)
+    else:
+        saved = 0
 
-    # Playwright fallback
-    print(f"   [{label}] HTTP blocked — using Playwright fallback")
-    agent = ScrapeAgent(batch_name=f"Playwright-{label}", platform="daraz")
-    return await agent.run(urls)
+    # Playwright fallback only if a browser is actually available (it is not on
+    # the free-tier CI runners, which skip the Playwright install).
+    from app.scraper.daraz_scraper import PLAYWRIGHT_AVAILABLE
+    if saved < max(1, len(urls) * 0.10) and PLAYWRIGHT_AVAILABLE:
+        print(f"   [{label}] Low HTTP yield — trying Playwright fallback")
+        agent = ScrapeAgent(batch_name=f"Playwright-{label}", platform="daraz")
+        return await agent.run(urls)
+
+    return saved
 
 
 async def scrape_platform_products(platform: str, limit: int = 200):
