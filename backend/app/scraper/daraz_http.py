@@ -671,15 +671,17 @@ async def _fetch_one(
     sem: asyncio.Semaphore,
 ) -> Optional[ScrapedProduct]:
     async with sem:
-        await asyncio.sleep(random.uniform(0.5, 1.5))
         try:
             # Primary: mtop detail API using IDs from the URL. Bypasses the
-            # Akamai PDP page challenge and returns the real sale price.
+            # Akamai PDP page challenge and returns the real sale price. No
+            # anti-bot jitter needed here — it hits the acs-m API, not the PDP.
             mtop_product = await _scrape_via_mtop(client, url)
             if mtop_product:
                 return mtop_product
 
             # Fallback: parse the SSR PDP HTML (older path / non-standard URLs).
+            # This path DOES hit the Akamai-protected page — jitter before it.
+            await asyncio.sleep(random.uniform(0.5, 1.5))
             headers = {**_HEADERS_BASE, "User-Agent": random.choice(USER_AGENTS)}
             resp = await client.get(url, headers=headers, follow_redirects=True)
             if resp.status_code in (403, 429, 503):
@@ -730,8 +732,12 @@ async def scrape_batch_http(
     if not urls:
         return []
 
-    # mtop throttles hard above a few concurrent requests per IP.
-    concurrency = min(concurrency, 4)
+    # mtop throttles hard above a few concurrent requests per IP. Default cap 4
+    # (safe on shared datacenter IPs like CI); override for trusted home IPs via
+    # MTOP_MAX_CONCURRENCY.
+    import os
+    cap = int(os.environ.get("MTOP_MAX_CONCURRENCY", "4"))
+    concurrency = min(concurrency, cap)
     sem = asyncio.Semaphore(concurrency)
     chunk_size = 40
     results: List[ScrapedProduct] = []
