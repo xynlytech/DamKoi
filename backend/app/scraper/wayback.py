@@ -113,42 +113,50 @@ class WaybackBackfiller:
             product.last_backfilled_at = datetime.now(timezone.utc)
             await db.flush()
 
-            # Get existing snapshot dates to avoid duplicates
-            existing_result = await db.execute(
-                select(PriceSnapshot.scraped_at).where(PriceSnapshot.product_id == product_id)
-            )
-            existing_dates = {s.date() for s in existing_result.scalars().all()}
+            # Merge Wayback history into the compact price_history series.
+            from app.models.price_history import PriceHistory
+            ph = (await db.execute(
+                select(PriceHistory).where(PriceHistory.product_id == product_id)
+            )).scalar_one_or_none()
+            existing = list(ph.series) if ph and ph.series else []
+            existing_days = {pt[0] for pt in existing}
 
             log.info(f"🔍 Backfilling history for: {product.title[:40]}...")
             timestamps = await self.get_snapshots(product.url)
-            
+
             if not timestamps:
                 log.info(f"   ℹ️ No archive history found for this URL.")
                 await db.commit()
                 return
 
-            new_snapshots = []
+            added = []
             for ts in timestamps:
-                dt = datetime.strptime(ts, "%Y%m%d%H%M%S")
-                if dt.date() in existing_dates:
+                dt = datetime.strptime(ts, "%Y%m%d%H%M%S").replace(tzinfo=timezone.utc)
+                day = int(dt.timestamp() // 86400)
+                if day in existing_days:
                     continue
-                
                 price = await self.fetch_price(product.url, ts)
                 if price:
-                    new_snapshots.append(
-                        PriceSnapshot(
-                            product_id=product_id,
-                            price=price,
-                            scraped_at=dt
-                        )
-                    )
-                    # Be polite to archive.org
-                    await asyncio.sleep(1.0)
-            
-            if new_snapshots:
-                db.add_all(new_snapshots)
+                    added.append([day, price])
+                    existing_days.add(day)
+                    await asyncio.sleep(1.0)  # be polite to archive.org
+
+            if added:
+                # Merge, sort by day, collapse consecutive equal prices.
+                merged = sorted(existing + added, key=lambda x: x[0])
+                deduped, last = [], None
+                for d, p in merged:
+                    if p != last:
+                        deduped.append([d, p])
+                        last = p
+                if ph:
+                    ph.series = deduped
+                    ph.point_count = len(deduped)
+                    ph.updated_at = datetime.now(timezone.utc)
+                else:
+                    db.add(PriceHistory(product_id=product_id, series=deduped, point_count=len(deduped)))
                 await db.commit()
-                log.info(f"   ✅ Successfully added {len(new_snapshots)} historical snapshots.")
+                log.info(f"   ✅ Merged {len(added)} historical points into series.")
             else:
                 await db.commit()
                 log.info(f"   ℹ️ No new historical data points to add.")

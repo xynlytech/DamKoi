@@ -30,15 +30,17 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const { data: snapsToday } = await db
-    .from('price_snapshots')
-    .select('product_id, scraped_at, products(platform)')
-    .gte('scraped_at', today.toISOString())
-    .limit(5000) as { data: Array<{ scraped_at: string; products: { platform: string } | null }> | null };
+  // "Scraped today" per platform — products refreshed since midnight.
+  const { data: scrapedToday } = await db
+    .from('products')
+    .select('platform')
+    .eq('is_active', true)
+    .gte('last_scraped_at', today.toISOString())
+    .limit(50000);
 
   const snapsByPlatform: Record<string, number> = {};
-  for (const s of snapsToday ?? []) {
-    const plat = s.products?.platform;
+  for (const s of scrapedToday ?? []) {
+    const plat = (s as { platform: string }).platform;
     if (plat) snapsByPlatform[plat] = (snapsByPlatform[plat] ?? 0) + 1;
   }
 

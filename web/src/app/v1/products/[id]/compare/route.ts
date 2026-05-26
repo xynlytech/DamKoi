@@ -29,33 +29,17 @@ export async function GET(
     // Products in same match group = cross-platform matches
     const { data: grouped } = await db
       .from('products')
-      .select('id, title, url, image_url, platform')
+      .select('id, title, url, image_url, platform, current_price')
       .eq('match_group_id', product.match_group_id);
 
     if (grouped && grouped.length > 0) {
-      const ids = grouped.map((p: { id: string }) => p.id);
-
-      // Get latest price per product
-      const { data: snaps } = await db
-        .from('price_snapshots')
-        .select('product_id, price, scraped_at')
-        .in('product_id', ids)
-        .order('scraped_at', { ascending: false });
-
-      const latestByProduct = new Map<string, number>();
-      for (const s of snaps ?? []) {
-        if (!latestByProduct.has((s as { product_id: string }).product_id)) {
-          latestByProduct.set((s as { product_id: string }).product_id, (s as { price: number }).price);
-        }
-      }
-
-      alternatives = grouped.map((p: { id: string; title: string; url: string; image_url: string; platform: string }) => ({
+      alternatives = grouped.map((p: { id: string; title: string; url: string; image_url: string; platform: string; current_price: number | null }) => ({
         id: p.id,
         title: p.title,
         url: p.url,
         image_url: p.image_url,
         platform: p.platform,
-        current_price: latestByProduct.get(p.id) ?? null,
+        current_price: p.current_price ?? null,
         is_original_request: p.id === id,
       }));
     }

@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     .from('products')
     .select(`
       id, title, url, platform, external_id, is_active, last_scraped_at, first_seen_at, image_url,
-      price_snapshots ( price, in_stock, scraped_at )
+      current_price, current_in_stock
     `, { count: 'exact' })
     .order('last_scraped_at', { ascending: false, nullsFirst: false })
     .range(offset, offset + limit - 1);
@@ -32,20 +32,14 @@ export async function GET(req: NextRequest) {
   const { data, count, error } = await query;
   if (error) return NextResponse.json({ detail: error.message }, { status: 500, headers: cors() });
 
-  const products = (data ?? []).map((p: Record<string, unknown>) => {
-    const snaps = p.price_snapshots as { price: number; in_stock: boolean; scraped_at: string }[] | null;
-    const latest = Array.isArray(snaps) && snaps.length
-      ? snaps.sort((a, b) => new Date(b.scraped_at).getTime() - new Date(a.scraped_at).getTime())[0]
-      : null;
-    return {
-      id: p.id, title: p.title, url: p.url, platform: p.platform,
-      external_id: p.external_id, is_active: p.is_active,
-      last_scraped_at: p.last_scraped_at, first_seen_at: p.first_seen_at,
-      image_url: p.image_url,
-      current_price: latest?.price ?? null,
-      in_stock: latest?.in_stock ?? null,
-    };
-  });
+  const products = (data ?? []).map((p: Record<string, unknown>) => ({
+    id: p.id, title: p.title, url: p.url, platform: p.platform,
+    external_id: p.external_id, is_active: p.is_active,
+    last_scraped_at: p.last_scraped_at, first_seen_at: p.first_seen_at,
+    image_url: p.image_url,
+    current_price: p.current_price ?? null,
+    in_stock: p.current_in_stock ?? null,
+  }));
 
   return NextResponse.json({ products, total: count ?? 0, page, limit }, { headers: cors() });
 }

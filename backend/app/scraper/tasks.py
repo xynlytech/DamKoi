@@ -601,15 +601,8 @@ async def check_all_alerts():
         triggered_count = 0
 
         for alert, product in alerts:
-            # Get latest price
-            price_result = await db.execute(
-                select(PriceSnapshot.price)
-                .where(PriceSnapshot.product_id == product.id)
-                .order_by(PriceSnapshot.scraped_at.desc())
-                .limit(1)
-            )
-            latest_price = price_result.scalar_one_or_none()
-
+            # Current price is denormalized on the product row.
+            latest_price = product.current_price
             if latest_price is None:
                 continue
 

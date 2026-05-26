@@ -198,38 +198,30 @@ async def bulk_scrape(
 
                         product.last_scraped_at = datetime.utcnow()
 
-                        # ── Price Snapshots ──
-                        if getattr(args, 'history', False):
-                            # Generate 90 days of synthetic history
-                            from datetime import timedelta
-                            import random
-                            base_price = scraped.price
-                            snapshots_to_add = []
-                            for days_back in range(90, 0, -1):
-                                # Random fluctuation +/- 5%
-                                factor = random.uniform(0.95, 1.05)
-                                if days_back == 30: factor = 1.1 # Simulate a past hike
-                                if days_back == 7:  factor = 0.9 # Simulate a recent drop
-                                
-                                hist_price = int(base_price * factor)
-                                ts = datetime.utcnow() - timedelta(days=days_back)
-                                snapshots_to_add.append(PriceSnapshot(
-                                    product_id=product.id,
-                                    price=hist_price,
-                                    original_price=scraped.original_price,
-                                    scraped_at=ts
-                                ))
-                            db.add_all(snapshots_to_add)
-                        
-                        # Current snapshot
-                        snapshot = PriceSnapshot(
-                            product_id=product.id,
-                            price=scraped.price,
-                            original_price=scraped.original_price,
-                            discount_pct=scraped.discount_pct,
-                            in_stock=scraped.in_stock,
-                        )
-                        db.add(snapshot)
+                        # Denormalized current price
+                        product.current_price = scraped.price
+                        product.current_original_price = scraped.original_price
+                        product.current_discount_pct = scraped.discount_pct
+                        product.current_in_stock = scraped.in_stock
+
+                        # Append change-point to the compact price_history series
+                        from app.models.price_history import PriceHistory
+                        day = int(datetime.utcnow().timestamp() // 86400)
+                        ph = (await db.execute(
+                            select(PriceHistory).where(PriceHistory.product_id == product.id)
+                        )).scalar_one_or_none()
+                        if ph:
+                            series = list(ph.series or [])
+                            if not series or series[-1][1] != scraped.price:
+                                series.append([day, scraped.price])
+                                ph.series = series
+                                ph.point_count = len(series)
+                        else:
+                            db.add(PriceHistory(
+                                product_id=product.id,
+                                series=[[day, scraped.price]],
+                                point_count=1,
+                            ))
                         await db.commit()
 
                     return True

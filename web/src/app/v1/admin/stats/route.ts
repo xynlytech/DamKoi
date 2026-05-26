@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     db.from('alerts').select('id', { count: 'exact', head: true }).eq('is_active', true),
     db.from('alerts').select('id', { count: 'exact', head: true }),
     db.from('coupons').select('id', { count: 'exact', head: true }).eq('is_active', true),
-    db.from('price_snapshots').select('id', { count: 'exact', head: true }).gte('scraped_at', today.toISOString()),
+    db.from('products').select('id', { count: 'exact', head: true }).gte('last_scraped_at', today.toISOString()),
   ]);
 
   return NextResponse.json({
