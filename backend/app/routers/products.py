@@ -28,8 +28,32 @@ from app.services.memory import memory_service
 from app.scraper.daraz_scraper import DarazScraper, _normalize_title
 # Removed top-level import to avoid circular dependency
 from app.scraper.utils import extract_daraz_product_id, detect_platform_and_id, is_supported_url
+from app.services.cache import cache
 
 router = APIRouter(prefix="/products", tags=["Products"])
+
+
+# ── Read-through cache helpers ────────────────────────────────
+# Hard-cache the hot read endpoints so user traffic is served from Redis and
+# never touches Postgres (keeps DB cost flat as users grow). Writes invalidate
+# the affected keys on price change; otherwise entries expire by TTL.
+
+async def _cached_list(key, model, ttl, builder):
+    data = await cache.get(key)
+    if data is not None:
+        return [model(**d) for d in data]
+    result = await builder()
+    await cache.set(key, [r.model_dump(mode="json") for r in result], ttl)
+    return result
+
+
+async def _cached_one(key, model, ttl, builder):
+    data = await cache.get(key)
+    if data is not None:
+        return model(**data)
+    result = await builder()
+    await cache.set(key, result.model_dump(mode="json"), ttl)
+    return result
 
 
 # ── Pydantic Response Schemas ─────────────────────────────────
@@ -126,25 +150,26 @@ async def list_products(
     db: AsyncSession = Depends(get_db),
 ):
     """List tracked products with latest price info."""
-    result = await db.execute(
-        select(Product)
-        .order_by(Product.first_seen_at.desc())
-        .limit(limit)
-        .offset(offset)
-    )
-    products = result.scalars().all()
-
-    response = []
-    for product in products:
-        price_result = await db.execute(
-            select(PriceSnapshot)
-            .where(PriceSnapshot.product_id == product.id)
-            .order_by(PriceSnapshot.scraped_at.desc())
-            .limit(1)
+    async def _build():
+        result = await db.execute(
+            select(Product)
+            .order_by(Product.first_seen_at.desc())
+            .limit(limit)
+            .offset(offset)
         )
-        latest = price_result.scalar_one_or_none()
-        response.append(_build_product_response(product, latest))
-    return response
+        products = result.scalars().all()
+        out = []
+        for product in products:
+            price_result = await db.execute(
+                select(PriceSnapshot)
+                .where(PriceSnapshot.product_id == product.id)
+                .order_by(PriceSnapshot.scraped_at.desc())
+                .limit(1)
+            )
+            out.append(_build_product_response(product, price_result.scalar_one_or_none()))
+        return out
+
+    return await _cached_list(f"v1:list:{limit}:{offset}", ProductResponse, 600, _build)
 
 
 @router.get("/search", response_model=list[ProductResponse])
@@ -162,38 +187,40 @@ async def search_products(
     """
     from sqlalchemy import or_
 
-    like = f"%{q}%"
-    result = await db.execute(
-        select(Product)
-        .where(
-            and_(
-                Product.platform == platform,
-                Product.is_active == True,
-                or_(
-                    Product.title.ilike(like),
-                    Product.brand.ilike(like),
-                    Product.category.ilike(like),
+    async def _build():
+        like = f"%{q}%"
+        result = await db.execute(
+            select(Product)
+            .where(
+                and_(
+                    Product.platform == platform,
+                    Product.is_active == True,
+                    or_(
+                        Product.title.ilike(like),
+                        Product.brand.ilike(like),
+                        Product.category.ilike(like),
+                    )
                 )
             )
+            .order_by(Product.first_seen_at.desc())
+            .limit(limit)
         )
-        .order_by(Product.first_seen_at.desc())
-        .limit(limit)
-    )
-    products = result.scalars().all()
+        products = result.scalars().all()
+        out = []
+        for product in products:
+            price_result = await db.execute(
+                select(PriceSnapshot)
+                .where(PriceSnapshot.product_id == product.id)
+                .order_by(PriceSnapshot.scraped_at.desc())
+                .limit(1)
+            )
+            out.append(_build_product_response(product, price_result.scalar_one_or_none()))
+        return out
 
-    # Record search intent for market intelligence
-    memory_service.record_event("search", {"query": q, "platform": platform, "results_count": len(products)})
-
-    response = []
-    for product in products:
-        price_result = await db.execute(
-            select(PriceSnapshot)
-            .where(PriceSnapshot.product_id == product.id)
-            .order_by(PriceSnapshot.scraped_at.desc())
-            .limit(1)
-        )
-        latest = price_result.scalar_one_or_none()
-        response.append(_build_product_response(product, latest))
+    key = f"v1:search:{platform}:{q.lower().strip()}:{limit}"
+    response = await _cached_list(key, ProductResponse, 300, _build)
+    # Always record search intent, even on cache hit (market intelligence).
+    memory_service.record_event("search", {"query": q, "platform": platform, "results_count": len(response)})
     return response
 
 
@@ -222,67 +249,69 @@ async def get_deals(
     """
     from sqlalchemy import func as sqlfunc
 
-    subq = (
-        select(
-            PriceSnapshot.product_id,
-            sqlfunc.count(PriceSnapshot.id).label("snap_count"),
-        )
-        .group_by(PriceSnapshot.product_id)
-        .having(sqlfunc.count(PriceSnapshot.id) >= 5)
-        .subquery()
-    )
-
-    filters = [Product.is_active == True, subq.c.product_id == Product.id]
-    if platform:
-        filters.append(Product.platform == platform)
-    if category:
-        filters.append(Product.category.ilike(f"%{category}%"))
-
-    # Fetch enough candidates to satisfy offset + limit after score filtering
-    fetch_limit = (offset + limit) * 4
-    result = await db.execute(
-        select(Product)
-        .join(subq, subq.c.product_id == Product.id)
-        .where(and_(*filters))
-        .order_by(Product.last_scraped_at.desc())
-        .limit(fetch_limit)
-    )
-    products = result.scalars().all()
-
-    deals: list[DealItem] = []
-
-    for product in products:
-        snaps_result = await db.execute(
-            select(PriceSnapshot)
-            .where(PriceSnapshot.product_id == product.id)
-            .order_by(PriceSnapshot.scraped_at.desc())
-        )
-        all_snapshots = snaps_result.scalars().all()
-        if not all_snapshots:
-            continue
-
-        current_price = all_snapshots[0].price
-        cutoff_30d = datetime.now(timezone.utc) - timedelta(days=30)
-        prices_30d = [s.price for s in all_snapshots if s.scraped_at >= cutoff_30d]
-        all_prices = [s.price for s in all_snapshots]
-
-        atl_snapshot = min(all_snapshots, key=lambda s: s.price)
-        atl_date = atl_snapshot.scraped_at.strftime("%Y-%m-%d") if atl_snapshot else None
-        verdict = get_verdict(current_price, prices_30d, all_prices, atl_date)
-
-        if verdict.deal_score >= min_score:
-            deals.append(
-                DealItem(
-                    product=_build_product_response(product, all_snapshots[0]),
-                    deal_score=verdict.deal_score,
-                    label=verdict.label.value,
-                    explanation=verdict.explanation,
-                    avg_30d=verdict.avg_30d,
-                )
+    async def _build():
+        subq = (
+            select(
+                PriceSnapshot.product_id,
+                sqlfunc.count(PriceSnapshot.id).label("snap_count"),
             )
+            .group_by(PriceSnapshot.product_id)
+            .having(sqlfunc.count(PriceSnapshot.id) >= 5)
+            .subquery()
+        )
 
-    deals.sort(key=lambda d: d.deal_score, reverse=True)
-    return deals[offset : offset + limit]
+        filters = [Product.is_active == True, subq.c.product_id == Product.id]
+        if platform:
+            filters.append(Product.platform == platform)
+        if category:
+            filters.append(Product.category.ilike(f"%{category}%"))
+
+        fetch_limit = (offset + limit) * 4
+        result = await db.execute(
+            select(Product)
+            .join(subq, subq.c.product_id == Product.id)
+            .where(and_(*filters))
+            .order_by(Product.last_scraped_at.desc())
+            .limit(fetch_limit)
+        )
+        products = result.scalars().all()
+
+        deals: list[DealItem] = []
+        for product in products:
+            snaps_result = await db.execute(
+                select(PriceSnapshot)
+                .where(PriceSnapshot.product_id == product.id)
+                .order_by(PriceSnapshot.scraped_at.desc())
+            )
+            all_snapshots = snaps_result.scalars().all()
+            if not all_snapshots:
+                continue
+
+            current_price = all_snapshots[0].price
+            cutoff_30d = datetime.now(timezone.utc) - timedelta(days=30)
+            prices_30d = [s.price for s in all_snapshots if s.scraped_at >= cutoff_30d]
+            all_prices = [s.price for s in all_snapshots]
+
+            atl_snapshot = min(all_snapshots, key=lambda s: s.price)
+            atl_date = atl_snapshot.scraped_at.strftime("%Y-%m-%d") if atl_snapshot else None
+            verdict = get_verdict(current_price, prices_30d, all_prices, atl_date)
+
+            if verdict.deal_score >= min_score:
+                deals.append(
+                    DealItem(
+                        product=_build_product_response(product, all_snapshots[0]),
+                        deal_score=verdict.deal_score,
+                        label=verdict.label.value,
+                        explanation=verdict.explanation,
+                        avg_30d=verdict.avg_30d,
+                    )
+                )
+
+        deals.sort(key=lambda d: d.deal_score, reverse=True)
+        return deals[offset : offset + limit]
+
+    key = f"v1:deals:{platform}:{category}:{min_score}:{limit}:{offset}"
+    return await _cached_list(key, DealItem, 600, _build)
 
 
 def _build_product_response(product: Product, latest: Optional[PriceSnapshot]) -> ProductResponse:
@@ -495,6 +524,11 @@ async def get_product(
     db: AsyncSession = Depends(get_db),
 ):
     """Get product details by ID."""
+    cached = await cache.get(f"product_details:{product_id}")
+    if cached is not None:
+        memory_service.record_event("view", {"id": str(product_id), "title": cached.get("title"), "url": cached.get("url")})
+        return ProductResponse(**cached)
+
     result = await db.execute(
         select(Product).where(Product.id == product_id)
     )
@@ -515,7 +549,7 @@ async def get_product(
     )
     latest = price_result.scalar_one_or_none()
 
-    return ProductResponse(
+    response = ProductResponse(
         id=product.id,
         platform=product.platform,
         external_id=product.external_id,
@@ -530,6 +564,8 @@ async def get_product(
         in_stock=latest.in_stock if latest else None,
         last_updated=latest.scraped_at if latest else None,
     )
+    await cache.set(f"product_details:{product_id}", response.model_dump(mode="json"), 900)
+    return response
 
 
 @router.get("/{product_id}/price-history", response_model=PriceHistoryResponse)
@@ -539,49 +575,49 @@ async def get_price_history(
     db: AsyncSession = Depends(get_db),
 ):
     """Get price history for a product. Default: 90 days."""
-    # Verify product exists
-    product_result = await db.execute(
-        select(Product).where(Product.id == product_id)
-    )
-    product = product_result.scalar_one_or_none()
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found.")
-
-    # Get price history
-    from datetime import timezone as tz
-    cutoff = datetime.now(tz.utc) - timedelta(days=days)
-    prices_result = await db.execute(
-        select(PriceSnapshot)
-        .where(
-            and_(
-                PriceSnapshot.product_id == product_id,
-                PriceSnapshot.scraped_at >= cutoff,
-            )
+    async def _build():
+        product_result = await db.execute(
+            select(Product).where(Product.id == product_id)
         )
-        .order_by(PriceSnapshot.scraped_at.asc())
-    )
-    snapshots = prices_result.scalars().all()
+        product = product_result.scalar_one_or_none()
+        if not product:
+            raise HTTPException(status_code=404, detail="Product not found.")
 
-    prices = [s.price for s in snapshots] if snapshots else []
-
-    return PriceHistoryResponse(
-        product_id=product.id,
-        title=product.title,
-        prices=[
-            PricePointResponse(
-                price=s.price,
-                original_price=s.original_price,
-                discount_pct=s.discount_pct,
-                in_stock=s.in_stock,
-                scraped_at=s.scraped_at,
+        from datetime import timezone as tz
+        cutoff = datetime.now(tz.utc) - timedelta(days=days)
+        prices_result = await db.execute(
+            select(PriceSnapshot)
+            .where(
+                and_(
+                    PriceSnapshot.product_id == product_id,
+                    PriceSnapshot.scraped_at >= cutoff,
+                )
             )
-            for s in snapshots
-        ],
-        lowest_ever=min(prices) if prices else None,
-        highest_ever=max(prices) if prices else None,
-        avg_30d=int(sum(prices) / len(prices)) if prices else None,
-        current_price=prices[-1] if prices else None,
-    )
+            .order_by(PriceSnapshot.scraped_at.asc())
+        )
+        snapshots = prices_result.scalars().all()
+        prices = [s.price for s in snapshots] if snapshots else []
+
+        return PriceHistoryResponse(
+            product_id=product.id,
+            title=product.title,
+            prices=[
+                PricePointResponse(
+                    price=s.price,
+                    original_price=s.original_price,
+                    discount_pct=s.discount_pct,
+                    in_stock=s.in_stock,
+                    scraped_at=s.scraped_at,
+                )
+                for s in snapshots
+            ],
+            lowest_ever=min(prices) if prices else None,
+            highest_ever=max(prices) if prices else None,
+            avg_30d=int(sum(prices) / len(prices)) if prices else None,
+            current_price=prices[-1] if prices else None,
+        )
+
+    return await _cached_one(f"price_history:{product_id}:{days}", PriceHistoryResponse, 900, _build)
 
 
 @router.get("/{product_id}/price-history.csv")
@@ -636,39 +672,40 @@ async def get_product_verdict(
     db: AsyncSession = Depends(get_db),
 ):
     """Get the fake discount verdict for a product."""
-    # Get all snapshots
-    result = await db.execute(
-        select(PriceSnapshot)
-        .where(PriceSnapshot.product_id == product_id)
-        .order_by(PriceSnapshot.scraped_at.desc())
-    )
-    all_snapshots = result.scalars().all()
-
-    if not all_snapshots:
-        raise HTTPException(status_code=404, detail="No price data for this product.")
-
-    current_price = all_snapshots[0].price
-    cutoff_30d = datetime.now(timezone.utc) - timedelta(days=30)
-    prices_30d = [s.price for s in all_snapshots if s.scraped_at >= cutoff_30d]
-    all_prices = [s.price for s in all_snapshots]
-
-    atl_snapshot = min(all_snapshots, key=lambda s: s.price)
-    atl_date = atl_snapshot.scraped_at.strftime("%Y-%m-%d") if atl_snapshot else None
-
     resolved_lang = _resolve_lang(request, lang)
-    verdict = get_verdict(current_price, prices_30d, all_prices, atl_date, lang=resolved_lang)
 
-    return VerdictResponse(
-        deal_score=verdict.deal_score,
-        label=verdict.label.value,
-        display=verdict.display,
-        explanation=verdict.explanation,
-        avg_30d=verdict.avg_30d,
-        all_time_low=verdict.all_time_low,
-        all_time_low_date=verdict.all_time_low_date,
-        data_points=verdict.data_points,
-        confidence=verdict.confidence,
-    )
+    async def _build():
+        result = await db.execute(
+            select(PriceSnapshot)
+            .where(PriceSnapshot.product_id == product_id)
+            .order_by(PriceSnapshot.scraped_at.desc())
+        )
+        all_snapshots = result.scalars().all()
+        if not all_snapshots:
+            raise HTTPException(status_code=404, detail="No price data for this product.")
+
+        current_price = all_snapshots[0].price
+        cutoff_30d = datetime.now(timezone.utc) - timedelta(days=30)
+        prices_30d = [s.price for s in all_snapshots if s.scraped_at >= cutoff_30d]
+        all_prices = [s.price for s in all_snapshots]
+
+        atl_snapshot = min(all_snapshots, key=lambda s: s.price)
+        atl_date = atl_snapshot.scraped_at.strftime("%Y-%m-%d") if atl_snapshot else None
+        verdict = get_verdict(current_price, prices_30d, all_prices, atl_date, lang=resolved_lang)
+
+        return VerdictResponse(
+            deal_score=verdict.deal_score,
+            label=verdict.label.value,
+            display=verdict.display,
+            explanation=verdict.explanation,
+            avg_30d=verdict.avg_30d,
+            all_time_low=verdict.all_time_low,
+            all_time_low_date=verdict.all_time_low_date,
+            data_points=verdict.data_points,
+            confidence=verdict.confidence,
+        )
+
+    return await _cached_one(f"verdict:{product_id}:{resolved_lang}", VerdictResponse, 900, _build)
 
 
 @router.get("/{product_id}/alternatives", response_model=list[AlternativeResponse])

@@ -887,11 +887,13 @@ class ScrapeAgent:
 
             # ── Pass 2: touch timestamp; insert snapshot only on change ─
             now = datetime.now(timezone.utc)
+            changed_ids = []
             for product, scraped in resolved:
                 product.last_scraped_at = now
                 prev = last_price.get(product.id)
                 if prev is not None and prev[0] == scraped.price and prev[1] == scraped.in_stock:
                     continue  # unchanged — skip snapshot
+                changed_ids.append(product.id)
                 db.add(
                     PriceSnapshot(
                         product_id=product.id,
@@ -903,6 +905,14 @@ class ScrapeAgent:
                 )
 
             await db.commit()
+
+            # Invalidate read caches only for products whose price/stock changed.
+            from app.services.cache import cache as _cache
+            for pid in changed_ids:
+                await _cache.delete(f"product_details:{pid}")
+                await _cache.delete(f"price_history:{pid}:90")
+                await _cache.delete(f"verdict:{pid}:en")
+                await _cache.delete(f"verdict:{pid}:bn")
             
             # ── Invalidate Cache ──────────────────────────────────────
             from app.services.cache import cache
