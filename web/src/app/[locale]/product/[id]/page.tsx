@@ -102,9 +102,9 @@ async function getLens(id: string): Promise<LensResponse | null> {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string; locale: string }>;
 }): Promise<Metadata> {
-  const { id } = await params;
+  const { id, locale } = await params;
   const product = await getProduct(id);
   if (!product) {
     return { title: "Product Not Found | DamKoi" };
@@ -120,10 +120,18 @@ export async function generateMetadata({
   return {
     title,
     description,
+    alternates: {
+      // Consolidate ranking on the English URL; declare both language variants.
+      canonical: `${BASE_URL}/en/product/${id}`,
+      languages: {
+        en: `${BASE_URL}/en/product/${id}`,
+        bn: `${BASE_URL}/bn/product/${id}`,
+      },
+    },
     openGraph: {
       title,
       description,
-      url: `${BASE_URL}/product/${id}`,
+      url: `${BASE_URL}/${locale}/product/${id}`,
       images: [`${BASE_URL}/product/${id}/opengraph-image`],
     },
     twitter: {
