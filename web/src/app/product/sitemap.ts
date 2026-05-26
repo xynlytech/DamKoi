@@ -26,23 +26,29 @@ export default async function sitemap(props: {
   id: Promise<string> | string;
 }): Promise<MetadataRoute.Sitemap> {
   const id = Number(await props.id);
-  const start = id * CHUNK;
+  const chunkStart = id * CHUNK;
+  const PAGE = 1000; // Supabase caps a single query at 1000 rows
 
-  let data: { id: string; last_scraped_at: string | null }[] | null = null;
+  const data: { id: string; last_scraped_at: string | null }[] = [];
   try {
     const db = createServerClient();
-    ({ data } = await db
-      .from("products")
-      .select("id, last_scraped_at")
-      .eq("is_active", true)
-      .not("last_scraped_at", "is", null)
-      .order("id", { ascending: true })
-      .range(start, start + CHUNK - 1));
+    for (let offset = chunkStart; offset < chunkStart + CHUNK; offset += PAGE) {
+      const { data: page } = await db
+        .from("products")
+        .select("id, last_scraped_at")
+        .eq("is_active", true)
+        .not("last_scraped_at", "is", null)
+        .order("id", { ascending: true })
+        .range(offset, offset + PAGE - 1);
+      if (!page || page.length === 0) break;
+      data.push(...(page as { id: string; last_scraped_at: string | null }[]));
+      if (page.length < PAGE) break;
+    }
   } catch {
     return [];
   }
 
-  return (data ?? []).map((p: { id: string; last_scraped_at: string | null }) => ({
+  return data.map((p: { id: string; last_scraped_at: string | null }) => ({
     url: `${BASE_URL}/en/product/${p.id}`,
     lastModified: p.last_scraped_at ? new Date(p.last_scraped_at) : new Date(),
     changeFrequency: "daily" as const,
