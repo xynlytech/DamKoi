@@ -765,7 +765,7 @@ async def scrape_batch_http(
             )
             results.extend(r for r in chunk_res if r is not None)
             if i + chunk_size < len(urls):
-                await asyncio.sleep(1.0)
+                await asyncio.sleep(float(os.environ.get("MTOP_CHUNK_REST", "1.0")))
 
     rate = len(results) / len(urls) if urls else 0
     logger.info(
