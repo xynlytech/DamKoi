@@ -856,6 +856,19 @@ class ScrapeAgent:
                     )
                     db.add(product)
                     await db.flush()
+                else:
+                    # Backfill metadata for discovery stubs (title "[Discovered …]")
+                    # and fill any gaps once we have real scraped data.
+                    if (product.title or "").startswith("[Discovered") and scraped.title:
+                        from app.scraper.daraz_scraper import _normalize_title
+                        product.title = scraped.title
+                        product.normalized_title = _normalize_title(scraped.title)
+                    if scraped.image_url and not product.image_url:
+                        product.image_url = scraped.image_url
+                    if scraped.brand and not product.brand:
+                        product.brand = scraped.brand
+                    if scraped.category and not product.category:
+                        product.category = scraped.category
                 resolved.append((product, scraped))
 
             # ── Latest snapshot per product (one query) for dedupe ─────
