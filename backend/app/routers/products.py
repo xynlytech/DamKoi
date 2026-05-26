@@ -153,6 +153,7 @@ async def list_products(
     async def _build():
         result = await db.execute(
             select(Product)
+            .where(Product.last_scraped_at.isnot(None))  # hide un-enriched stubs
             .order_by(Product.first_seen_at.desc())
             .limit(limit)
             .offset(offset)
@@ -195,6 +196,7 @@ async def search_products(
                 and_(
                     Product.platform == platform,
                     Product.is_active == True,
+                    Product.last_scraped_at.isnot(None),  # hide un-enriched stubs
                     or_(
                         Product.title.ilike(like),
                         Product.brand.ilike(like),
