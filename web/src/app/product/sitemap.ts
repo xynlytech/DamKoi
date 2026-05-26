@@ -4,15 +4,22 @@ import { createServerClient } from "@/lib/supabase-server";
 const BASE_URL = "https://damkoi.xynly.com";
 const CHUNK = 50000; // Google's hard limit per sitemap file
 
+// Render at request time, not build time (DB env isn't present during CI build).
+export const dynamic = "force-dynamic";
+
 export async function generateSitemaps() {
-  const db = createServerClient();
-  const { count } = await db
-    .from("products")
-    .select("id", { count: "exact", head: true })
-    .eq("is_active", true)
-    .not("last_scraped_at", "is", null);
-  const chunks = Math.max(1, Math.ceil((count ?? 0) / CHUNK));
-  return Array.from({ length: chunks }, (_, i) => ({ id: i }));
+  try {
+    const db = createServerClient();
+    const { count } = await db
+      .from("products")
+      .select("id", { count: "exact", head: true })
+      .eq("is_active", true)
+      .not("last_scraped_at", "is", null);
+    const chunks = Math.max(1, Math.ceil((count ?? 0) / CHUNK));
+    return Array.from({ length: chunks }, (_, i) => ({ id: i }));
+  } catch {
+    return [{ id: 0 }];
+  }
 }
 
 export default async function sitemap(props: {
@@ -21,14 +28,19 @@ export default async function sitemap(props: {
   const id = Number(await props.id);
   const start = id * CHUNK;
 
-  const db = createServerClient();
-  const { data } = await db
-    .from("products")
-    .select("id, last_scraped_at")
-    .eq("is_active", true)
-    .not("last_scraped_at", "is", null)
-    .order("id", { ascending: true })
-    .range(start, start + CHUNK - 1);
+  let data: { id: string; last_scraped_at: string | null }[] | null = null;
+  try {
+    const db = createServerClient();
+    ({ data } = await db
+      .from("products")
+      .select("id, last_scraped_at")
+      .eq("is_active", true)
+      .not("last_scraped_at", "is", null)
+      .order("id", { ascending: true })
+      .range(start, start + CHUNK - 1));
+  } catch {
+    return [];
+  }
 
   return (data ?? []).map((p: { id: string; last_scraped_at: string | null }) => ({
     url: `${BASE_URL}/en/product/${p.id}`,

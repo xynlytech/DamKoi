@@ -4,6 +4,9 @@ import { createServerClient } from "@/lib/supabase-server";
 const BASE_URL = "https://damkoi.xynly.com";
 const CHUNK = 50000;
 
+// Evaluate at request time so the chunk count reflects live product totals.
+export const dynamic = "force-dynamic";
+
 export default async function robots(): Promise<MetadataRoute.Robots> {
   // Discover how many product sitemap chunks exist so Google can crawl them all.
   let chunks = 1;
