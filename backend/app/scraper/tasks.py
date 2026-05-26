@@ -13,6 +13,7 @@ Schedule:
 
 import asyncio
 import logging
+import re
 import time
 import os
 from datetime import datetime, timezone, timedelta
@@ -474,10 +475,31 @@ async def _scrape_urls_fast(urls: list[str], label: str = "") -> int:
 
     if scraped:
         agent = ScrapeAgent(batch_name=f"HTTP-{label}", platform="daraz")
-        await agent._save_results(scraped)
+        await agent._save_results(scraped)   # resets consecutive_misses for found
         saved = len(scraped)
     else:
         saved = 0
+
+    # ── Miss accounting (dead-URL detection) ──────────────────────
+    # Only count misses when the scraper is clearly working (healthy yield).
+    # A blocked/empty session must NOT penalise every product, else we'd
+    # falsely prune live products. Threshold 50% = "scraper is fine, these
+    # specific URLs are genuinely 404/dead".
+    yield_ratio = saved / len(urls) if urls else 0
+    if yield_ratio >= 0.5:
+        saved_ext = {s.external_id for s in scraped}
+        attempted_ext = {m.group(1) for u in urls if (m := re.search(r"i(\d+)-s\d+\.html", u))}
+        missed_ext = list(attempted_ext - saved_ext)
+        if missed_ext:
+            async with async_session_factory() as db:
+                await db.execute(
+                    text(
+                        "UPDATE products SET consecutive_misses = consecutive_misses + 1 "
+                        "WHERE platform = 'daraz' AND external_id = ANY(:ext)"
+                    ),
+                    {"ext": missed_ext},
+                )
+                await db.commit()
 
     # Playwright fallback only if a browser is actually available (it is not on
     # the free-tier CI runners, which skip the Playwright install).
@@ -872,6 +894,13 @@ class ScrapeAgent:
             changed = []  # (product, scraped)
             for product, scraped in resolved:
                 product.last_scraped_at = now
+                product.consecutive_misses = 0  # found this session
+                # Track how long a product has been out of stock (for pruning).
+                if scraped.in_stock is False:
+                    if product.out_of_stock_since is None:
+                        product.out_of_stock_since = now
+                elif scraped.in_stock is True and product.out_of_stock_since is not None:
+                    product.out_of_stock_since = None
                 unchanged = (
                     product.current_price is not None
                     and product.current_price == scraped.price
@@ -1160,6 +1189,54 @@ async def cleanup_snapshots():
             print(f"   [OK] Deleted {deleted} local HTML debug files.")
     except Exception as e:
         logger.error("Local snapshot cleanup failed: %s", e)
+
+
+async def prune_dead_products(days: int = 90, miss_threshold: int = 10, batch: int = 1000):
+    """
+    Hard-delete dead products to free DB space on the free tier. A product is
+    "dead" if EITHER:
+      - out of stock for `days`+ days (out_of_stock_since older than cutoff), OR
+      - URL returned nothing (404/dead) for `miss_threshold`+ consecutive scrapes.
+
+    Safety filters (only removed if ALL hold) — never delete something a user
+    cares about:
+      - no alerts at all (active or inactive)
+      - not in any user's tracked list
+      - no product-specific coupons
+    Dependent rows: price_snapshots cleared explicitly; price_history cascades.
+    """
+    from sqlalchemy import text
+    from app.database import async_session_factory
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    total = 0
+    print(f"[PRUNE] [{datetime.now()}] Removing dead products (OOS>{days}d or misses>={miss_threshold})...")
+    try:
+        async with async_session_factory() as db:
+            await db.execute(text("SET statement_timeout=120000"))
+            while True:
+                ids = (await db.execute(text("""
+                    SELECT p.id FROM products p
+                    WHERE (
+                            (p.out_of_stock_since IS NOT NULL AND p.out_of_stock_since < :cutoff)
+                            OR p.consecutive_misses >= :misses
+                          )
+                      AND NOT EXISTS (SELECT 1 FROM alerts a WHERE a.product_id = p.id)
+                      AND NOT EXISTS (SELECT 1 FROM tracked_products t WHERE t.product_id = p.id)
+                      AND NOT EXISTS (SELECT 1 FROM coupons c WHERE c.product_id = p.id)
+                    LIMIT :batch
+                """), {"cutoff": cutoff, "misses": miss_threshold, "batch": batch})).scalars().all()
+                if not ids:
+                    break
+                await db.execute(text("DELETE FROM price_snapshots WHERE product_id = ANY(:ids)"), {"ids": ids})
+                await db.execute(text("DELETE FROM products WHERE id = ANY(:ids)"), {"ids": ids})  # price_history cascades
+                await db.commit()
+                total += len(ids)
+                print(f"   [PRUNE] removed {total} dead products...")
+        print(f"[PRUNE] Done — removed {total} dead products.")
+    except Exception as e:
+        logger.error("Dead-product prune failed: %s", e, exc_info=True)
+    return total
 
     print("[OK] Cleanup complete.")
 

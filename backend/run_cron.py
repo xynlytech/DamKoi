@@ -105,6 +105,14 @@ async def run_scrape_loop():
     print(f"[cron] scrape-loop done after {cycle} passes.")
 
 
+async def run_prune():
+    from app.scraper.tasks import prune_dead_products, cleanup_snapshots
+    print("[cron] Pruning dead products + cleaning snapshots...")
+    await prune_dead_products()
+    await cleanup_snapshots()
+    print("[cron] Prune/cleanup done.")
+
+
 async def main():
     args = sys.argv[1:]
     cmd = args[0] if args else "all"
@@ -121,11 +129,14 @@ async def main():
         await run_platforms()
     elif cmd == "alerts":
         await run_alerts()
+    elif cmd == "prune":
+        await run_prune()
     else:  # all
         await run_harvest()
         await run_scrape()
         await run_platforms()
         await run_alerts()
+        await run_prune()
 
 
 if __name__ == "__main__":

@@ -710,6 +710,7 @@ _CRON_JOBS = {
     "matching": ("run_matching_engine_job", "app.scraper.tasks"),
     "backfill": ("run_continuous_backfill", "app.scraper.tasks"),
     "cleanup": ("cleanup_snapshots", "app.scraper.tasks"),
+    "prune": ("prune_dead_products", "app.scraper.tasks"),
 }
 
 

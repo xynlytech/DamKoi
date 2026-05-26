@@ -77,6 +77,9 @@ jobs:
           SCRAPE_LOOP_MINUTES: "330"
           SCRAPE_LOOP_REST: "30"
         run: python run_cron.py scrape-loop
+      - name: Prune dead products + clean snapshots
+        if: ${{ always() }}   # run even if the loop times out
+        run: python run_cron.py prune
 
   # ── 3. Scrape other platforms: Rokomari, Pickaboo, Cartup, etc. ───
   platforms:

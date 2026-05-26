@@ -39,6 +39,12 @@ class Product(Base):
     current_original_price = Column(Integer, nullable=True)  # paisa
     current_discount_pct = Column(SmallInteger, nullable=True)
     current_in_stock = Column(Boolean, nullable=True)
+    # When the product first went out of stock (cleared when back in stock).
+    # Used to prune products that have been OOS for a long time.
+    out_of_stock_since = Column(DateTime(timezone=True), nullable=True)
+    # Consecutive scrape sessions where the URL returned nothing (404/dead).
+    # Reset to 0 on any successful scrape; prune after a threshold.
+    consecutive_misses = Column(SmallInteger, nullable=False, default=0)
 
     # Relationships
     match_group = relationship("MatchGroup", back_populates="products")
