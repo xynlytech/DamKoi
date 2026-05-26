@@ -871,59 +871,61 @@ class ScrapeAgent:
                         product.category = scraped.category
                 resolved.append((product, scraped))
 
-            # ── Latest snapshot per product (one query) for dedupe ─────
-            ids = [p.id for p, _ in resolved]
-            last_price: dict = {}
-            if ids:
-                rows = await db.execute(
-                    text(
-                        "SELECT DISTINCT ON (product_id) product_id, price, in_stock "
-                        "FROM price_snapshots WHERE product_id = ANY(:ids) "
-                        "ORDER BY product_id, scraped_at DESC"
-                    ),
-                    {"ids": ids},
-                )
-                last_price = {r[0]: (r[1], r[2]) for r in rows}
-
-            # ── Pass 2: touch timestamp; insert snapshot only on change ─
+            # ── Pass 2: dedupe vs denormalized current price; append change-points ─
+            # No snapshot rows: history lives in price_history.series as compact
+            # [epoch_day, price] points, appended only when price/stock changes.
             now = datetime.now(timezone.utc)
-            changed_ids = []
+            epoch_day = int(now.timestamp() // 86400)
+            changed = []  # (product, scraped)
             for product, scraped in resolved:
                 product.last_scraped_at = now
-                prev = last_price.get(product.id)
-                if prev is not None and prev[0] == scraped.price and prev[1] == scraped.in_stock:
-                    continue  # unchanged — skip snapshot
-                changed_ids.append(product.id)
-                db.add(
-                    PriceSnapshot(
-                        product_id=product.id,
-                        price=scraped.price,
-                        original_price=scraped.original_price,
-                        discount_pct=scraped.discount_pct,
-                        in_stock=scraped.in_stock,
-                    )
+                unchanged = (
+                    product.current_price is not None
+                    and product.current_price == scraped.price
+                    and product.current_in_stock == scraped.in_stock
+                )
+                if unchanged:
+                    continue
+                # Update denormalized latest price (fast reads)
+                product.current_price = scraped.price
+                product.current_original_price = scraped.original_price
+                product.current_discount_pct = scraped.discount_pct
+                product.current_in_stock = scraped.in_stock
+                changed.append((product, scraped))
+
+            await db.flush()
+
+            # Append one change-point per changed product — atomic SQL append,
+            # so concurrent writers can't clobber each other's history.
+            if changed:
+                params = [
+                    {"pid": str(p.id), "day": epoch_day, "price": s.price}
+                    for p, s in changed
+                ]
+                await db.execute(
+                    text(
+                        "INSERT INTO price_history (product_id, series, point_count, updated_at) "
+                        "VALUES (cast(:pid as uuid), jsonb_build_array(jsonb_build_array(:day, :price)), 1, now()) "
+                        "ON CONFLICT (product_id) DO UPDATE SET "
+                        "series = price_history.series || jsonb_build_array(jsonb_build_array(:day, :price)), "
+                        "point_count = price_history.point_count + 1, updated_at = now()"
+                    ),
+                    params,
                 )
 
             await db.commit()
 
-            # Invalidate read caches only for products whose price/stock changed.
+            # Invalidate caches for changed products.
             from app.services.cache import cache as _cache
-            for pid in changed_ids:
-                await _cache.delete(f"product_details:{pid}")
-                await _cache.delete(f"price_history:{pid}:90")
-                await _cache.delete(f"verdict:{pid}:en")
-                await _cache.delete(f"verdict:{pid}:bn")
-            
-            # ── Invalidate Cache ──────────────────────────────────────
-            from app.services.cache import cache
+            for product, _ in changed:
+                await _cache.delete(f"product_details:{product.id}")
+                await _cache.delete(f"price_history:{product.id}:90")
+                await _cache.delete(f"verdict:{product.id}:en")
+                await _cache.delete(f"verdict:{product.id}:bn")
             for scraped in products:
-                # We need the product ID and external_id (which we already have in 'scraped')
-                # But wait, we need the internal UUID. 
-                # Actually, invalidating by external_id is safer for lookup
-                await cache.delete(f"product_lookup:{scraped.external_id}")
-            # ───────────────────────────────────────────────────────────
-            
-            print(f"   [OK] [Agent] Saved {len(products)} product(s). Cache invalidated.")
+                await _cache.delete(f"product_lookup:{scraped.external_id}")
+
+            print(f"   [OK] [Agent] Saved {len(products)} product(s), {len(changed)} price change(s).")
 
 
 async def _run_scrape_batch(urls: list, batch_type: str) -> int:

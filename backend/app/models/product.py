@@ -8,7 +8,7 @@ MVP: Daraz only. Phase 2+: Rokomari, Chaldal, etc.
 import uuid
 from datetime import datetime
 from sqlalchemy import (
-    Column, String, Text, Boolean, DateTime, UniqueConstraint, ForeignKey
+    Column, String, Text, Boolean, DateTime, UniqueConstraint, ForeignKey, Integer, SmallInteger
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -33,6 +33,12 @@ class Product(Base):
     last_scraped_at = Column(DateTime(timezone=True), nullable=True)
     last_backfilled_at = Column(DateTime(timezone=True), nullable=True)
     match_group_id = Column(UUID(as_uuid=True), ForeignKey("match_groups.id", ondelete="SET NULL"), nullable=True)
+
+    # Denormalized latest price (so listing/detail reads never scan history)
+    current_price = Column(Integer, nullable=True)           # paisa
+    current_original_price = Column(Integer, nullable=True)  # paisa
+    current_discount_pct = Column(SmallInteger, nullable=True)
+    current_in_stock = Column(Boolean, nullable=True)
 
     # Relationships
     match_group = relationship("MatchGroup", back_populates="products")
