@@ -52,65 +52,66 @@ class SitemapHarvester:
             log.error(f"Failed to discovery sitemaps: {e}")
         return []
 
-    async def extract_urls_from_sitemap(self, sitemap_url: str) -> Set[str]:
-        """Fetch a sitemap (archived or live) and extract all product URLs."""
+    async def _fetch_locs(self, sitemap_url: str) -> List[str]:
+        """Fetch a sitemap (handling gzip) and return all <loc> values."""
         import gzip
-        target = sitemap_url
-        if "web.archive.org" not in sitemap_url:
-            # For live, we might need a direct hit
-            target = sitemap_url
-            
-        log.info(f"   📥 Harvesting: {sitemap_url[-60:]}")
-        product_urls = set()
+        log.info(f"   📥 Fetching: {sitemap_url[-70:]}")
         try:
-            async with self.session.get(target, timeout=30) as resp:
-                if resp.status == 200:
-                    content_bytes = await resp.read()
-                    
-                    # Handle gzip
-                    if content_bytes[:2] == b"\x1f\x8b" or sitemap_url.endswith(".gz"):
-                        try:
-                            content_bytes = gzip.decompress(content_bytes)
-                        except Exception as ge:
-                            log.error(f"      Gzip decompression failed for {sitemap_url}: {ge}")
-                    
-                    content = content_bytes.decode("utf-8", errors="ignore")
-                    # Extract <loc> tags
-                    locs = re.findall(r"<loc>\s*(https?://[^\s<]+)\s*</loc>", content, re.I)
-                    log.info(f"      Found {len(locs)} total links in sitemap.")
-                    
-                    for loc in locs:
-                        if "/products/" in loc or re.search(r"i\d+(?:-s\d+)?\.html", loc):
-                            product_urls.add(loc)
-                    
-                    log.info(f"      Filtered down to {len(product_urls)} product URLs.")
-                else:
-                    log.error(f"      HTTP Error {resp.status} for {sitemap_url}")
+            async with self.session.get(sitemap_url, timeout=45) as resp:
+                if resp.status != 200:
+                    log.error(f"      HTTP {resp.status} for {sitemap_url}")
+                    return []
+                content_bytes = await resp.read()
+                # Only decompress if it's actually raw gzip (aiohttp already
+                # handles transport-level Content-Encoding: gzip).
+                if content_bytes[:2] == b"\x1f\x8b":
+                    try:
+                        content_bytes = gzip.decompress(content_bytes)
+                    except Exception as ge:
+                        log.error(f"      Gzip decompress failed {sitemap_url}: {ge}")
+                content = content_bytes.decode("utf-8", errors="ignore")
+                return re.findall(r"<loc>\s*(https?://[^\s<]+)\s*</loc>", content, re.I)
         except Exception as e:
-            log.error(f"      Failed to harvest {sitemap_url}: {e}")
+            log.error(f"      Failed to fetch {sitemap_url}: {e}")
+            return []
+
+    @staticmethod
+    def _is_product_url(loc: str) -> bool:
+        return "/products/" in loc or bool(re.search(r"i\d+(?:-s\d+)?\.html", loc))
+
+    async def extract_urls_from_sitemap(self, sitemap_url: str) -> Set[str]:
+        """Fetch a leaf sitemap and return its product URLs."""
+        locs = await self._fetch_locs(sitemap_url)
+        product_urls = {loc for loc in locs if self._is_product_url(loc)}
+        log.info(f"      {len(product_urls)}/{len(locs)} product URLs.")
         return product_urls
 
     async def harvest_all(self):
-        """Discover sitemaps, extract URLs, and seed the database."""
-        sitemaps = await self.discover_archived_sitemaps()
-        if not sitemaps:
-            # Fallback to current sitemaps if discovery fails
-            sitemaps = [
-                "https://www.daraz.com.bd/sitemap-product-all.xml",
-                "https://www.daraz.com.bd/sitemap-product-all-1.xml.gz"
-            ]
+        """
+        Walk the Daraz product sitemap index → all gzipped sub-sitemaps →
+        product URLs, then bulk-seed. Capped by HARVEST_MAX_URLS so we stay
+        within the free-tier DB size (default 50k).
+        """
+        import os
+        max_urls = int(os.environ.get("HARVEST_MAX_URLS", "50000"))
+        index_url = "https://www.daraz.com.bd/sitemap-product-all.xml"
 
-        all_discovered = set()
-        for s in sitemaps[:50]:
-            urls = await self.extract_urls_from_sitemap(s)
-            all_discovered.update(urls)
-            if len(all_discovered) > 200000:
+        # The product index lists sub-sitemaps (sitemap-product-all-N.xml[.gz]).
+        index_locs = await self._fetch_locs(index_url)
+        sub_sitemaps = [u for u in index_locs if "sitemap-product-all-" in u]
+        if not sub_sitemaps:
+            # index_url was itself a leaf (or layout changed) — treat as leaf
+            sub_sitemaps = [index_url]
+        log.info(f"📑 Product index: {len(sub_sitemaps)} sub-sitemaps (cap {max_urls} URLs).")
+
+        all_discovered: Set[str] = set()
+        for i, s in enumerate(sub_sitemaps, 1):
+            all_discovered.update(await self.extract_urls_from_sitemap(s))
+            log.info(f"   running total: {len(all_discovered)} URLs ({i}/{len(sub_sitemaps)} sub-sitemaps)")
+            if len(all_discovered) >= max_urls:
                 break
-            
+
         log.info(f"🎉 Total URLs discovered: {len(all_discovered)}")
-        
-        # ── Bulk Add to DB (Pending Scrape) ──
-        # This part is heavy, we'll implement a fast upsert
         await self.seed_db(all_discovered)
 
     async def seed_db(self, urls: Set[str]):
@@ -142,7 +143,8 @@ class SitemapHarvester:
 
         # Use PostgreSQL ON CONFLICT DO NOTHING for massive speedup
         async with async_session_factory() as db:
-            chunk_size = 5000
+            # Postgres caps bind params at 32767; 7 cols/row → keep chunk < 4681.
+            chunk_size = 4000
             for i in range(0, len(to_insert), chunk_size):
                 chunk = to_insert[i:i + chunk_size]
                 stmt = insert(Product).values(chunk).on_conflict_do_nothing(
