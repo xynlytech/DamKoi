@@ -23,7 +23,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import async_session_factory
@@ -823,11 +823,13 @@ class ScrapeAgent:
             print(f"      Last Error: {self.metrics['errors'][-1]}")
 
     async def _save_results(self, products: list):
-        """Persistent storage logic."""
+        """Persistent storage logic. Snapshots are deduped — a new row is only
+        written when price or stock changed since the product's last snapshot,
+        so high-frequency scraping doesn't bloat price_snapshots."""
         async with async_session_factory() as db:
+            # ── Pass 1: resolve/create products ───────────────────────
+            resolved = []  # (product, scraped)
             for scraped in products:
-                # Upsert product logic (optimized)
-                # Use platform from the scraped product if available, otherwise from agent
                 platform = getattr(scraped, 'platform', self.platform)
                 result = await db.execute(
                     select(Product).where(
@@ -854,17 +856,38 @@ class ScrapeAgent:
                     )
                     db.add(product)
                     await db.flush()
+                resolved.append((product, scraped))
 
-                product.last_scraped_at = datetime.now(timezone.utc)
-
-                snapshot = PriceSnapshot(
-                    product_id=product.id,
-                    price=scraped.price,
-                    original_price=scraped.original_price,
-                    discount_pct=scraped.discount_pct,
-                    in_stock=scraped.in_stock,
+            # ── Latest snapshot per product (one query) for dedupe ─────
+            ids = [p.id for p, _ in resolved]
+            last_price: dict = {}
+            if ids:
+                rows = await db.execute(
+                    text(
+                        "SELECT DISTINCT ON (product_id) product_id, price, in_stock "
+                        "FROM price_snapshots WHERE product_id = ANY(:ids) "
+                        "ORDER BY product_id, scraped_at DESC"
+                    ),
+                    {"ids": ids},
                 )
-                db.add(snapshot)
+                last_price = {r[0]: (r[1], r[2]) for r in rows}
+
+            # ── Pass 2: touch timestamp; insert snapshot only on change ─
+            now = datetime.now(timezone.utc)
+            for product, scraped in resolved:
+                product.last_scraped_at = now
+                prev = last_price.get(product.id)
+                if prev is not None and prev[0] == scraped.price and prev[1] == scraped.in_stock:
+                    continue  # unchanged — skip snapshot
+                db.add(
+                    PriceSnapshot(
+                        product_id=product.id,
+                        price=scraped.price,
+                        original_price=scraped.original_price,
+                        discount_pct=scraped.discount_pct,
+                        in_stock=scraped.in_stock,
+                    )
+                )
 
             await db.commit()
             

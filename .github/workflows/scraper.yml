@@ -59,7 +59,7 @@ jobs:
     name: Scrape Prices
     if: ${{ github.event.inputs.job == 'scrape' || github.event.inputs.job == 'all' || github.event.inputs.job == '' || github.event_name == 'schedule' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 350  # job runs the continuous loop for ~5h30m, then the 6h schedule restarts it
     defaults:
       run:
         working-directory: backend
@@ -72,8 +72,11 @@ jobs:
           cache-dependency-path: backend/requirements.txt
       - name: Install deps
         run: pip install -r requirements.txt
-      - name: Scrape all Daraz products (single shard)
-        run: python run_cron.py scrape 0 1
+      - name: Scrape Daraz continuously (loops full catalog ~5h30m)
+        env:
+          SCRAPE_LOOP_MINUTES: "330"
+          SCRAPE_LOOP_REST: "30"
+        run: python run_cron.py scrape-loop
 
   # ── 3. Scrape other platforms: Rokomari, Pickaboo, Cartup, etc. ───
   platforms:

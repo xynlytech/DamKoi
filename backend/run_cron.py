@@ -77,6 +77,34 @@ async def run_alerts():
     print("[cron] Alert check done.")
 
 
+async def run_scrape_loop():
+    """
+    Near-continuous mode: repeatedly scrape the whole catalog + check alerts,
+    back-to-back, until a time budget runs out. Paired with a 6h GitHub schedule
+    (job timeout 6h) this auto-restarts → effectively continuous, one pass at a
+    time, no overlap. Snapshots are deduped (stored only on price change), so
+    looping doesn't bloat the DB.
+
+    Env:
+      SCRAPE_LOOP_MINUTES  total run budget (default 330 = 5h30m, < 6h cap)
+      SCRAPE_LOOP_REST     seconds to rest between passes (default 30)
+    """
+    import time
+    budget = float(os.environ.get("SCRAPE_LOOP_MINUTES", "330")) * 60
+    rest = float(os.environ.get("SCRAPE_LOOP_REST", "30"))
+    start = time.monotonic()
+    cycle = 0
+    while time.monotonic() - start < budget:
+        cycle += 1
+        print(f"[cron] === scrape-loop pass {cycle} (elapsed {int((time.monotonic()-start)/60)}m) ===")
+        await run_scrape()
+        await run_alerts()
+        if time.monotonic() - start >= budget:
+            break
+        await asyncio.sleep(rest)
+    print(f"[cron] scrape-loop done after {cycle} passes.")
+
+
 async def main():
     args = sys.argv[1:]
     cmd = args[0] if args else "all"
@@ -87,6 +115,8 @@ async def main():
         shard_index = int(args[1]) if len(args) > 1 else 0
         total_shards = int(args[2]) if len(args) > 2 else 1
         await run_scrape(shard_index=shard_index, total_shards=total_shards)
+    elif cmd == "scrape-loop":
+        await run_scrape_loop()
     elif cmd == "platforms":
         await run_platforms()
     elif cmd == "alerts":
