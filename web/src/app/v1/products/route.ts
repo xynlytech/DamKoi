@@ -17,8 +17,9 @@ export async function GET(req: NextRequest) {
 
   let query = db
     .from('products')
-    .select('id, title, url, image_url, platform, external_id, last_scraped_at', { count: 'exact' })
+    .select('id, title, url, image_url, platform, external_id, last_scraped_at, current_price, current_original_price, current_discount_pct, current_in_stock', { count: 'exact' })
     .eq('is_active', true)
+    .not('last_scraped_at', 'is', null)   // hide un-enriched stubs
     .order('last_scraped_at', { ascending: false, nullsFirst: false })
     .range(offset, offset + limit - 1);
 
@@ -28,25 +29,13 @@ export async function GET(req: NextRequest) {
   const { data, count, error } = await query;
   if (error) return NextResponse.json({ detail: error.message }, { status: 500, headers: cors() });
 
-  // Get latest price for each product
-  const ids = (data ?? []).map((p: { id: string }) => p.id);
-  const { data: snaps } = ids.length
-    ? await db
-        .from('price_snapshots')
-        .select('product_id, price, scraped_at')
-        .in('product_id', ids)
-        .order('scraped_at', { ascending: false })
-    : { data: [] };
-
-  const latestPrice = new Map<string, number>();
-  for (const s of snaps ?? []) {
-    const snap = s as { product_id: string; price: number };
-    if (!latestPrice.has(snap.product_id)) latestPrice.set(snap.product_id, snap.price);
-  }
-
-  const products = (data ?? []).map((p: { id: string; title: string; url: string; image_url: string; platform: string; external_id: string; last_scraped_at: string }) => ({
-    ...p,
-    current_price: latestPrice.get(p.id) ?? null,
+  const products = (data ?? []).map((p: Record<string, unknown>) => ({
+    id: p.id, title: p.title, url: p.url, image_url: p.image_url,
+    platform: p.platform, external_id: p.external_id, last_scraped_at: p.last_scraped_at,
+    current_price: p.current_price ?? null,
+    original_price: p.current_original_price ?? null,
+    discount_pct: p.current_discount_pct ?? null,
+    in_stock: p.current_in_stock ?? null,
   }));
 
   return NextResponse.json({ products, total: count ?? 0, page, limit }, { headers: cors() });

@@ -13,11 +13,10 @@ export async function GET(req: NextRequest) {
   const platform = searchParams.get('platform') || '';
 
   const db = createServerClient();
-  const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-
+  const since30dMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
   let query = db
     .from('products')
-    .select('id, title, url, image_url, platform')
+    .select('id, title, url, image_url, platform, current_price')
     .eq('is_active', true)
     .not('last_scraped_at', 'is', null);
 
@@ -28,34 +27,32 @@ export async function GET(req: NextRequest) {
 
   const ids = products.map((p: { id: string }) => p.id);
 
-  const [{ data: snaps30 }, { data: snapsAll }] = await Promise.all([
-    db.from('price_snapshots').select('product_id, price').in('product_id', ids).gte('scraped_at', since30d),
-    db.from('price_snapshots').select('product_id, price, scraped_at').in('product_id', ids).order('scraped_at', { ascending: false }),
-  ]);
+  const { data: histRows } = await db
+    .from('price_history')
+    .select('product_id, series')
+    .in('product_id', ids);
 
   const snap30Map = new Map<string, number[]>();
   const snapAllMap = new Map<string, number[]>();
-  const latestMap  = new Map<string, number>();
 
-  for (const s of snaps30 ?? []) {
-    const snap = s as { product_id: string; price: number };
-    if (!snap30Map.has(snap.product_id)) snap30Map.set(snap.product_id, []);
-    snap30Map.get(snap.product_id)!.push(snap.price);
-  }
-  for (const s of snapsAll ?? []) {
-    const snap = s as { product_id: string; price: number; scraped_at: string };
-    if (!snapAllMap.has(snap.product_id)) snapAllMap.set(snap.product_id, []);
-    snapAllMap.get(snap.product_id)!.push(snap.price);
-    if (!latestMap.has(snap.product_id)) latestMap.set(snap.product_id, snap.price);
+  for (const h of histRows ?? []) {
+    const row = h as { product_id: string; series: [number, number][] };
+    const all: number[] = [], p30: number[] = [];
+    for (const [day, price] of row.series ?? []) {
+      all.push(price);
+      if (day * 86400 * 1000 >= since30dMs) p30.push(price);
+    }
+    snapAllMap.set(row.product_id, all);
+    snap30Map.set(row.product_id, p30);
   }
 
-  type RawProduct = { id: string; title: string; url: string; image_url: string | null; platform: string };
+  type RawProduct = { id: string; title: string; url: string; image_url: string | null; platform: string; current_price: number | null };
 
   const deals = (products as RawProduct[])
     .map((p) => {
       const prices30  = snap30Map.get(p.id) ?? [];
       const allPrices = snapAllMap.get(p.id) ?? [];
-      const current   = latestMap.get(p.id) ?? 0;
+      const current   = p.current_price ?? 0;
       if (!current || allPrices.length < 2) return null;
       const verdict = getVerdict(current, prices30, allPrices);
       if (verdict.deal_score < minScore) return null;

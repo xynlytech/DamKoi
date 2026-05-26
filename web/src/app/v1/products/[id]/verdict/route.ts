@@ -12,22 +12,26 @@ export async function GET(
 ) {
   const { id } = await params;
   const db = createServerClient();
-  const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const since30dMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
 
-  const [{ data: snaps30 }, { data: snapsAll }] = await Promise.all([
-    db.from('price_snapshots').select('price, scraped_at').eq('product_id', id).gte('scraped_at', since30d).order('scraped_at', { ascending: false }),
-    db.from('price_snapshots').select('price, scraped_at').eq('product_id', id).order('scraped_at', { ascending: false }).limit(500),
+  const [{ data: prod }, { data: hist }] = await Promise.all([
+    db.from('products').select('current_price').eq('id', id).single(),
+    db.from('price_history').select('series').eq('product_id', id).single(),
   ]);
 
-  const prices30 = (snaps30 ?? []).map((s: { price: number }) => s.price);
-  const allPrices = (snapsAll ?? []).map((s: { price: number }) => s.price);
-  const current = allPrices[0] ?? 0;
+  const series: [number, number][] = (hist?.series as [number, number][]) ?? [];
+  if (!series.length) return NextResponse.json({ detail: 'No price data yet' }, { status: 404, headers: cors() });
+
+  const pts = series.map(([day, price]) => ({ price, ms: day * 86400 * 1000 }));
+  const allPrices = pts.map((p) => p.price);
+  const prices30 = pts.filter((p) => p.ms >= since30dMs).map((p) => p.price);
+  const current = (prod?.current_price as number) ?? allPrices[allPrices.length - 1] ?? 0;
 
   if (!current) return NextResponse.json({ detail: 'No price data yet' }, { status: 404, headers: cors() });
 
   const minPrice = Math.min(...allPrices);
-  const atlSnap = (snapsAll ?? []).find((s: { price: number }) => s.price === minPrice) as { scraped_at: string } | undefined;
-  const atlDate = atlSnap?.scraped_at.slice(0, 10) ?? null;
+  const atl = pts.find((p) => p.price === minPrice);
+  const atlDate = atl ? new Date(atl.ms).toISOString().slice(0, 10) : null;
 
   return NextResponse.json(getVerdict(current, prices30, allPrices, atlDate), { headers: cors() });
 }

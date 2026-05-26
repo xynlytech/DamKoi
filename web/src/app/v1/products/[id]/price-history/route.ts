@@ -13,27 +13,29 @@ export async function GET(
   const daysParam = req.nextUrl.searchParams.get('days');
   const db = createServerClient();
 
-  let query = db
-    .from('price_snapshots')
-    .select('price, scraped_at')
+  const { data, error } = await db
+    .from('price_history')
+    .select('series')
     .eq('product_id', id)
-    .order('scraped_at', { ascending: true });
-
-  // days=0 means "all time" — no date filter
-  if (daysParam && daysParam !== '0') {
-    const days = parseInt(daysParam, 10);
-    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-    query = query.gte('scraped_at', since);
-  }
-
-  const { data, error } = await query;
+    .single();
 
   if (error) {
     return NextResponse.json({ detail: error.message }, { status: 500, headers: cors() });
   }
 
-  return NextResponse.json(
-    { prices: (data ?? []).map((s: { price: number; scraped_at: string }) => ({ price: s.price, scraped_at: s.scraped_at })) },
-    { headers: cors() },
-  );
+  // series = [[epoch_day, price], ...] → expand to {price, scraped_at}
+  const series: [number, number][] = (data?.series as [number, number][]) ?? [];
+  let points = series.map(([day, price]) => ({
+    price,
+    scraped_at: new Date(day * 86400 * 1000).toISOString(),
+  }));
+
+  // days=0 means "all time" — no date filter
+  if (daysParam && daysParam !== '0') {
+    const days = parseInt(daysParam, 10);
+    const sinceMs = Date.now() - days * 24 * 60 * 60 * 1000;
+    points = points.filter((p) => new Date(p.scraped_at).getTime() >= sinceMs);
+  }
+
+  return NextResponse.json({ prices: points }, { headers: cors() });
 }

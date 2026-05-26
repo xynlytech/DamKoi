@@ -14,7 +14,7 @@ export async function GET(
 
   const { data: product, error } = await db
     .from('products')
-    .select('id, title, url, image_url, platform, external_id, category, brand, is_active, first_seen_at, last_scraped_at')
+    .select('id, title, url, image_url, platform, external_id, category, brand, is_active, first_seen_at, last_scraped_at, current_price, current_original_price, current_discount_pct, current_in_stock')
     .eq('id', id)
     .single();
 
@@ -22,22 +22,14 @@ export async function GET(
     return NextResponse.json({ detail: 'Product not found' }, { status: 404, headers: cors() });
   }
 
-  // Latest price
-  const { data: snap } = await db
-    .from('price_snapshots')
-    .select('price, original_price, discount_pct, in_stock, scraped_at')
-    .eq('product_id', id)
-    .order('scraped_at', { ascending: false })
-    .limit(1)
-    .single();
-
+  const p = product as Record<string, unknown>;
   return NextResponse.json(
     {
       ...product,
-      current_price: snap?.price ?? null,
-      original_price: snap?.original_price ?? null,
-      discount_pct: snap?.discount_pct ?? null,
-      in_stock: snap?.in_stock ?? true,
+      current_price: p.current_price ?? null,
+      original_price: p.current_original_price ?? null,
+      discount_pct: p.current_discount_pct ?? null,
+      in_stock: p.current_in_stock ?? true,
     },
     { headers: cors() },
   );

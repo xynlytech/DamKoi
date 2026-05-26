@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
   // Find product
   const { data: product, error: pErr } = await db
     .from('products')
-    .select('id, title, url, image_url, platform, external_id, last_scraped_at')
+    .select('id, title, url, image_url, platform, external_id, last_scraped_at, current_price')
     .eq('platform', platform)
     .eq('external_id', externalId)
     .single();
@@ -38,33 +38,21 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Fetch price snapshots
-  const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-  const [{ data: snaps30 }, { data: snapsAll }] = await Promise.all([
-    db
-      .from('price_snapshots')
-      .select('price, scraped_at')
-      .eq('product_id', product.id)
-      .gte('scraped_at', since30d)
-      .order('scraped_at', { ascending: false }),
-    db
-      .from('price_snapshots')
-      .select('price, scraped_at')
-      .eq('product_id', product.id)
-      .order('scraped_at', { ascending: false })
-      .limit(500),
-  ]);
+  // Price history series → [[epoch_day, price], ...]
+  const since30dMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const { data: hist } = await db
+    .from('price_history')
+    .select('series')
+    .eq('product_id', product.id)
+    .single();
+  const series: [number, number][] = (hist?.series as [number, number][]) ?? [];
+  const allPrices = series.map(([, price]) => price);
+  const prices30d = series.filter(([day]) => day * 86400 * 1000 >= since30dMs).map(([, price]) => price);
+  const latestPrice = (product.current_price as number) ?? (allPrices[allPrices.length - 1] ?? 0);
 
-  const prices30d = (snaps30 ?? []).map((s: { price: number }) => s.price);
-  const allPrices = (snapsAll ?? []).map((s: { price: number }) => s.price);
-  const latestPrice = allPrices[0] ?? 0;
-
-  // Find all-time low date
   const minPrice = allPrices.length ? Math.min(...allPrices) : null;
-  const atlSnap = minPrice != null
-    ? (snapsAll ?? []).find((s: { price: number }) => s.price === minPrice)
-    : null;
-  const atlDate = atlSnap ? (atlSnap as { scraped_at: string }).scraped_at.slice(0, 10) : null;
+  const atlPt = minPrice != null ? series.find(([, price]) => price === minPrice) : null;
+  const atlDate = atlPt ? new Date(atlPt[0] * 86400 * 1000).toISOString().slice(0, 10) : null;
 
   const verdict = getVerdict(latestPrice, prices30d, allPrices, atlDate);
 
