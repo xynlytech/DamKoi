@@ -3,9 +3,12 @@ import { createServerClient } from "@/lib/supabase-server";
 
 const BASE_URL = "https://damkoi.xynly.com";
 const CHUNK = 50000; // Google's hard limit per sitemap file
+const PAGE = 1000;   // Supabase caps a single query at 1000 rows
 
-// Render at request time, not build time (DB env isn't present during CI build).
-export const dynamic = "force-dynamic";
+// Cache each generated sitemap for 24h (ISR). Regenerates daily in the
+// background; Googlebot is always served the fast cached copy.
+export const revalidate = 86400;
+export const maxDuration = 60;
 
 export async function generateSitemaps() {
   try {
@@ -27,23 +30,26 @@ export default async function sitemap(props: {
 }): Promise<MetadataRoute.Sitemap> {
   const id = Number(await props.id);
   const chunkStart = id * CHUNK;
-  const PAGE = 1000; // Supabase caps a single query at 1000 rows
 
-  const data: { id: string; last_scraped_at: string | null }[] = [];
+  let data: { id: string; last_scraped_at: string | null }[] = [];
   try {
     const db = createServerClient();
-    for (let offset = chunkStart; offset < chunkStart + CHUNK; offset += PAGE) {
-      const { data: page } = await db
-        .from("products")
-        .select("id, last_scraped_at")
-        .eq("is_active", true)
-        .not("last_scraped_at", "is", null)
-        .order("id", { ascending: true })
-        .range(offset, offset + PAGE - 1);
-      if (!page || page.length === 0) break;
-      data.push(...(page as { id: string; last_scraped_at: string | null }[]));
-      if (page.length < PAGE) break;
-    }
+    // Fetch all 50 pages of this chunk in parallel (sequential was ~40s → timeout).
+    const offsets: number[] = [];
+    for (let o = chunkStart; o < chunkStart + CHUNK; o += PAGE) offsets.push(o);
+    const pages = await Promise.all(
+      offsets.map((o) =>
+        db
+          .from("products")
+          .select("id, last_scraped_at")
+          .eq("is_active", true)
+          .not("last_scraped_at", "is", null)
+          .order("id", { ascending: true })
+          .range(o, o + PAGE - 1)
+          .then((r) => r.data ?? []),
+      ),
+    );
+    data = pages.flat() as { id: string; last_scraped_at: string | null }[];
   } catch {
     return [];
   }
