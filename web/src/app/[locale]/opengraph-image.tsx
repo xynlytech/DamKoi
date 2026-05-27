@@ -44,7 +44,7 @@ export default function OgImage() {
             DamKoi
           </div>
           <div style={{ color: "#64748b", fontSize: 18, fontWeight: 600 }}>
-            🇧🇩 Bangladesh Price Intelligence
+            Bangladesh Price Intelligence
           </div>
         </div>
 
