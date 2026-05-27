@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  ArrowLeft, ExternalLink, Sparkles, Layers,
+  ExternalLink, Sparkles, Layers,
   CheckCircle, AlertCircle, Clock, TrendingDown,
   XCircle, Flame, Circle
 } from "lucide-react";
@@ -105,7 +105,7 @@ export async function generateMetadata({
   params: Promise<{ id: string; locale: string }>;
 }): Promise<Metadata> {
   const { id, locale } = await params;
-  const product = await getProduct(id);
+  const [product, verdict] = await Promise.all([getProduct(id), getVerdict(id)]);
   if (!product) {
     return { title: "Product Not Found | DamKoi" };
   }
@@ -118,9 +118,17 @@ export async function generateMetadata({
     ? `Is ${product.title} worth buying now at ${price}? See 90-day price history, fake discount detection, and price alerts. DamKoi tracks prices across Bangladesh.`
     : `90-day price history and fake discount detection for ${product.title} in Bangladesh.`;
 
+  // Index gate: only let Google index pages carrying a real verdict (≥5 price
+  // points). Thin "still tracking" pages stay crawlable (follow) but out of the
+  // index — stops 200k near-identical pages triggering scaled-content abuse.
+  // Pages auto-promote once price history accumulates.
+  const indexable =
+    !!product.current_price && !!verdict && verdict.label !== "INSUFFICIENT_DATA";
+
   return {
     title,
     description,
+    robots: { index: indexable, follow: true },
     alternates: {
       // Consolidate ranking on the English URL; declare both language variants.
       canonical: `${BASE_URL}/en/product/${id}`,
@@ -185,6 +193,45 @@ function ScoreRing({ score }: { score: number }) {
         <span className="text-[8px] font-bold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Score</span>
       </div>
     </div>
+  );
+}
+
+// Real, per-product prose built only from tracked data. Renders only on pages
+// with a computed verdict (the same pages we let Google index) so indexed pages
+// clear the thin-content floor with genuinely unique text.
+function PriceSummary({ product, verdict }: { product: Product; verdict: Verdict }) {
+  const platform = product.platform.charAt(0).toUpperCase() + product.platform.slice(1);
+  const lines: string[] = [];
+  lines.push(
+    `As of ${fmtDate(product.last_updated)}, ${product.title} is listed at ${fmt(product.current_price)} on ${platform} in Bangladesh.`,
+  );
+  if (product.original_price && product.current_price && product.original_price > product.current_price) {
+    const off = Math.round((1 - product.current_price / product.original_price) * 100);
+    lines.push(`That is ${off}% below its ${fmt(product.original_price)} list price.`);
+  }
+  if (verdict.avg_30d) {
+    lines.push(
+      `Across ${verdict.data_points} price checks, the 30-day average works out to ${fmt(verdict.avg_30d)}.`,
+    );
+  }
+  if (verdict.all_time_low) {
+    lines.push(
+      `The lowest price DamKoi has recorded is ${fmt(verdict.all_time_low)}${
+        verdict.all_time_low_date ? ` (on ${fmtDate(verdict.all_time_low_date)})` : ""
+      }.`,
+    );
+  }
+  lines.push(verdict.explanation);
+
+  return (
+    <section className="dk-card p-8">
+      <h2 className="text-base font-bold text-white mb-4">
+        {product.title} — Price Analysis
+      </h2>
+      <p className="text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>
+        {lines.join(" ")}
+      </p>
+    </section>
   );
 }
 
@@ -320,14 +367,26 @@ export default async function ProductPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <Link
-        href="/dashboard"
-        className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.25em] transition-all mb-12 dk-focus"
+      {/* Breadcrumb — mirrors BreadcrumbList schema, adds internal links */}
+      <nav
+        aria-label="Breadcrumb"
+        className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.25em] mb-12"
         style={{ color: "var(--text-faint)" }}
-        onMouseEnter={undefined}
       >
-        <ArrowLeft size={12} /> All Products
-      </Link>
+        <Link href="/" className="hover:underline dk-focus">Home</Link>
+        <span>/</span>
+        <Link href="/deals" className="hover:underline dk-focus">Deals</Link>
+        {product.category && (
+          <>
+            <span>/</span>
+            <span style={{ color: "var(--text-muted)" }}>{product.category}</span>
+          </>
+        )}
+        <span>/</span>
+        <span className="truncate max-w-[40vw]" style={{ color: "var(--text-muted)" }}>
+          {product.title}
+        </span>
+      </nav>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
 
@@ -394,6 +453,11 @@ export default async function ProductPage({
               </div>
             ))}
           </div>
+
+          {/* Price analysis — real prose, also the indexable-content signal */}
+          {verdict && verdict.label !== "INSUFFICIENT_DATA" && (
+            <PriceSummary product={product} verdict={verdict} />
+          )}
 
           {/* AI Product Lens */}
           {lens && (
