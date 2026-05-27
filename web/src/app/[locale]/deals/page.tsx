@@ -3,10 +3,20 @@ import Link from "next/link";
 import { Flame, Search } from "lucide-react";
 import DealsLoadMore from "./DealsLoadMore";
 
+const BASE_URL = "https://damkoi.xynly.com";
+
 export const metadata: Metadata = {
   title: "Best Deals in Bangladesh Today",
   description:
     "Verified genuine price drops across Daraz, Cartup, Rokomari, Pickaboo, Chaldal, and Othoba — not inflated fake discounts. Updated every hour.",
+  alternates: {
+    canonical: `${BASE_URL}/en/deals`,
+    languages: {
+      en: `${BASE_URL}/en/deals`,
+      bn: `${BASE_URL}/bn/deals`,
+      "x-default": `${BASE_URL}/en/deals`,
+    },
+  },
 };
 
 const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
@@ -59,6 +69,14 @@ export default async function DealsPage({
         </h1>
         <p className="text-sm" style={{ color: "var(--text-muted)" }}>
           {deals.length}+ verified price drops · Updated every hour
+        </p>
+        <p className="text-sm leading-relaxed mt-4 max-w-3xl" style={{ color: "var(--text-muted)" }}>
+          These are genuine deals, not inflated fake discounts. DamKoi checks each
+          product&apos;s current price against its own recorded price history and only
+          lists items selling at or below their 30-day average — so a deal here means
+          the price has really dropped, not that a seller raised the &ldquo;original&rdquo;
+          price before a sale. Every price is in Bangladeshi Taka and refreshed hourly.
+          Tap any product to see its full price chart, all-time low, and verdict.
         </p>
       </div>
 

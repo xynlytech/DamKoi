@@ -5,10 +5,20 @@ import PlatformBadges from "./components/PlatformBadges";
 import HowItWorks from "./components/HowItWorks";
 import FAQSection from "./components/FAQSection";
 
+const BASE_URL = "https://damkoi.xynly.com";
+
 export const metadata: Metadata = {
   title: "DamKoi — Stop Falling for Fake Discounts in Bangladesh",
   description:
     "DamKoi shows you the real price history of products on Daraz, Cartup, Rokomari, and Pickaboo. Detect fake discounts, compare prices across platforms, and get alerted when prices drop.",
+  alternates: {
+    canonical: `${BASE_URL}/en`,
+    languages: {
+      en: `${BASE_URL}/en`,
+      bn: `${BASE_URL}/bn`,
+      "x-default": `${BASE_URL}/en`,
+    },
+  },
 };
 
 const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
