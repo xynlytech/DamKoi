@@ -2,13 +2,12 @@ import type { MetadataRoute } from "next";
 import { createServerClient } from "@/lib/supabase-server";
 
 const BASE_URL = "https://damkoi.xynly.com";
-const CHUNK = 50000; // Google's hard limit per sitemap file
-const PAGE = 1000;   // Supabase caps a single query at 1000 rows
+// 1 000 URLs/sitemap = a single Supabase query (it caps results at 1 000 rows),
+// so each chunk renders in ~1s instead of timing out. Google allows tens of
+// thousands of sitemaps in an index, so the extra files are fine.
+const CHUNK = 1000;
 
-// Cache each generated sitemap for 24h (ISR). Regenerates daily in the
-// background; Googlebot is always served the fast cached copy.
-export const revalidate = 86400;
-export const maxDuration = 60;
+export const revalidate = 86400; // cache each chunk 24h (ISR)
 
 export async function generateSitemaps() {
   try {
@@ -29,32 +28,24 @@ export default async function sitemap(props: {
   id: Promise<string> | string;
 }): Promise<MetadataRoute.Sitemap> {
   const id = Number(await props.id);
-  const chunkStart = id * CHUNK;
+  const start = id * CHUNK;
 
   let data: { id: string; last_scraped_at: string | null }[] = [];
   try {
     const db = createServerClient();
-    // Fetch all 50 pages of this chunk in parallel (sequential was ~40s → timeout).
-    const offsets: number[] = [];
-    for (let o = chunkStart; o < chunkStart + CHUNK; o += PAGE) offsets.push(o);
-    const pages = await Promise.all(
-      offsets.map((o) =>
-        db
-          .from("products")
-          .select("id, last_scraped_at")
-          .eq("is_active", true)
-          .not("last_scraped_at", "is", null)
-          .order("id", { ascending: true })
-          .range(o, o + PAGE - 1)
-          .then((r) => r.data ?? []),
-      ),
-    );
-    data = pages.flat() as { id: string; last_scraped_at: string | null }[];
+    const { data: rows } = await db
+      .from("products")
+      .select("id, last_scraped_at")
+      .eq("is_active", true)
+      .not("last_scraped_at", "is", null)
+      .order("id", { ascending: true })
+      .range(start, start + CHUNK - 1);
+    data = (rows ?? []) as { id: string; last_scraped_at: string | null }[];
   } catch {
     return [];
   }
 
-  return data.map((p: { id: string; last_scraped_at: string | null }) => ({
+  return data.map((p) => ({
     url: `${BASE_URL}/en/product/${p.id}`,
     lastModified: p.last_scraped_at ? new Date(p.last_scraped_at) : new Date(),
     changeFrequency: "daily" as const,
