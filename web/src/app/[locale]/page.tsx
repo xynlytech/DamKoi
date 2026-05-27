@@ -3,6 +3,7 @@ import HeroSection from "./components/HeroSection";
 import DealsPreview from "./components/DealsPreview";
 import PlatformBadges from "./components/PlatformBadges";
 import HowItWorks from "./components/HowItWorks";
+import FAQSection from "./components/FAQSection";
 
 export const metadata: Metadata = {
   title: "DamKoi — Stop Falling for Fake Discounts in Bangladesh",
@@ -40,6 +41,9 @@ export default async function HomePage() {
 
       {/* How DamKoi works */}
       <HowItWorks />
+
+      {/* FAQ — question-based, citable answers for AI search (AEO/GEO) */}
+      <FAQSection />
     </div>
   );
 }

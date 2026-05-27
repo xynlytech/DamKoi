@@ -1,0 +1,22 @@
+# DamKoi
+
+> DamKoi is a free price-tracking and fake-discount detection service for online shoppers in Bangladesh. It records the real price history of products on local marketplaces (starting with Daraz Bangladesh) and tells you whether an advertised discount is genuine or a marked-up price disguised as a deal. Prices are in Bangladeshi Taka (BDT).
+
+## What DamKoi does
+- Tracks the real, timestamped price history of products instead of trusting a seller's claimed "original" price.
+- Gives a plain verdict for each product: best price, good deal, fair price, or fake discount.
+- Compares the same product's price across platforms so you can buy from the cheapest store.
+- Sends price-drop alerts when an item actually becomes cheaper.
+
+## Main pages
+- [Home](https://damkoi.xynly.com/en): Paste a product link to see its price history and discount verdict.
+- [Deals](https://damkoi.xynly.com/en/deals): Products currently at a genuine low price by tracked history.
+- [Dashboard](https://damkoi.xynly.com/en/dashboard): Products you are tracking and their verdicts.
+- [Alerts](https://damkoi.xynly.com/en/alerts): Set and manage price-drop alerts.
+
+## Key facts
+- Coverage: Daraz Bangladesh is tracked today; Cartup, Rokomari, Pickaboo, Chaldal and Othoba are being added.
+- Currency: all prices are in Bangladeshi Taka (BDT).
+- Method: a discount is flagged "fake" when the current price is above the product's own 30-day average; "best price" when it matches the all-time low recorded.
+- Cost: free to look up price history, compare prices, and check discount verdicts; no account required to search.
+- Language: available in English and Bangla.
