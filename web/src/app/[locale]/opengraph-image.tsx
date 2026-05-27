@@ -3,7 +3,6 @@ import { ImageResponse } from "next/og";
 // Site-wide OG/social + AI link-preview image. Next auto-injects this for every
 // page under [locale] that doesn't define its own (product pages override with
 // their per-product card). Fixes the previously-missing homepage OG image.
-export const runtime = "edge";
 export const alt = "DamKoi — Real price history & fake-discount detection for Bangladesh";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";

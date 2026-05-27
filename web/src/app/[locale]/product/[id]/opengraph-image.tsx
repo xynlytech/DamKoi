@@ -1,6 +1,5 @@
 import { ImageResponse } from "next/og";
 
-export const runtime = "edge";
 export const alt = "DamKoi Price Intelligence";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
@@ -80,10 +79,10 @@ export default async function OgImage({
             </div>
             {platform && (
               <div style={{
-                background: "var(--surface-ghost)",
+                background: "rgba(255,255,255,0.06)",
                 borderRadius: 10,
                 padding: "6px 14px",
-                color: "var(--text-muted)",
+                color: "#94a3b8",
                 fontSize: 13,
                 fontWeight: 700,
                 letterSpacing: "0.1em",
@@ -93,7 +92,7 @@ export default async function OgImage({
               </div>
             )}
           </div>
-          <div style={{ color: "var(--text-faint)", fontSize: 13, fontWeight: 600 }}>
+          <div style={{ color: "#64748b", fontSize: 13, fontWeight: 600 }}>
             Bangladesh Price Intelligence
           </div>
         </div>
@@ -107,7 +106,7 @@ export default async function OgImage({
           gap: 24,
         }}>
           <div style={{
-            color: "var(--text-secondary)",
+            color: "#e2e8f0",
             fontSize: title.length > 80 ? 32 : title.length > 50 ? 40 : 46,
             fontWeight: 900,
             lineHeight: 1.15,
@@ -140,7 +139,7 @@ export default async function OgImage({
             {/* Price */}
             {price && (
               <div style={{
-                color: "var(--text-secondary)",
+                color: "#e2e8f0",
                 fontSize: 28,
                 fontWeight: 900,
                 fontFamily: "monospace",
@@ -158,8 +157,8 @@ export default async function OgImage({
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              background: "var(--surface-ghost)",
-              border: "1px solid var(--border-sm)",
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.12)",
               borderRadius: 20,
               width: 90,
               height: 90,
@@ -172,7 +171,7 @@ export default async function OgImage({
               }}>
                 {score}
               </span>
-              <span style={{ color: "var(--text-faint)", fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", marginTop: 4 }}>
+              <span style={{ color: "#64748b", fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", marginTop: 4 }}>
                 /10
               </span>
             </div>
