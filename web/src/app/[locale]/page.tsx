@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import HeroSection from "./components/HeroSection";
 import DealsPreview from "./components/DealsPreview";
 import PlatformBadges from "./components/PlatformBadges";
+import { setRequestLocale } from "next-intl/server";
 import HowItWorks from "./components/HowItWorks";
 import FAQSection from "./components/FAQSection";
 
@@ -35,7 +36,13 @@ async function getTopDeals() {
   }
 }
 
-export default async function HomePage() {
+export default async function HomePage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
   const deals = await getTopDeals();
 
   return (

@@ -43,7 +43,14 @@ export const metadata: Metadata = {
 };
 
 import { NextIntlClientProvider } from "next-intl";
-import { getMessages } from "next-intl/server";
+import { getMessages, setRequestLocale } from "next-intl/server";
+import { routing } from "@/routing";
+
+// Pre-render both locales statically (enables ISR instead of fully-dynamic SSR
+// → cacheable HTML, faster TTFB/LCP for crawlers and users).
+export function generateStaticParams() {
+  return routing.locales.map((locale) => ({ locale }));
+}
 
 export default async function RootLayout({
   children,
@@ -53,6 +60,7 @@ export default async function RootLayout({
   params: Promise<{ locale: string }>;
 }>) {
   const { locale } = await params;
+  setRequestLocale(locale);
   const messages = await getMessages();
 
   // Sitewide entity schema — establishes DamKoi as a brand/site to Google.
@@ -65,8 +73,26 @@ export default async function RootLayout({
         name: "DamKoi",
         url: "https://damkoi.xynly.com",
         logo: "https://damkoi.xynly.com/icon.png",
+        image: "https://damkoi.xynly.com/en/opengraph-image",
         description:
           "Bangladesh shopping intelligence: real price history, fake-discount detection, and cross-platform price comparison.",
+        slogan: "Stop paying for fake discounts.",
+        areaServed: { "@type": "Country", name: "Bangladesh" },
+        knowsAbout: [
+          "price tracking",
+          "price history",
+          "fake discount detection",
+          "online shopping in Bangladesh",
+          "Daraz",
+          "price comparison",
+        ],
+        contactPoint: {
+          "@type": "ContactPoint",
+          email: "contact@xynly.com",
+          contactType: "customer support",
+          areaServed: "BD",
+          availableLanguage: ["English", "Bengali"],
+        },
       },
       {
         "@type": "WebSite",

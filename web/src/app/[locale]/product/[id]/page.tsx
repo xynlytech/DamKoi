@@ -5,6 +5,7 @@ import {
   CheckCircle, AlertCircle, Clock, TrendingDown,
   XCircle, Flame, Circle
 } from "lucide-react";
+import { setRequestLocale } from "next-intl/server";
 import PriceChartClient from "./PriceChartClient";
 import AlertFormClient from "./AlertFormClient";
 
@@ -245,7 +246,8 @@ export default async function ProductPage({
 }: {
   params: Promise<{ id: string; locale: string }>;
 }) {
-  const { id } = await params;
+  const { id, locale } = await params;
+  setRequestLocale(locale);
 
   const [product, verdict, compare, lens] = await Promise.all([
     getProduct(id),
