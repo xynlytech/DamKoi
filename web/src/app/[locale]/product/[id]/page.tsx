@@ -42,6 +42,7 @@ type Verdict = {
   all_time_low: number | null;
   all_time_low_date: string | null;
   data_points: number;
+  tracking_days?: number;
   confidence: number;
 };
 
@@ -209,14 +210,15 @@ function PriceSummary({ product, verdict }: { product: Product; verdict: Verdict
     const off = Math.round((1 - product.current_price / product.original_price) * 100);
     lines.push(`That is ${off}% below its ${fmt(product.original_price)} list price.`);
   }
-  if (verdict.avg_30d) {
-    lines.push(
-      `Across ${verdict.data_points} price checks, the 30-day average works out to ${fmt(verdict.avg_30d)}.`,
-    );
+  if (verdict.tracking_days && verdict.tracking_days > 0) {
+    lines.push(`DamKoi has tracked this listing for ${verdict.tracking_days} days.`);
   }
-  if (verdict.all_time_low) {
+  if (verdict.avg_30d && verdict.data_points > 1) {
+    lines.push(`Its 30-day average price is ${fmt(verdict.avg_30d)}.`);
+  }
+  if (verdict.all_time_low && verdict.data_points > 1) {
     lines.push(
-      `The lowest price DamKoi has recorded is ${fmt(verdict.all_time_low)}${
+      `The lowest price recorded is ${fmt(verdict.all_time_low)}${
         verdict.all_time_low_date ? ` (on ${fmtDate(verdict.all_time_low_date)})` : ""
       }.`,
     );
