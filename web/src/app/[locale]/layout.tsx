@@ -37,6 +37,9 @@ export const metadata: Metadata = {
     locale: "en_BD",
     type: "website",
   },
+  verification: {
+    google: "w7TiimY4lDd3r4g-ijPZTQguKmP_XExaAGFM36fCOcQ",
+  },
 };
 
 import { NextIntlClientProvider } from "next-intl";
