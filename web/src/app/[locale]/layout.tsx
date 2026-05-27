@@ -55,6 +55,30 @@ export default async function RootLayout({
   const { locale } = await params;
   const messages = await getMessages();
 
+  // Sitewide entity schema — establishes DamKoi as a brand/site to Google.
+  const orgLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://damkoi.xynly.com/#organization",
+        name: "DamKoi",
+        url: "https://damkoi.xynly.com",
+        logo: "https://damkoi.xynly.com/icon.png",
+        description:
+          "Bangladesh shopping intelligence: real price history, fake-discount detection, and cross-platform price comparison.",
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://damkoi.xynly.com/#website",
+        name: "DamKoi",
+        url: "https://damkoi.xynly.com",
+        publisher: { "@id": "https://damkoi.xynly.com/#organization" },
+        inLanguage: ["en", "bn"],
+      },
+    ],
+  };
+
   return (
     <html
       lang={locale}
@@ -62,6 +86,10 @@ export default async function RootLayout({
       className={`${spaceGrotesk.variable} ${ibmPlexMono.variable}`}
     >
       <body className="min-h-dvh flex flex-col" style={{ backgroundColor: "var(--bg)", color: "var(--text-primary)", fontFamily: "var(--font-space-grotesk), system-ui, sans-serif" }}>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgLd) }}
+        />
         <NextIntlClientProvider messages={messages}>
           {/* ── Navbar ── */}
           <header className="fixed top-0 left-0 right-0 z-50 dk-nav">

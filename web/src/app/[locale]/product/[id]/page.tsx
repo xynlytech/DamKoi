@@ -112,7 +112,8 @@ export async function generateMetadata({
   const price = product.current_price
     ? `৳${(product.current_price / 100).toLocaleString("en-BD")}`
     : null;
-  const title = `${product.title} – Price History Bangladesh | DamKoi`;
+  // Layout template appends " | DamKoi"; don't repeat it here.
+  const title = `${product.title} – Price History Bangladesh`;
   const description = price
     ? `Is ${product.title} worth buying now at ${price}? See 90-day price history, fake discount detection, and price alerts. DamKoi tracks prices across Bangladesh.`
     : `90-day price history and fake discount detection for ${product.title} in Bangladesh.`;
@@ -221,24 +222,96 @@ export default async function ProductPage({
   const vc = verdict ? VERDICT_CONFIG[verdict.label] : VERDICT_CONFIG.INSUFFICIENT_DATA;
   const platformColor = PLATFORM_COLOR[product.platform] ?? "var(--text-muted)";
 
-  const jsonLd = {
+  // ── Structured data ──
+  // Price offers must reflect real, current prices only. No price → no Offer
+  // node (Google rejects price:0). Junk brands ("No Brand"/"Generic") are
+  // dropped rather than asserted.
+  const priceBDT =
+    product.current_price && product.current_price > 0
+      ? product.current_price / 100
+      : null;
+
+  // Google wants a future priceValidUntil; our prices re-scrape well within 14d.
+  const priceValidUntil = (() => {
+    const d = product.last_updated ? new Date(product.last_updated) : new Date();
+    d.setDate(d.getDate() + 14);
+    return d.toISOString().slice(0, 10);
+  })();
+
+  // Cross-platform alternatives with real prices → AggregateOffer (the canonical
+  // schema for a price-comparison page). Falls back to a single Offer.
+  const altOffers = (compare?.alternatives ?? []).filter(
+    (a): a is CompareAlternative & { current_price: number } =>
+      typeof a.current_price === "number" && a.current_price > 0,
+  );
+
+  let offers: Record<string, unknown> | undefined;
+  if (altOffers.length > 1) {
+    const prices = altOffers.map((a) => a.current_price / 100);
+    offers = {
+      "@type": "AggregateOffer",
+      priceCurrency: "BDT",
+      lowPrice: Math.min(...prices),
+      highPrice: Math.max(...prices),
+      offerCount: altOffers.length,
+      offers: altOffers.map((a) => ({
+        "@type": "Offer",
+        url: a.url,
+        priceCurrency: "BDT",
+        price: a.current_price / 100,
+        availability: "https://schema.org/InStock",
+      })),
+    };
+  } else if (priceBDT !== null) {
+    offers = {
+      "@type": "Offer",
+      url: product.url,
+      priceCurrency: "BDT",
+      price: priceBDT,
+      priceValidUntil,
+      itemCondition: "https://schema.org/NewCondition",
+      availability:
+        product.in_stock === false
+          ? "https://schema.org/OutOfStock"
+          : "https://schema.org/InStock",
+    };
+  }
+
+  const realBrand =
+    product.brand && !/^(no brand|generic|unbranded)$/i.test(product.brand)
+      ? product.brand
+      : null;
+
+  const productLd = {
     "@context": "https://schema.org/",
     "@type": "Product",
     name: product.title,
     image: product.image_url ? [product.image_url] : undefined,
     description: `90-day price history and fake discount detection for ${product.title} in Bangladesh.`,
-    brand: { "@type": "Brand", name: product.brand || product.platform },
-    offers: {
-      "@type": "Offer",
-      url: product.url,
-      priceCurrency: "BDT",
-      price: (product.current_price || 0) / 100,
-      itemCondition: "https://schema.org/NewCondition",
-      availability: product.in_stock
-        ? "https://schema.org/InStock"
-        : "https://schema.org/OutOfStock",
-    },
+    sku: product.id,
+    ...(realBrand ? { brand: { "@type": "Brand", name: realBrand } } : {}),
+    ...(product.category ? { category: product.category } : {}),
+    ...(offers ? { offers } : {}),
   };
+
+  const breadcrumbLd = {
+    "@context": "https://schema.org/",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: `${BASE_URL}/en` },
+      ...(product.category
+        ? [{ "@type": "ListItem", position: 2, name: product.category, item: `${BASE_URL}/en/deals` }]
+        : []),
+      {
+        "@type": "ListItem",
+        position: product.category ? 3 : 2,
+        name: product.title,
+        item: `${BASE_URL}/en/product/${id}`,
+      },
+    ],
+  };
+
+  const jsonLd = [productLd, breadcrumbLd];
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-12 md:py-20">
