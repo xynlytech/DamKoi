@@ -17,7 +17,7 @@ async function getCategories(): Promise<Category[]> {
   }
 }
 
-export const revalidate = 86400;
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "All Product Categories — Price History in Bangladesh",
