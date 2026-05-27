@@ -173,7 +173,7 @@ export default async function RootLayout({
                 </div>
 
                 <nav className="flex flex-wrap items-center justify-center gap-5">
-                  {[["Deals", "/deals"], ["Dashboard", "/dashboard"], ["Alerts", "/alerts"], ["Extension", "/install"], ["Privacy", "/privacy"]].map(([label, href]) => (
+                  {[["Deals", "/deals"], ["Categories", "/categories"], ["Dashboard", "/dashboard"], ["Alerts", "/alerts"], ["Extension", "/install"], ["Privacy", "/privacy"]].map(([label, href]) => (
                     <Link key={href} href={href} className="text-xs transition-colors dk-focus" style={{ color: "var(--text-faint)" }}>{label}</Link>
                   ))}
                 </nav>

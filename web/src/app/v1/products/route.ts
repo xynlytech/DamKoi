@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const search = searchParams.get('search') || '';
   const platform = searchParams.get('platform') || '';
+  const category = searchParams.get('category') || '';
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
   const limit = Math.min(100, parseInt(searchParams.get('limit') ?? '24', 10));
   const offset = (page - 1) * limit;
@@ -25,6 +26,7 @@ export async function GET(req: NextRequest) {
 
   if (search) query = query.ilike('title', `%${search}%`);
   if (platform) query = query.eq('platform', platform);
+  if (category) query = query.eq('category', category);
 
   const { data, count, error } = await query;
   if (error) return NextResponse.json({ detail: error.message }, { status: 500, headers: cors() });
