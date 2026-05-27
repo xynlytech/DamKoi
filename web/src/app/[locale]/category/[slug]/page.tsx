@@ -2,13 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
-import { categorySlug } from "@/lib/slug";
+import { fetchCategories, type Category } from "@/lib/categories";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
 const BASE_URL = "https://damkoi.xynly.com";
 const GRID = 48;
 
-type Category = { name: string; slug: string; count: number };
 type Product = {
   id: string;
   title: string;
@@ -18,18 +17,8 @@ type Product = {
   discount_pct: number | null;
 };
 
-async function getCategories(min = 12): Promise<Category[]> {
-  try {
-    const res = await fetch(`${API}/categories?min=${min}`, { next: { revalidate: 86400 } });
-    if (!res.ok) return [];
-    return (await res.json()).categories ?? [];
-  } catch {
-    return [];
-  }
-}
-
 async function resolveCategory(slug: string): Promise<Category | null> {
-  const cats = await getCategories(12);
+  const cats = await fetchCategories(12);
   return cats.find((c) => c.slug === slug) ?? null;
 }
 
@@ -54,7 +43,7 @@ function fmt(paisa: number | null | undefined): string {
 // Pre-render the highest-volume categories; the long tail renders on demand
 // (ISR) and is still reachable from the /categories index.
 export async function generateStaticParams() {
-  const cats = await getCategories(50);
+  const cats = await fetchCategories(50);
   return cats.slice(0, 200).map((c) => ({ slug: c.slug }));
 }
 

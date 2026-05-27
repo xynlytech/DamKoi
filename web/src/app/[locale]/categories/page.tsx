@@ -1,21 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { setRequestLocale } from "next-intl/server";
+import { fetchCategories } from "@/lib/categories";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
 const BASE_URL = "https://damkoi.xynly.com";
-
-type Category = { name: string; slug: string; count: number };
-
-async function getCategories(): Promise<Category[]> {
-  try {
-    const res = await fetch(`${API}/categories?min=20`, { next: { revalidate: 86400 } });
-    if (!res.ok) return [];
-    return (await res.json()).categories ?? [];
-  } catch {
-    return [];
-  }
-}
 
 export const revalidate = 3600;
 
@@ -40,7 +28,7 @@ export default async function CategoriesIndex({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const categories = await getCategories();
+  const categories = await fetchCategories(20);
 
   return (
     <div className="container mx-auto px-4 max-w-6xl py-10">
