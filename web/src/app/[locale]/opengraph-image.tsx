@@ -59,7 +59,9 @@ export default function OgImage() {
         >
           <div
             style={{
-              color: "#f1f5f9",
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 16,
               fontSize: 68,
               fontWeight: 900,
               lineHeight: 1.05,
@@ -67,7 +69,8 @@ export default function OgImage() {
               maxWidth: 980,
             }}
           >
-            Stop paying for <span style={{ color: "#a78bfa" }}>fake discounts.</span>
+            <span style={{ color: "#f1f5f9" }}>Stop paying for</span>
+            <span style={{ color: "#a78bfa" }}>fake discounts.</span>
           </div>
           <div style={{ color: "#94a3b8", fontSize: 30, fontWeight: 500, maxWidth: 920, lineHeight: 1.3 }}>
             Real price history & honest deal verdicts for Daraz and more — so you
