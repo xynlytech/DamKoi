@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { useLocale } from "next-intl";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -78,7 +77,8 @@ const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.06 } }
 
 export default function DashboardPage() {
   const router = useRouter();
-  const locale = useLocale();
+  const params = useParams();
+  const locale = (params?.locale as string) || "en";
   const loginHref = `/${locale}/login`;
   const [products, setProducts]   = useState<Product[]>([]);
   const [alerts,   setAlerts]     = useState<Alert[]>([]);
@@ -93,7 +93,7 @@ export default function DashboardPage() {
       if (!data.session) { router.replace(loginHref); return; }
       setEmail(data.session.user.email ?? null);
       setAuth(true);
-    });
+    }).catch(() => { router.replace(loginHref); });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
       if (!s) { router.replace(loginHref); return; }
       setEmail(s.user.email ?? null);
@@ -104,12 +104,14 @@ export default function DashboardPage() {
   const fetchProducts = useCallback(async () => {
     setLoadP(true);
     try { const r = await fetch(`${API}/products/?limit=24`, { cache: "no-store" }); if (r.ok) setProducts(await r.json()); }
+    catch { /* network error — leave products empty */ }
     finally { setLoadP(false); }
   }, []);
 
   const fetchAlerts = useCallback(async (e: string) => {
     setLoadA(true);
     try { const r = await fetch(`${API}/alerts/by-email?email=${encodeURIComponent(e)}`); if (r.ok) setAlerts(await r.json()); }
+    catch { /* network error — leave alerts empty */ }
     finally { setLoadA(false); }
   }, []);
 

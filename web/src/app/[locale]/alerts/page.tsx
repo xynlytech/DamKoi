@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useLocale } from "next-intl";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -127,7 +127,8 @@ const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.06 } }
 
 export default function AlertsPage() {
   const router = useRouter();
-  const locale = useLocale();
+  const params = useParams();
+  const locale = (params?.locale as string) || "en";
   const loginHref = `/${locale}/login`;
   const [email, setEmail]           = useState<string | null>(null);
   const [authChecked, setAuth]      = useState(false);
@@ -140,7 +141,7 @@ export default function AlertsPage() {
       if (!data.session) { router.replace(loginHref); return; }
       setEmail(data.session.user.email ?? null);
       setAuth(true);
-    });
+    }).catch(() => { router.replace(loginHref); });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
       if (!s) { router.replace(loginHref); return; }
       setEmail(s.user.email ?? null);

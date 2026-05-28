@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useLocale } from "next-intl";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff } from "lucide-react";
@@ -10,7 +10,8 @@ import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
   const router = useRouter();
-  const locale = useLocale();
+  const params = useParams();
+  const locale = (params?.locale as string) || "en";
   const dashboardHref = `/${locale}/dashboard`;
   const [email, setEmail]   = useState("");
   const [pw, setPw]         = useState("");
