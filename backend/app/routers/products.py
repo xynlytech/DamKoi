@@ -423,9 +423,9 @@ async def lookup_product(
             await db.execute(
                 text(
                     "INSERT INTO price_history (product_id, series, point_count, updated_at) "
-                    "VALUES (cast(:pid as uuid), jsonb_build_array(jsonb_build_array(:d, :p)), 1, now()) "
+                    "VALUES (cast(:pid as uuid), jsonb_build_array(jsonb_build_array(cast(:d as int), cast(:p as bigint))), 1, now()) "
                     "ON CONFLICT (product_id) DO UPDATE SET "
-                    "series = price_history.series || jsonb_build_array(jsonb_build_array(:d, :p)), "
+                    "series = price_history.series || jsonb_build_array(jsonb_build_array(cast(:d as int), cast(:p as bigint))), "
                     "point_count = price_history.point_count + 1, updated_at = now()"
                 ),
                 {"pid": str(product.id), "d": _day, "p": scraped.price},

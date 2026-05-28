@@ -927,9 +927,9 @@ class ScrapeAgent:
                 await db.execute(
                     text(
                         "INSERT INTO price_history (product_id, series, point_count, updated_at) "
-                        "VALUES (cast(:pid as uuid), jsonb_build_array(jsonb_build_array(:day, :price)), 1, now()) "
+                        "VALUES (cast(:pid as uuid), jsonb_build_array(jsonb_build_array(cast(:day as int), cast(:price as bigint))), 1, now()) "
                         "ON CONFLICT (product_id) DO UPDATE SET "
-                        "series = price_history.series || jsonb_build_array(jsonb_build_array(:day, :price)), "
+                        "series = price_history.series || jsonb_build_array(jsonb_build_array(cast(:day as int), cast(:price as bigint))), "
                         "point_count = price_history.point_count + 1, updated_at = now()"
                     ),
                     params,
