@@ -2,16 +2,16 @@
 DamKoi — Admin API
 
 Protected routes for internal operations.
-New routes use Supabase JWT + is_admin flag.
-Legacy routes retain x-admin-token for backward compat.
+All routes require Supabase JWT + is_admin flag.
 """
 
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
+import json
 import uuid
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy import select, func, and_, or_, desc
 from sqlalchemy.orm import selectinload
@@ -31,6 +31,18 @@ from app.models.push_subscription import PushSubscription
 router = APIRouter()
 
 _admin_bearer = HTTPBearer(auto_error=False)
+
+
+def _audit(action: str, admin_id: str, detail: dict | None = None) -> None:
+    """Write a structured audit log line to stdout (captured by Vercel logs)."""
+    print(json.dumps({
+        "audit": True,
+        "action": action,
+        "admin_id": admin_id,
+        "ts": datetime.now(timezone.utc).isoformat(),
+        **(detail or {}),
+    }))
+
 
 # ── Auth dependencies ─────────────────────────────────────────────────────────
 
@@ -475,7 +487,7 @@ async def list_users(
 async def patch_user(
     user_id: str,
     payload: UserPatch,
-    _: User = Depends(verify_supabase_admin),
+    admin: User = Depends(verify_supabase_admin),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(User).where(User.id == user_id))
@@ -487,6 +499,7 @@ async def patch_user(
         user.is_premium = payload.is_premium
 
     await db.commit()
+    _audit("patch_user", str(admin.id), {"target_user_id": user_id, "patch": payload.model_dump(exclude_none=True)})
     return {"id": str(user.id), "is_premium": user.is_premium}
 
 
@@ -551,7 +564,7 @@ async def list_alerts(
 async def patch_alert(
     alert_id: str,
     payload: AlertPatch,
-    _: User = Depends(verify_supabase_admin),
+    admin: User = Depends(verify_supabase_admin),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(Alert).where(Alert.id == alert_id))
@@ -563,13 +576,14 @@ async def patch_alert(
         alert.is_active = payload.is_active
 
     await db.commit()
+    _audit("patch_alert", str(admin.id), {"alert_id": alert_id})
     return {"id": str(alert.id), "is_active": alert.is_active}
 
 
 @router.delete("/alerts/{alert_id}", status_code=204)
 async def delete_alert(
     alert_id: str,
-    _: User = Depends(verify_supabase_admin),
+    admin: User = Depends(verify_supabase_admin),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(Alert).where(Alert.id == alert_id))
@@ -578,6 +592,7 @@ async def delete_alert(
         raise HTTPException(status_code=404, detail="Alert not found")
     await db.delete(alert)
     await db.commit()
+    _audit("delete_alert", str(admin.id), {"alert_id": alert_id})
 
 
 # ── Coupons ───────────────────────────────────────────────────────────────────
@@ -613,7 +628,7 @@ async def list_coupons(
 @router.post("/coupons", status_code=201)
 async def create_coupon(
     payload: CouponCreate,
-    _: User = Depends(verify_supabase_admin),
+    admin: User = Depends(verify_supabase_admin),
     db: AsyncSession = Depends(get_db),
 ):
     product_id = None
@@ -637,6 +652,7 @@ async def create_coupon(
     db.add(coupon)
     await db.commit()
     await db.refresh(coupon)
+    _audit("create_coupon", str(admin.id), {"code": payload.code, "platform": payload.platform})
     return _coupon_dict(coupon)
 
 
@@ -644,7 +660,7 @@ async def create_coupon(
 async def update_coupon(
     coupon_id: str,
     payload: CouponUpdate,
-    _: User = Depends(verify_supabase_admin),
+    admin: User = Depends(verify_supabase_admin),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(Coupon).where(Coupon.id == coupon_id))
@@ -673,13 +689,14 @@ async def update_coupon(
 
     await db.commit()
     await db.refresh(coupon)
+    _audit("update_coupon", str(admin.id), {"coupon_id": coupon_id})
     return _coupon_dict(coupon)
 
 
 @router.delete("/coupons/{coupon_id}", status_code=204)
 async def delete_coupon(
     coupon_id: str,
-    _: User = Depends(verify_supabase_admin),
+    admin: User = Depends(verify_supabase_admin),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(Coupon).where(Coupon.id == coupon_id))
@@ -688,6 +705,7 @@ async def delete_coupon(
         raise HTTPException(status_code=404, detail="Coupon not found")
     await db.delete(coupon)
     await db.commit()
+    _audit("delete_coupon", str(admin.id), {"coupon_id": coupon_id})
 
 
 # ── Cron trigger ──────────────────────────────────────────────────────────────
@@ -706,7 +724,7 @@ _CRON_JOBS = {
 @router.post("/cron/trigger/{job}")
 async def trigger_cron(
     job: str,
-    _: User = Depends(verify_supabase_admin),
+    admin: User = Depends(verify_supabase_admin),
 ):
     if job not in _CRON_JOBS:
         raise HTTPException(
@@ -725,6 +743,7 @@ async def trigger_cron(
         await fn()
 
     _cron_history[job] = datetime.now(timezone.utc).isoformat()
+    _audit("trigger_cron", str(admin.id), {"job": job})
     return {"status": "ok", "job": job, "ran_at": _cron_history[job]}
 
 

@@ -119,3 +119,32 @@ jobs:
       - name: ESLint
         working-directory: web
         run: npm run lint
+
+  # ── Dependency Security Audit ──────────────────────────────────
+  security:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: pip-audit (Python)
+        working-directory: backend
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt --skip-editable
+
+      - name: npm audit (Node)
+        working-directory: web
+        run: npm audit --audit-level=high

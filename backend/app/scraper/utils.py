@@ -6,7 +6,27 @@ for all supported BD e-commerce platforms.
 """
 
 from typing import Optional, Tuple
+from urllib.parse import urlparse
 import re
+
+
+# Exact hostname → platform mapping. Checked against parsed hostname only,
+# never against the full URL string, to prevent SSRF via path/query tricks
+# like http://evil.com/path?x=daraz.com.bd.
+_ALLOWED_HOSTS: dict[str, str] = {
+    "daraz.com.bd":     "daraz",
+    "www.daraz.com.bd": "daraz",
+    "cartup.com.bd":    "cartup",
+    "www.cartup.com.bd":"cartup",
+    "rokomari.com":     "rokomari",
+    "www.rokomari.com": "rokomari",
+    "pickaboo.com":     "pickaboo",
+    "www.pickaboo.com": "pickaboo",
+    "chaldal.com":      "chaldal",
+    "www.chaldal.com":  "chaldal",
+    "othoba.com":       "othoba",
+    "www.othoba.com":   "othoba",
+}
 
 
 def detect_platform_and_id(url: str) -> Tuple[Optional[str], Optional[str]]:
@@ -20,34 +40,40 @@ def detect_platform_and_id(url: str) -> Tuple[Optional[str], Optional[str]]:
     if not url:
         return None, None
 
-    url_lower = url.lower()
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        return None, None
 
-    # Daraz
-    if "daraz.com.bd" in url_lower:
+    # Reject non-HTTP(S) schemes (file://, gopher://, etc.)
+    if parsed.scheme not in ("http", "https"):
+        return None, None
+
+    hostname = (parsed.hostname or "").lower()
+    platform = _ALLOWED_HOSTS.get(hostname)
+    if not platform:
+        return None, None
+
+    if platform == "daraz":
         return "daraz", extract_daraz_product_id(url)
 
-    # Cartup
-    if "cartup.com.bd" in url_lower:
+    if platform == "cartup":
         match = re.search(r"/products?/([^/?#]+)", url)
         return "cartup", match.group(1) if match else None
 
-    # Rokomari
-    if "rokomari.com" in url_lower:
+    if platform == "rokomari":
         match = re.search(r"/(?:book|product)/(\d+)", url)
         return "rokomari", match.group(1) if match else None
 
-    # Pickaboo
-    if "pickaboo.com" in url_lower:
+    if platform == "pickaboo":
         match = re.search(r"/(?:product|detail)/([^/?#]+)", url)
         return "pickaboo", match.group(1) if match else None
 
-    # Chaldal
-    if "chaldal.com" in url_lower:
+    if platform == "chaldal":
         match = re.search(r"/p/(\d+)", url)
         return "chaldal", match.group(1) if match else None
 
-    # Othoba
-    if "othoba.com" in url_lower:
+    if platform == "othoba":
         match = re.search(r"/product/([^/?#]+)", url)
         return "othoba", match.group(1) if match else None
 

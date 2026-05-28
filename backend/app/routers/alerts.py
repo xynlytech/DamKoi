@@ -118,8 +118,14 @@ async def create_alert(
             detail="Authentication required: please login or provide an email."
         )
 
-    # 2. Check free tier limit
+    # 2. Check free tier limit — advisory lock prevents race condition where
+    # concurrent requests both pass the count check and create >3 alerts.
     if not target_user.is_premium:
+        from sqlalchemy import text as _text
+        await db.execute(
+            _text("SELECT pg_advisory_xact_lock(('x' || left(md5(:uid), 15))::bit(60)::bigint)"),
+            {"uid": str(target_user.id)},
+        )
         active_count = await db.execute(
             select(func.count(Alert.id)).where(
                 and_(Alert.user_id == target_user.id, Alert.is_active == True)
