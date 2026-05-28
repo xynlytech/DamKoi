@@ -6,13 +6,14 @@ Also handles anonymous-to-user data migration.
 
 from typing import Optional
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, and_
 import jwt
 
 from app.database import get_db
 from app.config import settings
+from app.limiter import limiter
 from app.models.user import User
 from app.models.alert import Alert
 from app.models.tracked_product import TrackedProduct
@@ -20,9 +21,11 @@ from app.models.tracked_product import TrackedProduct
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 @router.post("/sync", status_code=status.HTTP_200_OK)
+@limiter.limit("10/minute")
 async def sync_user(
-    token: str = Body(..., embed=True),
-    anon_id: Optional[str] = Body(None, embed=True),
+    request: Request,
+    token: str = Body(..., embed=True, max_length=4096),
+    anon_id: Optional[str] = Body(None, embed=True, max_length=128),
     db: AsyncSession = Depends(get_db)
 ):
     """

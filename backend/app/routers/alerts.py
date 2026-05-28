@@ -64,8 +64,10 @@ class AlertResponse(BaseModel):
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from app.auth_middleware import get_current_user, security
 from fastapi.security import HTTPAuthorizationCredentials
+from app.limiter import limiter
 
 @router.post("", response_model=AlertResponse, status_code=201)
+@limiter.limit("5/minute")
 async def create_alert(
     request: Request,
     body: CreateAlertRequest,
@@ -272,8 +274,10 @@ async def delete_alert(
 
 
 @router.get("/by-email", response_model=list[AlertResponse])
+@limiter.limit("20/minute")
 async def get_alerts_by_email(
-    email: str = Query(..., description="Email address used when creating the alert"),
+    request: Request,
+    email: str = Query(..., max_length=254, description="Email address used when creating the alert"),
     db: AsyncSession = Depends(get_db),
 ):
     """Get alerts for a shadow user by email (no auth required)."""
@@ -339,7 +343,9 @@ class EmailAlertUpdateRequest(BaseModel):
 
 
 @router.patch("/{alert_id}/by-email", response_model=AlertResponse)
+@limiter.limit("10/minute")
 async def update_alert_by_email(
+    request: Request,
     alert_id: UUID,
     body: EmailAlertUpdateRequest,
     db: AsyncSession = Depends(get_db),
@@ -379,9 +385,11 @@ async def update_alert_by_email(
 
 
 @router.delete("/{alert_id}/by-email", status_code=204)
+@limiter.limit("10/minute")
 async def delete_alert_by_email(
+    request: Request,
     alert_id: UUID,
-    email: str = Query(..., description="Email address used when creating the alert"),
+    email: str = Query(..., max_length=254, description="Email address used when creating the alert"),
     db: AsyncSession = Depends(get_db),
 ):
     """Delete an alert verified by email ownership."""
@@ -554,7 +562,8 @@ class PushSubscribeRequest(BaseModel):
 
 
 @router.post("/push-subscribe", status_code=201)
-async def push_subscribe(body: PushSubscribeRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def push_subscribe(request: Request, body: PushSubscribeRequest, db: AsyncSession = Depends(get_db)):
     """
     Save a Web Push subscription for an email address.
     Called client-side after the browser grants push permission.

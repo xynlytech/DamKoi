@@ -9,12 +9,13 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel, Field
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.limiter import limiter
 from app.models.tracked_product import TrackedProduct
 from app.models.product import Product
 
@@ -26,7 +27,7 @@ router = APIRouter(prefix="/track", tags=["Tracking"])
 
 class TrackProductRequest(BaseModel):
     product_id: UUID
-    anon_id: str
+    anon_id: str = Field(..., max_length=128)
 
 
 class TrackedProductResponse(BaseModel):
@@ -45,7 +46,9 @@ class TrackedProductResponse(BaseModel):
 
 
 @router.post("", response_model=TrackedProductResponse, status_code=201)
+@limiter.limit("20/minute")
 async def track_product(
+    request: Request,
     body: TrackProductRequest,
     db: AsyncSession = Depends(get_db),
 ):
@@ -92,8 +95,10 @@ async def track_product(
 
 
 @router.get("", response_model=list[TrackedProductResponse])
+@limiter.limit("30/minute")
 async def get_tracked_products(
-    anon_id: str = Query(..., description="Anonymous user ID from localStorage"),
+    request: Request,
+    anon_id: str = Query(..., max_length=128, description="Anonymous user ID from localStorage"),
     db: AsyncSession = Depends(get_db),
 ):
     """Get all tracked products for an anonymous user."""

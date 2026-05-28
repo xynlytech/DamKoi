@@ -11,7 +11,7 @@ from typing import List, Optional
 import uuid
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, Header, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy import select, func, and_, or_, desc
 from sqlalchemy.orm import selectinload
@@ -33,17 +33,6 @@ router = APIRouter()
 _admin_bearer = HTTPBearer(auto_error=False)
 
 # ── Auth dependencies ─────────────────────────────────────────────────────────
-
-async def verify_admin_token(x_admin_token: str = Header(None)):
-    """Legacy static-token auth — kept for existing scraper/compare pages."""
-    expected = settings.ADMIN_TOKEN
-    if not expected:
-        if settings.is_production:
-            raise HTTPException(status_code=500, detail="ADMIN_TOKEN is not configured")
-        expected = "damkoi-admin-secret-dev"
-    if not x_admin_token or x_admin_token != expected:
-        raise HTTPException(status_code=403, detail="Forbidden: Invalid or missing Admin Token")
-
 
 async def verify_supabase_admin(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(_admin_bearer),
@@ -747,9 +736,7 @@ async def get_cron_history(_: User = Depends(verify_supabase_admin)):
     }
 
 
-# ── Legacy routes (x-admin-token) ─────────────────────────────────────────────
-
-@router.get("/match-groups", dependencies=[Depends(verify_admin_token)])
+@router.get("/match-groups", dependencies=[Depends(verify_supabase_admin)])
 async def get_match_groups(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(MatchGroup)
@@ -779,7 +766,7 @@ async def get_match_groups(db: AsyncSession = Depends(get_db)):
     ]
 
 
-@router.post("/match-groups/{group_id}/merge", dependencies=[Depends(verify_admin_token)])
+@router.post("/match-groups/{group_id}/merge", dependencies=[Depends(verify_supabase_admin)])
 async def merge_products(group_id: str, payload: MergeRequest, db: AsyncSession = Depends(get_db)):
     group_res = await db.execute(select(MatchGroup).where(MatchGroup.id == group_id))
     group = group_res.scalar_one_or_none()
@@ -798,7 +785,7 @@ async def merge_products(group_id: str, payload: MergeRequest, db: AsyncSession 
     return {"message": f"Successfully merged {len(products)} products into group."}
 
 
-@router.post("/match-groups/split", dependencies=[Depends(verify_admin_token)])
+@router.post("/match-groups/split", dependencies=[Depends(verify_supabase_admin)])
 async def split_products(payload: SplitRequest, db: AsyncSession = Depends(get_db)):
     prod_res = await db.execute(select(Product).where(Product.id.in_(payload.product_ids)))
     products = prod_res.scalars().all()
@@ -819,7 +806,7 @@ async def split_products(payload: SplitRequest, db: AsyncSession = Depends(get_d
     }
 
 
-@router.get("/scrapers/health", dependencies=[Depends(verify_admin_token)])
+@router.get("/scrapers/health", dependencies=[Depends(verify_supabase_admin)])
 async def get_scraper_health(db: AsyncSession = Depends(get_db)):
     platforms = ["daraz", "cartup", "rokomari", "pickaboo", "chaldal", "othoba"]
     today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
