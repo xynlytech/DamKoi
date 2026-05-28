@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -77,6 +78,8 @@ const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.06 } }
 
 export default function DashboardPage() {
   const router = useRouter();
+  const locale = useLocale();
+  const loginHref = `/${locale}/login`;
   const [products, setProducts]   = useState<Product[]>([]);
   const [alerts,   setAlerts]     = useState<Alert[]>([]);
   const [email,    setEmail]      = useState<string | null>(null);
@@ -87,16 +90,16 @@ export default function DashboardPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) { router.replace("/login"); return; }
+      if (!data.session) { router.replace(loginHref); return; }
       setEmail(data.session.user.email ?? null);
       setAuth(true);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
-      if (!s) { router.replace("/login"); return; }
+      if (!s) { router.replace(loginHref); return; }
       setEmail(s.user.email ?? null);
     });
     return () => subscription.unsubscribe();
-  }, [router]);
+  }, [router, loginHref]);
 
   const fetchProducts = useCallback(async () => {
     setLoadP(true);

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff } from "lucide-react";
@@ -9,6 +10,8 @@ import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
   const router = useRouter();
+  const locale = useLocale();
+  const dashboardHref = `/${locale}/dashboard`;
   const [email, setEmail]   = useState("");
   const [pw, setPw]         = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -17,9 +20,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) router.replace("/dashboard");
+      if (data.session) router.replace(dashboardHref);
     });
-  }, [router]);
+  }, [router, dashboardHref]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +37,7 @@ export default function LoginPage() {
       );
       return;
     }
-    router.push("/dashboard");
+    router.push(dashboardHref);
   };
 
   return (
