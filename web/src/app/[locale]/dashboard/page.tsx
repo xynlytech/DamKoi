@@ -18,7 +18,7 @@ const PLATFORM_COLOR: Record<string, string> = {
   pickaboo: "#8b5cf6", chaldal: "#22c55e", othoba: "#ec4899",
 };
 
-type Product = { id: string; title: string; platform: string; current_price: number | null; image_url: string | null; last_updated: string | null; in_stock: boolean | null; };
+type Product = { id: string; title: string; platform: string; current_price: number | null; image_url: string | null; last_scraped_at: string | null; in_stock: boolean | null; };
 type Alert   = { id: string; product_id: string; product_title: string | null; current_price: number | null; target_price: number; is_active: boolean; last_triggered: string | null; };
 
 function fmt(p: number | null) {
@@ -103,7 +103,10 @@ export default function DashboardPage() {
 
   const fetchProducts = useCallback(async () => {
     setLoadP(true);
-    try { const r = await fetch(`${API}/products/?limit=24`, { cache: "no-store" }); if (r.ok) setProducts(await r.json()); }
+    try {
+      const r = await fetch(`${API}/products?limit=24`, { cache: "no-store" });
+      if (r.ok) { const d = await r.json(); setProducts(Array.isArray(d) ? d : (d.products ?? [])); }
+    }
     catch { /* network error — leave products empty */ }
     finally { setLoadP(false); }
   }, []);
