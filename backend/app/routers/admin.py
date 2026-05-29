@@ -27,6 +27,7 @@ from app.models.user import User
 from app.models.alert import Alert
 from app.models.coupon import Coupon
 from app.models.push_subscription import PushSubscription
+from app.models.alert_event import AlertEvent
 
 router = APIRouter()
 
@@ -382,6 +383,109 @@ async def get_analytics(
             "limit": "500 MB",
             "usage_pct": round(total_db_bytes / supabase_limit * 100, 1),
         },
+    }
+
+
+# ── Growth & Engagement ───────────────────────────────────────────────────────
+
+@router.get("/growth")
+async def get_growth(
+    _: User = Depends(verify_supabase_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    from sqlalchemy import text
+
+    # User signups per day — last 30 days
+    user_trend_rows = await db.execute(text("""
+        SELECT DATE(created_at AT TIME ZONE 'UTC') AS day, COUNT(*) AS count
+        FROM users
+        WHERE created_at >= NOW() - INTERVAL '30 days'
+        GROUP BY day ORDER BY day ASC
+    """))
+    users_trend = [{"date": str(r.day), "count": int(r.count)} for r in user_trend_rows]
+
+    # Alerts created per day — last 30 days
+    alert_trend_rows = await db.execute(text("""
+        SELECT DATE(created_at AT TIME ZONE 'UTC') AS day, COUNT(*) AS count
+        FROM alerts
+        WHERE created_at >= NOW() - INTERVAL '30 days'
+        GROUP BY day ORDER BY day ASC
+    """))
+    alerts_trend = [{"date": str(r.day), "count": int(r.count)} for r in alert_trend_rows]
+
+    # Notifications fired per day — last 30 days
+    notif_trend_rows = await db.execute(text("""
+        SELECT DATE(sent_at AT TIME ZONE 'UTC') AS day, COUNT(*) AS count
+        FROM alert_events
+        WHERE sent_at >= NOW() - INTERVAL '30 days' AND success = true
+        GROUP BY day ORDER BY day ASC
+    """))
+    notifications_trend = [{"date": str(r.day), "count": int(r.count)} for r in notif_trend_rows]
+
+    # Top 10 most-alerted products (by active alert count)
+    top_rows = await db.execute(text("""
+        SELECT p.id::text, p.title, p.platform, COUNT(a.id) AS alert_count
+        FROM alerts a
+        JOIN products p ON a.product_id = p.id
+        WHERE a.is_active = true
+        GROUP BY p.id, p.title, p.platform
+        ORDER BY alert_count DESC
+        LIMIT 10
+    """))
+    top_alerted_products = [
+        {"id": r.id, "title": r.title, "platform": r.platform, "alert_count": int(r.alert_count)}
+        for r in top_rows
+    ]
+
+    # Engagement stats
+    telegram_count = (await db.execute(
+        select(func.count(User.id)).where(User.telegram_chat_id.isnot(None))
+    )).scalar() or 0
+
+    users_with_alerts = (await db.execute(text(
+        "SELECT COUNT(DISTINCT user_id) FROM alerts WHERE is_active = true"
+    ))).scalar() or 0
+
+    # Alerts currently at or below target price (live hit count)
+    hit_count = (await db.execute(text("""
+        SELECT COUNT(*) FROM alerts a
+        JOIN products p ON a.product_id = p.id
+        WHERE a.is_active = true
+          AND p.current_price IS NOT NULL
+          AND p.current_price <= a.target_price
+    """))).scalar() or 0
+
+    active_with_price = (await db.execute(text("""
+        SELECT COUNT(*) FROM alerts a
+        JOIN products p ON a.product_id = p.id
+        WHERE a.is_active = true AND p.current_price IS NOT NULL
+    """))).scalar() or 0
+
+    # Alerts that have ever triggered
+    ever_triggered = (await db.execute(
+        select(func.count(Alert.id)).where(
+            Alert.is_active == True, Alert.last_triggered.isnot(None)
+        )
+    )).scalar() or 0
+
+    total_notifs = (await db.execute(
+        select(func.count(AlertEvent.id)).where(AlertEvent.success == True)
+    )).scalar() or 0
+
+    return {
+        "users_trend": users_trend,
+        "alerts_trend": alerts_trend,
+        "notifications_trend": notifications_trend,
+        "top_alerted_products": top_alerted_products,
+        "engagement": {
+            "telegram_linked": int(telegram_count),
+            "users_with_active_alerts": int(users_with_alerts),
+            "alerts_hitting_target": int(hit_count),
+            "alerts_with_price": int(active_with_price),
+            "hit_rate_pct": round(int(hit_count) / max(int(active_with_price), 1) * 100, 1),
+            "ever_triggered_count": int(ever_triggered),
+        },
+        "total_notifications_sent": int(total_notifs),
     }
 
 
