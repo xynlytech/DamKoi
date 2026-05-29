@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import {
   Bell, Mail, Trash2, PauseCircle, PlayCircle,
   Plus, ArrowUpRight, AlertCircle, Loader2, CheckCircle2,
-  ShoppingCart, BellOff, Send,
+  ShoppingCart, BellOff, Send, Download,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -289,9 +289,20 @@ export default function AlertsPage() {
               </div>
               {atLimit && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ color: "var(--amber)", background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.2)" }}>Limit reached</span>}
             </div>
-            <Link href="/" className="dk-btn-primary text-[10px] uppercase tracking-widest flex items-center gap-1.5 py-2 px-4 dk-focus">
-              <Plus size={11} /> New alert
-            </Link>
+            <div className="flex items-center gap-2">
+              {email && alerts.length > 0 && (
+                <a
+                  href={`${API}/alerts/export.csv?email=${encodeURIComponent(email)}`}
+                  className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest transition-colors dk-focus"
+                  style={{ color: "var(--text-faint)" }}
+                >
+                  <Download size={11} /> CSV
+                </a>
+              )}
+              <Link href="/" className="dk-btn-primary text-[10px] uppercase tracking-widest flex items-center gap-1.5 py-2 px-4 dk-focus">
+                <Plus size={11} /> New alert
+              </Link>
+            </div>
           </div>
 
           {atLimit && (

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Loader2, TrendingDown, TrendingUp, Minus, Flame } from "lucide-react";
+import { Loader2, TrendingDown, TrendingUp, Minus, Flame, Download } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
 
@@ -323,9 +323,20 @@ export default function PriceChartClient({ productId }: { productId: string }) {
         <h3 className="text-sm font-semibold uppercase tracking-widest" style={{ color: "var(--text-body)" }}>
           Price History
         </h3>
-        <span className="text-[9px] font-medium uppercase tracking-widest" style={{ color: "var(--text-ghost)" }}>
-          Updated every 6h
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-[9px] font-medium uppercase tracking-widest" style={{ color: "var(--text-ghost)" }}>
+            Updated every 6h
+          </span>
+          {!loading && points.length > 0 && (
+            <a
+              href={`${API}/products/${productId}/price-history.csv?days=${days || 365}`}
+              className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-widest transition-colors dk-focus"
+              style={{ color: "var(--text-faint)" }}
+            >
+              <Download size={10} /> CSV
+            </a>
+          )}
+        </div>
       </div>
       {loading ? (
         <div className="h-48 flex items-center justify-center">
