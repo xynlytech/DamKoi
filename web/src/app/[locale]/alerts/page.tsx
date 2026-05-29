@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import {
   Bell, Mail, Trash2, PauseCircle, PlayCircle,
   Plus, ArrowUpRight, AlertCircle, Loader2, CheckCircle2,
-  ShoppingCart, BellOff,
+  ShoppingCart, BellOff, Send,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -152,6 +152,13 @@ export default function AlertsPage() {
   const [alerts, setAlerts]         = useState<Alert[]>([]);
   const [loading, setLoading]       = useState(true);
   const [fetchError, setFetchError] = useState("");
+  const [tgLinked, setTgLinked]     = useState(false);
+  const [tgChatId, setTgChatId]     = useState<string | null>(null);
+  const [tgInput, setTgInput]       = useState("");
+  const [tgBusy, setTgBusy]         = useState(false);
+  const [tgMsg, setTgMsg]           = useState("");
+  const [tgErr, setTgErr]           = useState(false);
+  const tokenRef = useRef<string | null>(null);
 
   const fetchAlerts = useCallback(async (e: string) => {
     setLoading(true); setFetchError("");
@@ -169,9 +176,16 @@ export default function AlertsPage() {
       if (!active) return;
       if (!data.session) { router.replace(loginHref); return; }
       const userEmail = data.session.user.email ?? null;
+      const token = data.session.access_token;
+      tokenRef.current = token;
       setEmail(userEmail);
       if (userEmail) fetchAlerts(userEmail);
       else setLoading(false);
+      // Fetch Telegram link status in parallel.
+      fetch(`${API}/alerts/telegram/status`, { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => r.ok ? r.json() : null)
+        .then((d) => { if (active && d) { setTgLinked(d.linked); setTgChatId(d.telegram_chat_id); } })
+        .catch(() => {});
     }).catch(() => { if (active) router.replace(loginHref); });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
@@ -183,6 +197,39 @@ export default function AlertsPage() {
 
   const handleUpdate = (id: string, patch: Partial<Alert>) => setAlerts((p) => p.map((a) => a.id === id ? { ...a, ...patch } : a));
   const handleDelete = (id: string) => setAlerts((p) => p.filter((a) => a.id !== id));
+
+  const linkTelegram = async () => {
+    const token = tokenRef.current;
+    if (!tgInput.trim() || !token) return;
+    setTgBusy(true); setTgMsg(""); setTgErr(false);
+    try {
+      const res = await fetch(`${API}/alerts/telegram/link`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ telegram_chat_id: tgInput.trim() }),
+      });
+      const d = await res.json();
+      if (res.ok) { setTgLinked(true); setTgChatId(d.telegram_chat_id); setTgInput(""); setTgMsg(d.message || "Linked!"); }
+      else { setTgErr(true); setTgMsg(d.detail || "Failed to link."); }
+    } catch { setTgErr(true); setTgMsg("Network error."); }
+    finally { setTgBusy(false); }
+  };
+
+  const unlinkTelegram = async () => {
+    const token = tokenRef.current;
+    if (!token) return;
+    setTgBusy(true); setTgMsg(""); setTgErr(false);
+    try {
+      const res = await fetch(`${API}/alerts/telegram/unlink`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const d = await res.json();
+      if (res.ok) { setTgLinked(false); setTgChatId(null); setTgMsg(d.message || "Unlinked."); }
+      else { setTgErr(true); setTgMsg(d.detail || "Failed to unlink."); }
+    } catch { setTgErr(true); setTgMsg("Network error."); }
+    finally { setTgBusy(false); }
+  };
 
   const activeCount = alerts.filter((a) => a.is_active).length;
   const atLimit = activeCount >= FREE_LIMIT;
@@ -275,6 +322,60 @@ export default function AlertsPage() {
             </motion.div>
           )}
 
+          {/* Telegram linking */}
+          <div className="mt-6 rounded-2xl p-6" style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)" }}>
+            <h3 className="text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-2"
+              style={{ color: tgLinked ? "var(--green)" : "var(--lav)" }}>
+              <Send size={12} />
+              Telegram Alerts
+              {tgLinked && (
+                <span className="text-[9px] px-2 py-0.5 rounded-full ml-1 font-semibold"
+                  style={{ color: "var(--green)", background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)" }}>
+                  Linked
+                </span>
+              )}
+            </h3>
+            {tgLinked ? (
+              <div className="flex items-center justify-between gap-4">
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                  Chat ID: <span style={{ fontFamily: "'IBM Plex Mono', monospace", color: "var(--text-body)" }}>{tgChatId}</span>
+                  {" · "}Price-drop DMs active on all alerts.
+                </p>
+                <button onClick={unlinkTelegram} disabled={tgBusy}
+                  className="text-[10px] flex-shrink-0 transition-colors dk-focus disabled:opacity-40"
+                  style={{ color: "var(--text-faint)" }}>
+                  {tgBusy ? <Loader2 size={12} className="animate-spin inline" /> : "Unlink"}
+                </button>
+              </div>
+            ) : (
+              <div>
+                <p className="text-xs mb-4" style={{ color: "var(--text-muted)" }}>
+                  Get price-drop DMs on Telegram. Message{" "}
+                  <span style={{ color: "var(--lav)", fontFamily: "'IBM Plex Mono', monospace" }}>@DamKoiBot</span>
+                  {" "}and send <span style={{ color: "var(--lav)", fontFamily: "'IBM Plex Mono', monospace" }}>/start</span> — the bot replies with your chat ID.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Your chat ID (e.g. 123456789)"
+                    value={tgInput}
+                    onChange={(e) => setTgInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && linkTelegram()}
+                    className="dk-input flex-1 text-xs"
+                    style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+                  />
+                  <button onClick={linkTelegram} disabled={tgBusy || !tgInput.trim()}
+                    className="dk-btn-primary text-xs px-4 flex-shrink-0 disabled:opacity-40 flex items-center gap-1.5">
+                    {tgBusy ? <Loader2 size={13} className="animate-spin" /> : <><Send size={12} /> Link</>}
+                  </button>
+                </div>
+              </div>
+            )}
+            {tgMsg && (
+              <p className="text-[11px] mt-3" style={{ color: tgErr ? "var(--red)" : "var(--green)" }}>{tgMsg}</p>
+            )}
+          </div>
+
           {/* How it works */}
           <div className="mt-8 rounded-2xl p-6" style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)" }}>
             <h3 className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: "var(--lav)" }}>How alerts work</h3>
@@ -282,7 +383,7 @@ export default function AlertsPage() {
               {[
                 "Set a target price on any product page",
                 "We check prices every 15 minutes",
-                "Email sent the instant price drops below your target",
+                "Email (and Telegram DM if linked) sent the instant price drops",
                 `Free: ${FREE_LIMIT} active alerts · Premium: unlimited`,
               ].map((text, i) => (
                 <div key={i} className="flex items-center gap-3 text-sm" style={{ color: "var(--text-muted)" }}>

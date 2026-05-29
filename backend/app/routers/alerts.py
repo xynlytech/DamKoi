@@ -11,7 +11,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -464,6 +464,24 @@ async def export_alerts_csv(
 # ── Telegram Account Linking ───────────────────────────────────────────────────
 
 
+@router.get("/telegram/status", status_code=200)
+async def get_telegram_status(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return whether the authenticated user has a Telegram account linked."""
+    from app.models.user import User as UserModel
+
+    result = await db.execute(select(UserModel).where(UserModel.id == user.id))
+    db_user = result.scalar_one_or_none()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    return {
+        "linked": db_user.telegram_chat_id is not None,
+        "telegram_chat_id": db_user.telegram_chat_id,
+    }
+
+
 class TelegramLinkRequest(BaseModel):
     telegram_chat_id: str = Field(
         ...,
@@ -513,6 +531,16 @@ async def link_telegram(
         raise HTTPException(status_code=404, detail="User not found.")
 
     db_user.telegram_chat_id = chat_id_str
+
+    # Add "telegram" to notify_via for all existing alerts that don't have it.
+    await db.execute(
+        text(
+            "UPDATE alerts SET notify_via = array_append(notify_via, 'telegram') "
+            "WHERE user_id = cast(:uid as uuid) AND NOT ('telegram' = ANY(notify_via))"
+        ),
+        {"uid": str(user.id)},
+    )
+
     await db.commit()
     await db.refresh(db_user)
 
@@ -554,6 +582,16 @@ async def unlink_telegram(
         raise HTTPException(status_code=404, detail="User not found.")
 
     db_user.telegram_chat_id = None
+
+    # Remove "telegram" from notify_via for all user's alerts.
+    await db.execute(
+        text(
+            "UPDATE alerts SET notify_via = array_remove(notify_via, 'telegram') "
+            "WHERE user_id = cast(:uid as uuid)"
+        ),
+        {"uid": str(user.id)},
+    )
+
     await db.commit()
 
     return {"linked": False, "message": "Telegram unlinked. Alerts will be sent via email only."}
