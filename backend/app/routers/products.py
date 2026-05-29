@@ -239,15 +239,14 @@ async def get_deals(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Deals feed — returns products where deal_score >= min_score.
-    Supports platform/category filtering and offset-based pagination.
-    Filters to products with >= 5 data points (statistically significant only).
+    Deals feed — offset-based pagination over a full cached ranked list.
+    Cache key excludes offset/limit so all pages share one DB hit + one Redis entry.
+    Pages 2+ are pure in-memory slices — no additional DB or Redis reads.
     """
-    from sqlalchemy import func as sqlfunc
+    # Key covers only filter dimensions — not offset/limit.
+    key = f"v1:deals:{platform}:{category}:{min_score}"
 
     async def _build():
-        # Products with enough history (>=5 change-points) — read from the
-        # denormalized count, no snapshot scan.
         filters = [
             Product.is_active == True,
             Product.current_price.isnot(None),
@@ -259,13 +258,12 @@ async def get_deals(
         if category:
             filters.append(Product.category.ilike(f"%{category}%"))
 
-        fetch_limit = (offset + limit) * 4
         result = await db.execute(
             select(Product, PriceHistory.series)
             .join(PriceHistory, PriceHistory.product_id == Product.id)
             .where(and_(*filters))
             .order_by(Product.last_scraped_at.desc())
-            .limit(fetch_limit)
+            .limit(2000)
         )
         rows = result.all()
 
@@ -295,10 +293,10 @@ async def get_deals(
                 )
 
         deals.sort(key=lambda d: d.deal_score, reverse=True)
-        return deals[offset : offset + limit]
+        return deals
 
-    key = f"v1:deals:{platform}:{category}:{min_score}:{limit}:{offset}"
-    return await _cached_list(key, DealItem, 1800, _build)
+    all_deals = await _cached_list(key, DealItem, 7200, _build)
+    return all_deals[offset : offset + limit]
 
 
 def _build_product_response(product: Product, latest: Optional["PriceSnapshot"] = None) -> ProductResponse:
