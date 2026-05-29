@@ -12,6 +12,23 @@ import AlertFormClient from "./AlertFormClient";
 const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
 const BASE_URL = "https://damkoi.xynly.com";
 
+// Non-pre-built product IDs are still served via on-demand SSR and then cached.
+export const dynamicParams = true;
+
+export async function generateStaticParams() {
+  try {
+    const res = await fetch(`${API}/products?limit=500`, { cache: "no-store" });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const products: { id: string }[] = Array.isArray(data) ? data : (data.products ?? []);
+    return (["en", "bn"] as const).flatMap((locale) =>
+      products.map((p) => ({ locale, id: p.id }))
+    );
+  } catch {
+    return [];
+  }
+}
+
 const PLATFORM_COLOR: Record<string, string> = {
   daraz: "#f97316", cartup: "#3b82f6", rokomari: "#ef4444",
   pickaboo: "#8b5cf6", chaldal: "#22c55e", othoba: "#ec4899",

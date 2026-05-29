@@ -32,6 +32,24 @@ function fmt(p: number | null) {
   return `৳${(p / 100).toLocaleString("en-BD")}`;
 }
 
+function AlertCardSkeleton() {
+  return (
+    <div className="dk-card p-4 flex gap-4 animate-pulse">
+      <div className="rounded-xl flex-shrink-0" style={{ width: 52, height: 52, background: "var(--bg2)" }} />
+      <div className="flex-1 flex flex-col gap-2 justify-center">
+        <div className="h-3 rounded w-3/4" style={{ background: "var(--bg2)" }} />
+        <div className="h-2 rounded w-1/2" style={{ background: "var(--bg2)" }} />
+        <div className="h-2 rounded w-1/3" style={{ background: "var(--bg2)" }} />
+      </div>
+      <div className="flex flex-col gap-2 items-center justify-center flex-shrink-0">
+        <div className="w-6 h-6 rounded-lg" style={{ background: "var(--bg2)" }} />
+        <div className="w-6 h-6 rounded-lg" style={{ background: "var(--bg2)" }} />
+        <div className="w-6 h-6 rounded-lg" style={{ background: "var(--bg2)" }} />
+      </div>
+    </div>
+  );
+}
+
 function AlertCard({ alert, email, onUpdate, onDelete }: {
   alert: Alert; email: string;
   onUpdate: (id: string, patch: Partial<Alert>) => void;
@@ -131,23 +149,9 @@ export default function AlertsPage() {
   const locale = (params?.locale as string) || "en";
   const loginHref = `/${locale}/login`;
   const [email, setEmail]           = useState<string | null>(null);
-  const [authChecked, setAuth]      = useState(false);
   const [alerts, setAlerts]         = useState<Alert[]>([]);
-  const [loading, setLoading]       = useState(false);
+  const [loading, setLoading]       = useState(true);
   const [fetchError, setFetchError] = useState("");
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) { router.replace(loginHref); return; }
-      setEmail(data.session.user.email ?? null);
-      setAuth(true);
-    }).catch(() => { router.replace(loginHref); });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
-      if (!s) { router.replace(loginHref); return; }
-      setEmail(s.user.email ?? null);
-    });
-    return () => subscription.unsubscribe();
-  }, [router, loginHref]);
 
   const fetchAlerts = useCallback(async (e: string) => {
     setLoading(true); setFetchError("");
@@ -159,21 +163,29 @@ export default function AlertsPage() {
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { if (email) fetchAlerts(email); }, [email, fetchAlerts]);
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      if (!data.session) { router.replace(loginHref); return; }
+      const userEmail = data.session.user.email ?? null;
+      setEmail(userEmail);
+      if (userEmail) fetchAlerts(userEmail);
+      else setLoading(false);
+    }).catch(() => { if (active) router.replace(loginHref); });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
+      if (!s) router.replace(loginHref);
+      else setEmail(s.user.email ?? null);
+    });
+    return () => { active = false; subscription.unsubscribe(); };
+  }, [router, loginHref, fetchAlerts]);
 
   const handleUpdate = (id: string, patch: Partial<Alert>) => setAlerts((p) => p.map((a) => a.id === id ? { ...a, ...patch } : a));
   const handleDelete = (id: string) => setAlerts((p) => p.filter((a) => a.id !== id));
 
   const activeCount = alerts.filter((a) => a.is_active).length;
   const atLimit = activeCount >= FREE_LIMIT;
-
-  if (!authChecked) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 size={26} className="animate-spin" style={{ color: "var(--lav)" }} />
-      </div>
-    );
-  }
 
   return (
     <div className="mx-auto px-5 max-w-3xl py-10">
@@ -204,21 +216,17 @@ export default function AlertsPage() {
         )}
       </div>
 
-      {loading && (
-        <div className="flex justify-center py-16">
-          <Loader2 size={26} className="animate-spin" style={{ color: "var(--lav)" }} />
+      {loading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => <AlertCardSkeleton key={i} />)}
         </div>
-      )}
-
-      {fetchError && (
+      ) : fetchError ? (
         <div className="rounded-xl p-4 flex items-center gap-3 text-sm mb-5" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "var(--red)" }}>
           <AlertCircle size={16} />
           {fetchError}
           <button onClick={() => email && fetchAlerts(email)} className="ml-auto text-xs underline dk-focus">Retry</button>
         </div>
-      )}
-
-      {!loading && !fetchError && (
+      ) : (
         <>
           {/* Limit bar */}
           <div className="flex items-center justify-between mb-5">

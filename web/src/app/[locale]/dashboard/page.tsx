@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -24,6 +24,31 @@ type Alert   = { id: string; product_id: string; product_title: string | null; c
 function fmt(p: number | null) {
   if (!p) return "—";
   return `৳${(p / 100).toLocaleString("en-BD")}`;
+}
+
+function ProductCardSkeleton() {
+  return (
+    <div className="dk-card p-4 flex gap-3 animate-pulse">
+      <div className="rounded-xl flex-shrink-0" style={{ width: 52, height: 52, background: "var(--bg2)" }} />
+      <div className="flex-1 flex flex-col gap-2 justify-center">
+        <div className="h-2 rounded w-1/3" style={{ background: "var(--bg2)" }} />
+        <div className="h-3 rounded w-4/5" style={{ background: "var(--bg2)" }} />
+        <div className="h-3 rounded w-2/5" style={{ background: "var(--bg2)" }} />
+      </div>
+    </div>
+  );
+}
+
+function AlertRowSkeleton() {
+  return (
+    <div className="flex items-center gap-3 py-3 animate-pulse" style={{ borderBottom: "1px solid var(--border-sm)" }}>
+      <div className="w-3.5 h-3.5 rounded-full flex-shrink-0" style={{ background: "var(--bg2)" }} />
+      <div className="flex-1 flex flex-col gap-1.5">
+        <div className="h-3 rounded w-3/4" style={{ background: "var(--bg2)" }} />
+        <div className="h-2 rounded w-1/2" style={{ background: "var(--bg2)" }} />
+      </div>
+    </div>
+  );
 }
 
 function ProductCard({ p }: { p: Product }) {
@@ -85,54 +110,69 @@ export default function DashboardPage() {
   const [email,    setEmail]      = useState<string | null>(null);
   const [authChecked, setAuth]    = useState(false);
   const [loadingProd, setLoadP]   = useState(true);
-  const [loadingAlert, setLoadA]  = useState(false);
+  const [loadingAlert, setLoadA]  = useState(true);
   const [lastRefresh, setLast]    = useState<Date>(new Date());
+  const emailRef = useRef<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) { router.replace(loginHref); return; }
-      setEmail(data.session.user.email ?? null);
-      setAuth(true);
-    }).catch(() => { router.replace(loginHref); });
+    let active = true;
+
+    // Products fetch fires immediately — no auth required.
+    fetch(`${API}/products?limit=24`, { cache: "no-store" })
+      .then((r) => r.ok ? r.json() : [])
+      .then((d) => { if (active) { setProducts(Array.isArray(d) ? d : (d.products ?? [])); setLoadP(false); } })
+      .catch(() => { if (active) setLoadP(false); });
+
+    // Auth check runs in parallel with products fetch.
+    supabase.auth.getSession()
+      .then(({ data }) => {
+        if (!active) return;
+        if (!data.session) { router.replace(loginHref); return; }
+        const userEmail = data.session.user.email ?? null;
+        emailRef.current = userEmail;
+        setEmail(userEmail);
+        setAuth(true);
+        if (userEmail) {
+          fetch(`${API}/alerts/by-email?email=${encodeURIComponent(userEmail)}`)
+            .then((r) => r.ok ? r.json() : [])
+            .then((d) => { if (active) setAlerts(d); })
+            .catch(() => {})
+            .finally(() => { if (active) setLoadA(false); });
+        } else {
+          setLoadA(false);
+        }
+      })
+      .catch(() => { if (active) router.replace(loginHref); });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
-      if (!s) { router.replace(loginHref); return; }
-      setEmail(s.user.email ?? null);
+      if (!s) router.replace(loginHref);
+      else setEmail(s.user.email ?? null);
     });
-    return () => subscription.unsubscribe();
+
+    return () => { active = false; subscription.unsubscribe(); };
   }, [router, loginHref]);
 
-  const fetchProducts = useCallback(async () => {
+  const refresh = () => {
+    setLast(new Date());
     setLoadP(true);
-    try {
-      const r = await fetch(`${API}/products?limit=24`, { cache: "no-store" });
-      if (r.ok) { const d = await r.json(); setProducts(Array.isArray(d) ? d : (d.products ?? [])); }
+    fetch(`${API}/products?limit=24`, { cache: "no-store" })
+      .then((r) => r.ok ? r.json() : [])
+      .then((d) => setProducts(Array.isArray(d) ? d : (d.products ?? [])))
+      .catch(() => {})
+      .finally(() => setLoadP(false));
+    const e = emailRef.current;
+    if (e) {
+      setLoadA(true);
+      fetch(`${API}/alerts/by-email?email=${encodeURIComponent(e)}`)
+        .then((r) => r.ok ? r.json() : [])
+        .then((d) => setAlerts(d))
+        .catch(() => {})
+        .finally(() => setLoadA(false));
     }
-    catch { /* network error — leave products empty */ }
-    finally { setLoadP(false); }
-  }, []);
-
-  const fetchAlerts = useCallback(async (e: string) => {
-    setLoadA(true);
-    try { const r = await fetch(`${API}/alerts/by-email?email=${encodeURIComponent(e)}`); if (r.ok) setAlerts(await r.json()); }
-    catch { /* network error — leave alerts empty */ }
-    finally { setLoadA(false); }
-  }, []);
-
-  useEffect(() => { fetchProducts(); }, [fetchProducts]);
-  useEffect(() => { if (email) fetchAlerts(email); }, [email, fetchAlerts]);
-
-  const refresh = () => { setLast(new Date()); fetchProducts(); if (email) fetchAlerts(email); };
+  };
 
   const activeAlerts = alerts.filter((a) => a.is_active);
   const hitAlerts    = alerts.filter((a) => a.current_price !== null && a.current_price <= a.target_price);
-
-  if (!authChecked) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 size={28} className="animate-spin" style={{ color: "var(--lav)" }} />
-      </div>
-    );
-  }
 
   return (
     <div className="mx-auto px-5 max-w-6xl py-10">
@@ -162,9 +202,9 @@ export default function DashboardPage() {
         className="grid grid-cols-3 gap-3 mb-8"
       >
         {[
-          { label: "Tracked",      value: loadingProd  ? "…" : products.length.toString(),    sub: "products"     },
-          { label: "Active Alerts",value: loadingAlert ? "…" : activeAlerts.length.toString(),sub: "of 3 free"    },
-          { label: "Price Hits",   value: loadingAlert ? "…" : hitAlerts.length.toString(),   sub: "ready to buy" },
+          { label: "Tracked",       value: loadingProd  ? "…" : products.length.toString(),    sub: "products"     },
+          { label: "Active Alerts", value: loadingAlert ? "…" : activeAlerts.length.toString(), sub: "of 3 free"    },
+          { label: "Price Hits",    value: loadingAlert ? "…" : hitAlerts.length.toString(),    sub: "ready to buy" },
         ].map((s) => (
           <motion.div key={s.label} variants={item} className="dk-stat-card text-center">
             <div className="dk-stat-value mb-0.5">{s.value}</div>
@@ -183,7 +223,9 @@ export default function DashboardPage() {
           </div>
 
           {loadingProd ? (
-            <div className="flex justify-center py-16"><Loader2 size={22} className="animate-spin" style={{ color: "var(--lav)" }} /></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />)}
+            </div>
           ) : products.length === 0 ? (
             <div className="text-center py-16 rounded-2xl" style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)" }}>
               <Activity size={44} strokeWidth={1.5} className="mx-auto mb-4" style={{ color: "var(--text-faint)" }} />
@@ -209,7 +251,13 @@ export default function DashboardPage() {
 
           <div className="rounded-2xl p-4" style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)" }}>
             {loadingAlert ? (
-              <div className="flex justify-center py-8"><Loader2 size={18} className="animate-spin" style={{ color: "var(--lav)" }} /></div>
+              <div className="flex flex-col">
+                {Array.from({ length: 3 }).map((_, i) => <AlertRowSkeleton key={i} />)}
+              </div>
+            ) : !authChecked ? (
+              <div className="flex justify-center py-8">
+                <Loader2 size={18} className="animate-spin" style={{ color: "var(--lav)" }} />
+              </div>
             ) : alerts.length === 0 ? (
               <div className="text-center py-6">
                 <BellOff size={36} strokeWidth={1.5} className="mx-auto mb-3" style={{ color: "var(--text-faint)" }} />
