@@ -178,7 +178,7 @@ export default async function ComparePage({
                         className="w-12 h-12 rounded-xl flex-shrink-0 overflow-hidden"
                         style={{ background: "var(--bg3)", border: "1px solid var(--border-sm)" }}
                       >
-                        <img src={item.image_url} alt="" className="w-full h-full object-contain p-1" />
+                        <img src={item.image_url} alt="" className="w-full h-full object-contain p-1" loading="lazy" />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">

@@ -180,7 +180,7 @@ export default function AdminComparePage() {
                 {group.products.map((p) => (
                   <div key={p.id} className="flex items-center gap-4 p-3 rounded-xl transition-all" style={{ background: "rgba(0,0,0,0.2)", border: "1px solid var(--border-sm)" }}>
                     {p.image_url ? (
-                      <img src={p.image_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                      <img src={p.image_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" loading="lazy" />
                     ) : (
                       <div className="w-10 h-10 rounded-lg flex-shrink-0" style={{ background: "var(--bg3)" }} />
                     )}

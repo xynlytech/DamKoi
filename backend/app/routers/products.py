@@ -173,7 +173,7 @@ async def list_products(
         products = result.scalars().all()
         return [_build_product_response(p) for p in products]
 
-    return await _cached_list(f"v1:list:{limit}:{offset}", ProductResponse, 600, _build)
+    return await _cached_list(f"v1:list:{limit}:{offset}", ProductResponse, 1800, _build)
 
 
 @router.get("/search", response_model=list[ProductResponse])
@@ -298,7 +298,7 @@ async def get_deals(
         return deals[offset : offset + limit]
 
     key = f"v1:deals:{platform}:{category}:{min_score}:{limit}:{offset}"
-    return await _cached_list(key, DealItem, 600, _build)
+    return await _cached_list(key, DealItem, 1800, _build)
 
 
 def _build_product_response(product: Product, latest: Optional["PriceSnapshot"] = None) -> ProductResponse:
@@ -508,7 +508,7 @@ async def get_product(
     memory_service.record_event("view", {"id": str(product.id), "title": product.title, "url": product.url})
 
     response = _build_product_response(product)
-    await cache.set(f"product_details:{product_id}", response.model_dump(mode="json"), 900)
+    await cache.set(f"product_details:{product_id}", response.model_dump(mode="json"), 3600)
     return response
 
 
@@ -551,7 +551,7 @@ async def get_price_history(
             current_price=product.current_price,
         )
 
-    return await _cached_one(f"price_history:{product_id}:{days}", PriceHistoryResponse, 900, _build)
+    return await _cached_one(f"price_history:{product_id}:{days}", PriceHistoryResponse, 3600, _build)
 
 
 @router.get("/{product_id}/price-history.csv")
@@ -623,7 +623,7 @@ async def get_product_verdict(
             confidence=verdict.confidence,
         )
 
-    return await _cached_one(f"verdict:{product_id}:{resolved_lang}", VerdictResponse, 900, _build)
+    return await _cached_one(f"verdict:{product_id}:{resolved_lang}", VerdictResponse, 3600, _build)
 
 
 @router.get("/{product_id}/alternatives", response_model=list[AlternativeResponse])
@@ -632,7 +632,11 @@ async def get_alternatives(
     db: AsyncSession = Depends(get_db),
 ):
     """Get cheaper alternatives for a product in the same category."""
-    # Get product
+    cache_key = f"alternatives:{product_id}"
+    cached = await cache.get(cache_key)
+    if cached is not None:
+        return [AlternativeResponse(**d) for d in cached]
+
     result = await db.execute(
         select(Product).where(Product.id == product_id)
     )
@@ -650,7 +654,7 @@ async def get_alternatives(
         db_session=db,
     )
 
-    return [
+    response = [
         AlternativeResponse(
             product_id=a.product_id,
             title=a.title,
@@ -662,6 +666,8 @@ async def get_alternatives(
         )
         for a in alternatives
     ]
+    await cache.set(cache_key, [r.model_dump(mode="json") for r in response], 3600)
+    return response
 
 
 # ── Helpers ───────────────────────────────────────────────────

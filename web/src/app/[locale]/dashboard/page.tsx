@@ -32,7 +32,7 @@ function ProductCard({ p }: { p: Product }) {
     <Link href={`/product/${p.id}`} className="dk-card p-4 flex gap-3 group block">
       <div className="w-13 h-13 rounded-xl flex-shrink-0 overflow-hidden flex items-center justify-center" style={{ width: 52, height: 52, background: "var(--bg2)", border: "1px solid var(--border-sm)" }}>
         {p.image_url
-          ? <img src={p.image_url} alt="" className="w-full h-full object-contain p-1" />
+          ? <img src={p.image_url} alt="" className="w-full h-full object-contain p-1" loading="lazy" />
           : <ShoppingCart size={20} style={{ color: "var(--text-faint)" }} />
         }
       </div>

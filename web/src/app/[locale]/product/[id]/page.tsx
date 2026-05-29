@@ -537,7 +537,7 @@ export default async function ProductPage({
                       }
                     >
                       {alt.image_url ? (
-                        <img src={alt.image_url} alt="" className="w-12 h-12 rounded-xl object-contain p-1 flex-shrink-0" style={{ background: "var(--bg3)" }} />
+                        <img src={alt.image_url} alt="" className="w-12 h-12 rounded-xl object-contain p-1 flex-shrink-0" style={{ background: "var(--bg3)" }} loading="lazy" />
                       ) : (
                         <div className="w-12 h-12 rounded-xl flex-shrink-0" style={{ background: "var(--bg3)" }} />
                       )}

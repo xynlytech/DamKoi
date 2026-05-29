@@ -86,7 +86,7 @@ export default function DealsLoadMore({ initialDeals, platform, category, minSco
               <div className="flex items-start gap-3">
                 {deal.product.image_url && (
                   <div className="w-14 h-14 rounded-xl flex-shrink-0 overflow-hidden" style={{ background: "var(--bg3)", border: "1px solid var(--border-sm)" }}>
-                    <img src={deal.product.image_url} alt="" className="w-full h-full object-contain p-1" />
+                    <img src={deal.product.image_url} alt="" className="w-full h-full object-contain p-1" loading="lazy" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">

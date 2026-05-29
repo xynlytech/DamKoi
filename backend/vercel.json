@@ -21,6 +21,10 @@
   },
   "crons": [
     {
+      "path": "/cron/ping",
+      "schedule": "*/5 * * * *"
+    },
+    {
       "path": "/cron/alerts",
       "schedule": "*/15 * * * *"
     },

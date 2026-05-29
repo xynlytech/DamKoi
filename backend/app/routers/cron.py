@@ -86,3 +86,9 @@ async def run_cleanup():
     from app.scraper.tasks import cleanup_snapshots
 
     return await _run_job("cleanup_snapshots", cleanup_snapshots)
+
+
+@router.api_route("/ping", methods=["GET", "POST"])
+async def ping():
+    """Keepalive endpoint — called every 5 min to prevent serverless cold starts."""
+    return {"status": "ok"}

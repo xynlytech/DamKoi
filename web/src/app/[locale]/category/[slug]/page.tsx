@@ -167,7 +167,7 @@ export default async function CategoryPage({
               <div className="aspect-square rounded-xl overflow-hidden flex items-center justify-center" style={{ background: "var(--bg3)" }}>
                 {p.image_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.image_url} alt={p.title} className="w-full h-full object-contain p-2" />
+                  <img src={p.image_url} alt={p.title} className="w-full h-full object-contain p-2" loading="lazy" />
                 ) : null}
               </div>
               <p className="text-xs leading-snug line-clamp-2" style={{ color: "var(--text-body)" }}>
