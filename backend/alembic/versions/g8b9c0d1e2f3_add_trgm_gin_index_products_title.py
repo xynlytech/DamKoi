@@ -18,10 +18,10 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     op.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
     op.execute(
-        "CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_products_title_trgm "
+        "CREATE INDEX IF NOT EXISTS ix_products_title_trgm "
         "ON products USING GIN (title gin_trgm_ops)"
     )
 
 
 def downgrade() -> None:
-    op.execute("DROP INDEX CONCURRENTLY IF EXISTS ix_products_title_trgm")
+    op.execute("DROP INDEX IF EXISTS ix_products_title_trgm")
