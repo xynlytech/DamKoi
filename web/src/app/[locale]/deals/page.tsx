@@ -38,7 +38,7 @@ async function getDeals(platform?: string, category?: string, minScore = 7): Pro
   if (platform) params.set("platform", platform);
   if (category) params.set("category", category);
   try {
-    const res = await fetch(`${API}/products/deals?${params}`, { next: { revalidate: 3600 } });
+    const res = await fetch(`${API}/products/deals?${params}`, { next: { revalidate: 7200 } });
     if (!res.ok) return [];
     return res.json();
   } catch {

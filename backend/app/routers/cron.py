@@ -9,8 +9,11 @@ Playwright-capable worker/runtime.
 from typing import Awaitable, Callable, Dict, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.database import get_db
 
 router = APIRouter(prefix="/cron", tags=["Cron"])
 
@@ -89,6 +92,7 @@ async def run_cleanup():
 
 
 @router.api_route("/ping", methods=["GET", "POST"])
-async def ping():
-    """Keepalive endpoint — called every 5 min to prevent serverless cold starts."""
+async def ping(db: AsyncSession = Depends(get_db)):
+    """Keepalive — runs SELECT 1 to prevent Supabase free-tier DB pause + warm the function."""
+    await db.execute(text("SELECT 1"))
     return {"status": "ok"}
