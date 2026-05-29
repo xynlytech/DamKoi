@@ -607,49 +607,58 @@ async def scrape_platform_products(platform: str, limit: int = 200):
 
 async def check_all_alerts():
     """Check all active alerts and send notifications for triggered ones."""
+    from sqlalchemy.orm import selectinload
     print(f"[ALERT] [{datetime.now()}] Checking price alerts...")
 
+    # Phase 1: load all data, close DB connection immediately.
     async with async_session_factory() as db:
-        # Get all active alerts with user eagerly loaded (needed for email)
-        from sqlalchemy.orm import selectinload
         result = await db.execute(
             select(Alert, Product)
             .join(Product, Alert.product_id == Product.id)
             .where(Alert.is_active == True)
             .options(selectinload(Alert.user))
         )
-        alerts = result.all()
+        rows = result.all()
 
-        triggered_count = 0
+    total = len(rows)
+    now_utc = datetime.now(timezone.utc)
 
-        for alert, product in alerts:
-            # Current price is denormalized on the product row.
-            latest_price = product.current_price
-            if latest_price is None:
+    # Phase 2: determine which alerts need firing (pure CPU, no DB held).
+    to_notify = []
+    for alert, product in rows:
+        price = product.current_price
+        if price is None or price > alert.target_price:
+            continue
+        if alert.last_triggered:
+            last = alert.last_triggered
+            if last.tzinfo is None:
+                last = last.replace(tzinfo=timezone.utc)
+            if (now_utc - last).total_seconds() < 86400:
                 continue
+        to_notify.append((alert, product, price))
 
-            # Check if price is at or below target
-            if latest_price <= alert.target_price:
-                # Check 24h rate limit (compare tz-aware datetimes)
-                if alert.last_triggered:
-                    now_utc = datetime.now(timezone.utc)
-                    last = alert.last_triggered
-                    # Ensure last_triggered is tz-aware for comparison
-                    if last.tzinfo is None:
-                        from datetime import timezone as _tz
-                        last = last.replace(tzinfo=_tz.utc)
-                    hours_since = (now_utc - last).total_seconds() / 3600
-                    if hours_since < 24:
-                        continue
+    if not to_notify:
+        print(f"   [OK] Checked {total} alerts; 0 triggered.")
+        return
 
-                # Trigger alert!
-                await _send_alert_notification(alert, product, latest_price, db)
-                triggered_count += 1
+    # Phase 3: send notifications — no DB connection held during external HTTP calls.
+    fired: list[tuple] = []  # (alert_id, list[AlertEvent])
+    for alert, product, price in to_notify:
+        events = await _send_alert_notification(alert, product, price)
+        fired.append((alert.id, events))
 
-        if triggered_count > 0:
-            await db.commit()
+    # Phase 4: write results in a fresh, short-lived connection.
+    async with async_session_factory() as db:
+        fired_at = datetime.utcnow()
+        for alert_id, events in fired:
+            alert_obj = await db.get(Alert, alert_id)
+            if alert_obj:
+                alert_obj.last_triggered = fired_at
+            for ev in events:
+                db.add(ev)
+        await db.commit()
 
-    print(f"   [OK] Checked {len(alerts)} alerts; {triggered_count} triggered.")
+    print(f"   [OK] Checked {total} alerts; {len(fired)} triggered.")
 
 
 async def send_daily_digest_job():
@@ -841,6 +850,9 @@ class ScrapeAgent:
         """Persistent storage logic. Snapshots are deduped — a new row is only
         written when price or stock changed since the product's last snapshot,
         so high-frequency scraping doesn't bloat price_snapshots."""
+        changed_ids: list[str] = []
+        changed_ext_ids: list[str] = [s.external_id for s in products]
+
         async with async_session_factory() as db:
             # ── Pass 1: resolve/create products ───────────────────────
             resolved = []  # (product, scraped)
@@ -935,19 +947,22 @@ class ScrapeAgent:
                     params,
                 )
 
+            # Collect IDs before commit so we can invalidate caches outside this block.
+            changed_ids = [str(p.id) for p, _ in changed]
+
             await db.commit()
+        # DB connection returned to pool here — cache invalidation never holds it.
 
-            # Invalidate caches for changed products.
-            from app.services.cache import cache as _cache
-            for product, _ in changed:
-                await _cache.delete(f"product_details:{product.id}")
-                await _cache.delete(f"price_history:{product.id}:90")
-                await _cache.delete(f"verdict:{product.id}:en")
-                await _cache.delete(f"verdict:{product.id}:bn")
-            for scraped in products:
-                await _cache.delete(f"product_lookup:{scraped.external_id}")
+        from app.services.cache import cache as _cache
+        for pid in changed_ids:
+            await _cache.delete(f"product_details:{pid}")
+            await _cache.delete(f"price_history:{pid}:90")
+            await _cache.delete(f"verdict:{pid}:en")
+            await _cache.delete(f"verdict:{pid}:bn")
+        for ext_id in changed_ext_ids:
+            await _cache.delete(f"product_lookup:{ext_id}")
 
-            print(f"   [OK] [Agent] Saved {len(products)} product(s), {len(changed)} price change(s).")
+        print(f"   [OK] [Agent] Saved {len(products)} product(s), {len(changed_ids)} price change(s).")
 
 
 async def _run_scrape_batch(urls: list, batch_type: str) -> int:
@@ -960,17 +975,11 @@ async def _send_alert_notification(
     alert: Alert,
     product: Product,
     current_price: int,
-    db: AsyncSession,
-) -> None:
+) -> list:
     """
-    Send price-drop alert notification via all channels in alert.notify_via.
-
-    Supported channels:
-      - "email"    → Resend transactional email (always attempted if user has email)
-      - "telegram" → Personal Telegram DM (only if user.telegram_chat_id is set)
-
-    Each channel is logged as a separate AlertEvent row for analytics.
-    The alert.last_triggered timestamp is updated once, regardless of channel count.
+    Send price-drop alert via all channels in alert.notify_via.
+    Returns a list of unsaved AlertEvent objects; caller persists them.
+    Does NOT hold any DB connection — all I/O here is external HTTP.
     """
     from app.services.mailer import mailer
 
@@ -978,9 +987,7 @@ async def _send_alert_notification(
     channels = alert.notify_via or ["email"]
     current_price_bdt = current_price / 100.0
     target_price_bdt  = alert.target_price / 100.0
-
-    # Mark alert as triggered (once, before any sends)
-    alert.last_triggered = datetime.utcnow()
+    events: list = []
 
     # ── Email channel ──────────────────────────────────────────
     if "email" in channels:
@@ -988,14 +995,7 @@ async def _send_alert_notification(
         if not to_email:
             print(f"   [WARN] No email for alert {alert.id} -- skipping email channel.")
         else:
-            email_event = AlertEvent(
-                alert_id=alert.id,
-                price_at_trigger=current_price,
-                channel="email",
-                success=False,
-            )
-            db.add(email_event)
-
+            ev = AlertEvent(alert_id=alert.id, price_at_trigger=current_price, channel="email", success=False)
             email_ok = mailer.send_price_drop_email(
                 to_email=to_email,
                 product_title=product.title,
@@ -1004,11 +1004,12 @@ async def _send_alert_notification(
                 target_price=target_price_bdt,
                 image_url=product.image_url,
             )
+            ev.success = bool(email_ok)
             if email_ok:
-                email_event.success = True
                 print(f"   [OK] Alert email -> {to_email} for '{product.title[:40]}'")
             else:
                 print(f"   [ERROR] Alert email failed -> {to_email}")
+            events.append(ev)
 
     # ── Telegram channel ───────────────────────────────────────
     if "telegram" in channels:
@@ -1019,14 +1020,7 @@ async def _send_alert_notification(
                 f"telegram_chat_id -- skipping. User can link via /alerts/telegram/link."
             )
         else:
-            tg_event = AlertEvent(
-                alert_id=alert.id,
-                price_at_trigger=current_price,
-                channel="telegram",
-                success=False,
-            )
-            db.add(tg_event)
-
+            ev = AlertEvent(alert_id=alert.id, price_at_trigger=current_price, channel="telegram", success=False)
             telegram = get_telegram_service()
             tg_ok = await telegram.send_price_drop_alert(
                 user_chat_id=tg_chat_id,
@@ -1037,14 +1031,12 @@ async def _send_alert_notification(
                 target_price=target_price_bdt,
                 image_url=product.image_url,
             )
+            ev.success = bool(tg_ok)
             if tg_ok:
-                tg_event.success = True
-                print(
-                    f"   [OK] Telegram DM -> chat_id={tg_chat_id} "
-                    f"for '{product.title[:40]}'"
-                )
+                print(f"   [OK] Telegram DM -> chat_id={tg_chat_id} for '{product.title[:40]}'")
             else:
                 print(f"   [ERROR] Telegram DM failed -> chat_id={tg_chat_id}")
+            events.append(ev)
 
     # ── Web Push channel ───────────────────────────────────────
     if "push" in channels:
@@ -1057,8 +1049,9 @@ async def _send_alert_notification(
                 product_title=product.title,
                 product_url=product.url,
                 current_price=current_price_bdt,
-                db=db,
             )
+
+    return events
 
 
 # ── Coupon Refresh Task ───────────────────────────────────────
@@ -1290,9 +1283,9 @@ async def _send_push_notifications(
     product_title: str,
     product_url: str,
     current_price: float,
-    db: AsyncSession,
 ) -> None:
-    """Send Web Push to all active subscriptions for this email."""
+    """Send Web Push to all active subscriptions for this email.
+    Manages its own DB session so it never holds the caller's connection."""
     import json
     from app.models.push_subscription import PushSubscription
     from app.config import settings
@@ -1307,13 +1300,16 @@ async def _send_push_notifications(
         print("   [WARN] pywebpush not installed — skipping push channel.")
         return
 
-    result = await db.execute(
-        select(PushSubscription).where(
-            PushSubscription.email == email,
-            PushSubscription.is_active == True,
+    # Load subscriptions and close connection before sending HTTP push requests.
+    async with async_session_factory() as db:
+        result = await db.execute(
+            select(PushSubscription).where(
+                PushSubscription.email == email,
+                PushSubscription.is_active == True,
+            )
         )
-    )
-    subs = result.scalars().all()
+        subs = result.scalars().all()
+
     if not subs:
         return
 
@@ -1324,6 +1320,7 @@ async def _send_push_notifications(
         "icon": "/icons/dk_logo.png",
     })
 
+    expired_ids: list = []
     for sub in subs:
         try:
             subscription_info = json.loads(sub.subscription_json)
@@ -1337,11 +1334,18 @@ async def _send_push_notifications(
         except WebPushException as e:
             status = getattr(e.response, "status_code", None)
             if status in (404, 410):
-                # Subscription expired — deactivate
-                sub.is_active = False
-                print(f"   [INFO] Push sub expired ({status}), deactivated: {email}")
+                expired_ids.append(sub.id)
+                print(f"   [INFO] Push sub expired ({status}), deactivating: {email}")
             else:
                 print(f"   [ERROR] Push failed for {email}: {e}")
         except Exception as e:
             print(f"   [ERROR] Push unexpected error for {email}: {e}")
-        logger.exception("Backfill exception")
+
+    # Deactivate expired subscriptions in a fresh short-lived session.
+    if expired_ids:
+        async with async_session_factory() as db:
+            await db.execute(
+                text("UPDATE push_subscriptions SET is_active = false WHERE id = ANY(:ids)"),
+                {"ids": expired_ids},
+            )
+            await db.commit()
