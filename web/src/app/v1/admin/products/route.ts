@@ -46,6 +46,15 @@ export async function GET(req: NextRequest) {
   const minDataPoints = searchParams.get("min_data_points");
 
   const db = createServerClient();
+  const baseSelect = `
+    id, title, url, platform, external_id, is_active, last_scraped_at, first_seen_at, image_url,
+    current_price, current_original_price, current_discount_pct, current_in_stock,
+    category, brand, consecutive_misses, out_of_stock_since, last_backfilled_at
+  `;
+  const enhancedSelect = `
+    ${baseSelect},
+    previous_price, price_changed_at, price_change_delta_pct
+  `;
 
   let eligibleIds: string[] | null = null;
   if (minDataPoints) {
@@ -71,56 +80,70 @@ export async function GET(req: NextRequest) {
   };
   const sortColumn = sortMap[sort] || (hasPriceChange || direction || changedSince ? "price_changed_at" : "last_scraped_at");
 
-  let query = db
-    .from("products")
-    .select(
-      `
-      id, title, url, platform, external_id, is_active, last_scraped_at, first_seen_at, image_url,
-      current_price, current_original_price, current_discount_pct, current_in_stock,
-      previous_price, price_changed_at, price_change_delta_pct,
-      category, brand, consecutive_misses, out_of_stock_since, last_backfilled_at
-    `,
-      { count: "exact" },
-    );
+  const buildQuery = (selectColumns: string) => {
+    let query = db.from("products").select(selectColumns, { count: "exact" });
 
-  if (eligibleIds) query = query.in("id", eligibleIds);
-  if (search) query = query.ilike("title", `%${search}%`);
-  if (platform) query = query.eq("platform", platform);
-  if (category) query = query.ilike("category", `%${category}%`);
-  if (brand) query = query.ilike("brand", `%${brand}%`);
-  if (hasPriceChange === true) query = query.not("price_changed_at", "is", null);
-  if (hasPriceChange === false) query = query.is("price_changed_at", null);
-  if (changedSince) query = query.gte("price_changed_at", changedSince);
-  if (direction === "up") query = query.gt("price_change_delta_pct", 0);
-  if (direction === "down") query = query.lt("price_change_delta_pct", 0);
-  if (isActive !== null) query = query.eq("is_active", isActive);
-  if (inStock !== null) query = query.eq("current_in_stock", inStock);
-  if (hasErrors === true) query = query.gt("consecutive_misses", 0);
-  if (hasErrors === false) query = query.eq("consecutive_misses", 0);
-  if (priceMin) query = query.gte("current_price", parseIntParam(priceMin, 0));
-  if (priceMax) query = query.lte("current_price", parseIntParam(priceMax, 0));
-  if (deltaMin) query = query.gte("price_change_delta_pct", parseIntParam(deltaMin, 0));
-  if (deltaMax) query = query.lte("price_change_delta_pct", parseIntParam(deltaMax, 0));
-  if (discountMin) query = query.gte("current_discount_pct", parseIntParam(discountMin, 0));
-  if (staleDays) {
-    const days = Math.max(1, parseIntParam(staleDays, 1));
-    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-    query = query.lt("last_scraped_at", cutoff);
-  }
+    if (eligibleIds) query = query.in("id", eligibleIds);
+    if (search) query = query.ilike("title", `%${search}%`);
+    if (platform) query = query.eq("platform", platform);
+    if (category) query = query.ilike("category", `%${category}%`);
+    if (brand) query = query.ilike("brand", `%${brand}%`);
+    if (isActive !== null) query = query.eq("is_active", isActive);
+    if (inStock !== null) query = query.eq("current_in_stock", inStock);
+    if (hasErrors === true) query = query.gt("consecutive_misses", 0);
+    if (hasErrors === false) query = query.eq("consecutive_misses", 0);
+    if (priceMin) query = query.gte("current_price", parseIntParam(priceMin, 0));
+    if (priceMax) query = query.lte("current_price", parseIntParam(priceMax, 0));
+    if (discountMin) query = query.gte("current_discount_pct", parseIntParam(discountMin, 0));
+    if (staleDays) {
+      const days = Math.max(1, parseIntParam(staleDays, 1));
+      const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+      query = query.lt("last_scraped_at", cutoff);
+    }
 
-  query = query.order(sortColumn, { ascending: sortDir === "asc", nullsFirst: false });
-  if (sortColumn !== "last_scraped_at") {
-    query = query.order("last_scraped_at", {
-      ascending: false,
-      nullsFirst: false,
+    if (selectColumns === enhancedSelect) {
+      if (hasPriceChange === true) query = query.not("price_changed_at", "is", null);
+      if (hasPriceChange === false) query = query.is("price_changed_at", null);
+      if (changedSince) query = query.gte("price_changed_at", changedSince);
+      if (direction === "up") query = query.gt("price_change_delta_pct", 0);
+      if (direction === "down") query = query.lt("price_change_delta_pct", 0);
+      if (deltaMin) query = query.gte("price_change_delta_pct", parseIntParam(deltaMin, 0));
+      if (deltaMax) query = query.lte("price_change_delta_pct", parseIntParam(deltaMax, 0));
+    }
+
+    query = query.order(sortColumn, { ascending: sortDir === "asc", nullsFirst: false });
+    if (sortColumn !== "last_scraped_at") {
+      query = query.order("last_scraped_at", {
+        ascending: false,
+        nullsFirst: false,
+      });
+    }
+
+    return query.range(offset, offset + limit - 1);
+  };
+
+  let data: Record<string, unknown>[] | null = null;
+  let count: number | null = null;
+  let error: { message: string } | null = null;
+  let usedEnhancedColumns = true;
+
+  ({ data, count, error } = await buildQuery(enhancedSelect) as unknown as {
+    data: Record<string, unknown>[] | null;
+    count: number | null;
+    error: { message: string } | null;
+  });
+  if (error && /price_changed_at|price_change_delta_pct|previous_price/i.test(error.message)) {
+    usedEnhancedColumns = false;
+    ({ data, count, error } = await buildQuery(baseSelect) as unknown as {
+      data: Record<string, unknown>[] | null;
+      count: number | null;
+      error: { message: string } | null;
     });
   }
-
-  const { data, count, error } = await query.range(offset, offset + limit - 1);
   if (error) return NextResponse.json({ detail: error.message }, { status: 500, headers: cors() });
 
   const pageProducts = data ?? [];
-  const productIds = pageProducts.map((p: Record<string, unknown>) => String(p.id));
+  const productIds = pageProducts.map((p) => String(p.id));
   const { data: historyCounts, error: countsError } = productIds.length
     ? await db.from("price_history").select("product_id, point_count").in("product_id", productIds)
     : { data: [], error: null };
@@ -147,9 +170,9 @@ export async function GET(req: NextRequest) {
       current_original_price: p.current_original_price ?? null,
       current_discount_pct: p.current_discount_pct ?? null,
       in_stock: p.current_in_stock ?? null,
-      previous_price: p.previous_price ?? null,
-      price_changed_at: p.price_changed_at ?? null,
-      price_change_delta_pct: p.price_change_delta_pct ?? null,
+      previous_price: usedEnhancedColumns ? (p.previous_price ?? null) : null,
+      price_changed_at: usedEnhancedColumns ? (p.price_changed_at ?? null) : null,
+      price_change_delta_pct: usedEnhancedColumns ? (p.price_change_delta_pct ?? null) : null,
       category: p.category ?? null,
       brand: p.brand ?? null,
       consecutive_misses: p.consecutive_misses ?? 0,
