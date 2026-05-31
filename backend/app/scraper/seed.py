@@ -20,6 +20,7 @@ import logging
 import re
 import sys
 import time
+from datetime import datetime, timezone
 from typing import Optional, Set
 
 import httpx
@@ -196,9 +197,20 @@ async def bulk_scrape(
                             db.add(product)
                             await db.flush()
 
-                        product.last_scraped_at = datetime.utcnow()
+                        now = datetime.now(timezone.utc)
+                        product.last_scraped_at = now
 
                         # Denormalized current price
+                        price_changed = product.current_price is not None and product.current_price != scraped.price
+                        if price_changed:
+                            product.previous_price = product.current_price
+                            product.price_changed_at = now
+                            if product.current_price and product.current_price > 0:
+                                product.price_change_delta_pct = int(
+                                    round(((scraped.price - product.current_price) / product.current_price) * 100)
+                                )
+                            else:
+                                product.price_change_delta_pct = None
                         product.current_price = scraped.price
                         product.current_original_price = scraped.original_price
                         product.current_discount_pct = scraped.discount_pct
@@ -206,13 +218,13 @@ async def bulk_scrape(
 
                         # Append change-point to the compact price_history series
                         from app.models.price_history import PriceHistory
-                        day = int(datetime.utcnow().timestamp() // 86400)
+                        day = int(now.timestamp() // 86400)
                         ph = (await db.execute(
                             select(PriceHistory).where(PriceHistory.product_id == product.id)
                         )).scalar_one_or_none()
                         if ph:
                             series = list(ph.series or [])
-                            if not series or series[-1][1] != scraped.price:
+                            if price_changed and (not series or series[-1][1] != scraped.price):
                                 series.append([day, scraped.price])
                                 ph.series = series
                                 ph.point_count = len(series)

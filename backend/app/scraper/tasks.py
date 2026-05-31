@@ -903,8 +903,9 @@ class ScrapeAgent:
             # [epoch_day, price] points, appended only when price/stock changes.
             now = datetime.now(timezone.utc)
             epoch_day = int(now.timestamp() // 86400)
-            changed = []  # (product, scraped)
+            changed = []  # (product, scraped, price_changed, had_price)
             for product, scraped in resolved:
+                had_price = product.current_price is not None
                 product.last_scraped_at = now
                 product.consecutive_misses = 0  # found this session
                 # Track how long a product has been out of stock (for pruning).
@@ -913,28 +914,39 @@ class ScrapeAgent:
                         product.out_of_stock_since = now
                 elif scraped.in_stock is True and product.out_of_stock_since is not None:
                     product.out_of_stock_since = None
-                unchanged = (
-                    product.current_price is not None
-                    and product.current_price == scraped.price
-                    and product.current_in_stock == scraped.in_stock
-                )
-                if unchanged:
+                price_changed = product.current_price is not None and product.current_price != scraped.price
+                stock_changed = product.current_in_stock != scraped.in_stock
+                if not price_changed and not stock_changed:
                     continue
+                if price_changed:
+                    product.previous_price = product.current_price
+                    product.price_changed_at = now
+                    if product.current_price and product.current_price > 0:
+                        product.price_change_delta_pct = int(
+                            round(((scraped.price - product.current_price) / product.current_price) * 100)
+                        )
+                    else:
+                        product.price_change_delta_pct = None
                 # Update denormalized latest price (fast reads)
                 product.current_price = scraped.price
                 product.current_original_price = scraped.original_price
                 product.current_discount_pct = scraped.discount_pct
                 product.current_in_stock = scraped.in_stock
-                changed.append((product, scraped))
+                changed.append((product, scraped, price_changed, had_price))
 
             await db.flush()
 
             # Append one change-point per changed product — atomic SQL append,
             # so concurrent writers can't clobber each other's history.
-            if changed:
+            price_changes = [
+                (p, s)
+                for p, s, price_changed, had_price in changed
+                if price_changed or not had_price
+            ]
+            if price_changes:
                 params = [
                     {"pid": str(p.id), "day": epoch_day, "price": s.price}
-                    for p, s in changed
+                    for p, s in price_changes
                 ]
                 await db.execute(
                     text(
@@ -948,7 +960,7 @@ class ScrapeAgent:
                 )
 
             # Collect IDs before commit so we can invalidate caches outside this block.
-            changed_ids = [str(p.id) for p, _ in changed]
+            changed_ids = [str(p.id) for p, _, _, _ in changed]
 
             await db.commit()
         # DB connection returned to pool here — cache invalidation never holds it.

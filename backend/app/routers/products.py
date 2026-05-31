@@ -456,8 +456,18 @@ async def lookup_product(
                     "INSERT INTO price_history (product_id, series, point_count, updated_at) "
                     "VALUES (cast(:pid as uuid), jsonb_build_array(jsonb_build_array(cast(:d as int), cast(:p as bigint))), 1, now()) "
                     "ON CONFLICT (product_id) DO UPDATE SET "
-                    "series = price_history.series || jsonb_build_array(jsonb_build_array(cast(:d as int), cast(:p as bigint))), "
-                    "point_count = price_history.point_count + 1, updated_at = now()"
+                    "series = CASE "
+                    "WHEN (price_history.series -> -1 ->> 1)::bigint IS DISTINCT FROM cast(:p as bigint) "
+                    "THEN price_history.series || jsonb_build_array(jsonb_build_array(cast(:d as int), cast(:p as bigint))) "
+                    "ELSE price_history.series END, "
+                    "point_count = CASE "
+                    "WHEN (price_history.series -> -1 ->> 1)::bigint IS DISTINCT FROM cast(:p as bigint) "
+                    "THEN price_history.point_count + 1 "
+                    "ELSE price_history.point_count END, "
+                    "updated_at = CASE "
+                    "WHEN (price_history.series -> -1 ->> 1)::bigint IS DISTINCT FROM cast(:p as bigint) "
+                    "THEN now() "
+                    "ELSE price_history.updated_at END"
                 ),
                 {"pid": str(product.id), "d": _day, "p": scraped.price},
             )
@@ -744,5 +754,4 @@ async def get_product_coupons(
         )
         for c in coupons
     ]
-
 

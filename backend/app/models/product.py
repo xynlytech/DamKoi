@@ -39,6 +39,9 @@ class Product(Base):
     current_original_price = Column(Integer, nullable=True)  # paisa
     current_discount_pct = Column(SmallInteger, nullable=True)
     current_in_stock = Column(Boolean, nullable=True)
+    previous_price = Column(Integer, nullable=True)          # paisa
+    price_changed_at = Column(DateTime(timezone=True), nullable=True)
+    price_change_delta_pct = Column(SmallInteger, nullable=True)
     # When the product first went out of stock (cleared when back in stock).
     # Used to prune products that have been OOS for a long time.
     out_of_stock_since = Column(DateTime(timezone=True), nullable=True)
