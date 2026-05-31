@@ -1,10 +1,9 @@
 import { ImageResponse } from "next/og";
+import { SERVER_API } from "@/lib/server-api";
 
 export const alt = "DamKoi Price Intelligence";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-
-const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
 
 const VERDICT_CONFIG: Record<string, { icon: string; label: string; color: string; bg: string }> = {
   FAKE_DISCOUNT:     { icon: "X", label: "Fake Discount",  color: "#ef4444", bg: "#1a0a0a" },
@@ -29,8 +28,8 @@ export default async function OgImage({
 
   try {
     const [prodRes, verdRes] = await Promise.all([
-      fetch(`${API}/products/${id}`, { next: { revalidate: 3600 } }),
-      fetch(`${API}/products/${id}/verdict`, { next: { revalidate: 3600 } }),
+      fetch(`${SERVER_API}/products/${id}`, { next: { revalidate: 3600 } }),
+      fetch(`${SERVER_API}/products/${id}/verdict`, { next: { revalidate: 3600 } }),
     ]);
     if (prodRes.ok) {
       const p = await prodRes.json();

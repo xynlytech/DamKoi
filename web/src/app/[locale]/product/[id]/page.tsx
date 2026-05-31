@@ -8,8 +8,8 @@ import {
 import { setRequestLocale } from "next-intl/server";
 import PriceChartClient from "./PriceChartClient";
 import AlertFormClient from "./AlertFormClient";
+import { SERVER_API } from "@/lib/server-api";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
 const BASE_URL = "https://damkoi.xynly.com";
 
 // Non-pre-built product IDs are still served via on-demand SSR and then cached.
@@ -17,7 +17,7 @@ export const dynamicParams = true;
 
 export async function generateStaticParams() {
   try {
-    const res = await fetch(`${API}/products?limit=500`, { cache: "no-store" });
+    const res = await fetch(`${SERVER_API}/products?limit=500`, { cache: "no-store" });
     if (!res.ok) return [];
     const data = await res.json();
     const products: { id: string }[] = Array.isArray(data) ? data : (data.products ?? []);
@@ -90,28 +90,28 @@ type LensResponse = {
 
 async function getProduct(id: string): Promise<Product | null> {
   try {
-    const res = await fetch(`${API}/products/${id}`, { next: { revalidate: 3600 } });
+    const res = await fetch(`${SERVER_API}/products/${id}`, { next: { revalidate: 3600 } });
     return res.ok ? res.json() : null;
   } catch { return null; }
 }
 
 async function getVerdict(id: string): Promise<Verdict | null> {
   try {
-    const res = await fetch(`${API}/products/${id}/verdict`, { next: { revalidate: 3600 } });
+    const res = await fetch(`${SERVER_API}/products/${id}/verdict`, { next: { revalidate: 3600 } });
     return res.ok ? res.json() : null;
   } catch { return null; }
 }
 
 async function getCompare(id: string): Promise<CompareResponse | null> {
   try {
-    const res = await fetch(`${API}/products/${id}/compare`, { next: { revalidate: 86400 } });
+    const res = await fetch(`${SERVER_API}/products/${id}/compare`, { next: { revalidate: 86400 } });
     return res.ok ? res.json() : null;
   } catch { return null; }
 }
 
 async function getLens(id: string): Promise<LensResponse | null> {
   try {
-    const res = await fetch(`${API}/products/${id}/lens`, { next: { revalidate: 86400 } });
+    const res = await fetch(`${SERVER_API}/products/${id}/lens`, { next: { revalidate: 86400 } });
     return res.ok ? res.json() : null;
   } catch { return null; }
 }

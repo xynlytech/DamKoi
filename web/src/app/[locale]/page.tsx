@@ -5,6 +5,7 @@ import PlatformBadges from "./components/PlatformBadges";
 import { setRequestLocale } from "next-intl/server";
 import HowItWorks from "./components/HowItWorks";
 import FAQSection from "./components/FAQSection";
+import { SERVER_API } from "@/lib/server-api";
 
 const BASE_URL = "https://damkoi.xynly.com";
 
@@ -22,11 +23,9 @@ export const metadata: Metadata = {
   },
 };
 
-const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
-
 async function getTopDeals() {
   try {
-    const res = await fetch(`${API}/products/deals?min_score=6&limit=6`, {
+    const res = await fetch(`${SERVER_API}/products/deals?min_score=6&limit=6`, {
       next: { revalidate: 3600 }, // ISR: revalidate every hour
     });
     if (!res.ok) return [];

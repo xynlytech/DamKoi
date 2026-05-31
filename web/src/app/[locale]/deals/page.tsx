@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Flame, Search } from "lucide-react";
 import DealsLoadMore from "./DealsLoadMore";
+import { SERVER_API } from "@/lib/server-api";
 
 const BASE_URL = "https://damkoi.xynly.com";
 
@@ -19,7 +20,6 @@ export const metadata: Metadata = {
   },
 };
 
-const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
 const PAGE_SIZE = 50;
 
 const PLATFORMS = ["", "daraz", "cartup", "rokomari", "pickaboo", "chaldal", "othoba"];
@@ -38,7 +38,7 @@ async function getDeals(platform?: string, category?: string, minScore = 7): Pro
   if (platform) params.set("platform", platform);
   if (category) params.set("category", category);
   try {
-    const res = await fetch(`${API}/products/deals?${params}`, { next: { revalidate: 7200 } });
+    const res = await fetch(`${SERVER_API}/products/deals?${params}`, { next: { revalidate: 7200 } });
     if (!res.ok) return [];
     return res.json();
   } catch {

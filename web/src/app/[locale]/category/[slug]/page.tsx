@@ -3,8 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 import { fetchCategories, type Category } from "@/lib/categories";
+import { SERVER_API } from "@/lib/server-api";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
 const BASE_URL = "https://damkoi.xynly.com";
 const GRID = 48;
 
@@ -25,7 +25,7 @@ async function resolveCategory(slug: string): Promise<Category | null> {
 async function getProducts(category: string): Promise<Product[]> {
   try {
     const res = await fetch(
-      `${API}/products?category=${encodeURIComponent(category)}&limit=${GRID}`,
+      `${SERVER_API}/products?category=${encodeURIComponent(category)}&limit=${GRID}`,
       { next: { revalidate: 86400 } },
     );
     if (!res.ok) return [];

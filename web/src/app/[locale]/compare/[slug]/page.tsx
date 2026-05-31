@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink, Trophy, AlertTriangle, Search } from "lucide-react";
 import ReportButtonClient from "./ReportButtonClient";
-
-const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
+import { SERVER_API } from "@/lib/server-api";
 
 const PLATFORM_COLOR: Record<string, { color: string; bg: string; border: string }> = {
   daraz:    { color: "#f97316", bg: "rgba(249,115,22,0.1)",  border: "rgba(249,115,22,0.2)"  },
@@ -36,7 +35,7 @@ type CompareResponse = {
 
 async function getCompare(productId: string): Promise<CompareResponse | null> {
   try {
-    const res = await fetch(`${API}/products/${productId}/compare`, {
+    const res = await fetch(`${SERVER_API}/products/${productId}/compare`, {
       next: { revalidate: 300 },
     });
     if (!res.ok) return null;
