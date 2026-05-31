@@ -31,6 +31,8 @@ type Product = {
   id: string;
   title: string;
   platform: string;
+  category: string | null;
+  brand: string | null;
   current_price: number | null;
   current_original_price: number | null;
   current_discount_pct: number | null;
