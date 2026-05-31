@@ -24,11 +24,8 @@ const FEATURES = [
   { icon: Bell,         color: "#22c55e", bg: "rgba(34,197,94,0.12)",  title: "Price Alerts",         desc: "Email the moment it hits your target price. No account needed." },
 ];
 
-const STATS = [
-  { value: 120000, label: "Products Tracked",  suffix: "+" },
-  { value: 8400,   label: "Price Drops Caught", suffix: "+" },
-  { value: 23,     label: "Avg Savings",         suffix: "%" },
-];
+type HeroStats = { total_products: number; price_drops_caught: number; avg_savings_pct: number };
+const STAT_FALLBACK: HeroStats = { total_products: 0, price_drops_caught: 0, avg_savings_pct: 0 };
 
 function CountUpInView({ to, suffix = "" }: { to: number; suffix?: string }) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -94,6 +91,14 @@ export default function HeroSection() {
   const [url, setUrl]       = useState("");
   const [state, setState]   = useState<State>("idle");
   const [errorMsg, setMsg]  = useState("");
+  const [stats, setStats]   = useState<HeroStats>(STAT_FALLBACK);
+
+  useEffect(() => {
+    fetch(`${API}/products/stats`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d) setStats(d); })
+      .catch(() => {});
+  }, []);
 
   const platform = detectPlatform(url);
   const isValid  = platform !== null;
@@ -285,7 +290,11 @@ export default function HeroSection() {
           variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-80px" }}
           className="mt-16 grid grid-cols-3 gap-4 w-full"
         >
-          {STATS.map((s) => (
+          {[
+            { value: stats.total_products,   label: "Products Tracked",  suffix: "+" },
+            { value: stats.price_drops_caught, label: "Price Drops Caught", suffix: "+" },
+            { value: stats.avg_savings_pct,  label: "Avg Savings",        suffix: "%" },
+          ].map((s) => (
             <motion.div key={s.label} variants={item} className="dk-stat-card text-center">
               <div className="dk-stat-value mb-1"><CountUpInView to={s.value} suffix={s.suffix} /></div>
               <div className="dk-stat-label">{s.label}</div>

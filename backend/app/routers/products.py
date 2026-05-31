@@ -15,7 +15,7 @@ import io
 from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from sqlalchemy import select, and_, text
+from sqlalchemy import select, and_, text, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db, async_session_factory
@@ -30,6 +30,7 @@ from app.scraper.daraz_scraper import DarazScraper, _normalize_title
 from app.scraper.utils import extract_daraz_product_id, detect_platform_and_id, is_supported_url
 from app.services.cache import cache
 from app.models.price_history import PriceHistory
+from app.models.alert import Alert
 
 
 async def _load_series(db, product_id):
@@ -153,6 +154,38 @@ class CouponResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+@router.get("/stats")
+async def get_public_stats(db: AsyncSession = Depends(get_db)):
+    """Public hero stats — cached 6h. No auth required."""
+    CACHE_KEY = "public:hero_stats"
+    cached = await cache.get(CACHE_KEY)
+    if cached is not None:
+        return cached
+
+    total_products = (await db.execute(
+        select(func.count(Product.id)).where(Product.is_active == True)
+    )).scalar() or 0
+
+    price_drops_caught = (await db.execute(
+        select(func.count(Alert.id)).where(Alert.last_triggered.isnot(None))
+    )).scalar() or 0
+
+    avg_savings_row = (await db.execute(
+        select(func.avg(Product.current_discount_pct)).where(
+            Product.current_discount_pct > 0, Product.is_active == True
+        )
+    )).scalar()
+    avg_savings_pct = round(float(avg_savings_row)) if avg_savings_row else 0
+
+    result = {
+        "total_products": total_products,
+        "price_drops_caught": price_drops_caught,
+        "avg_savings_pct": avg_savings_pct,
+    }
+    await cache.set(CACHE_KEY, result, 21600)  # 6h
+    return result
 
 
 @router.get("/", response_model=list[ProductResponse])
