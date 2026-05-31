@@ -8,7 +8,8 @@ import {
 import { setRequestLocale } from "next-intl/server";
 import PriceChartClient from "./PriceChartClient";
 import AlertFormClient from "./AlertFormClient";
-import { SERVER_API } from "@/lib/server-api";
+import { createServerClient } from "@/lib/supabase-server";
+import { getVerdict as computeVerdict } from "@/lib/verdict";
 
 const BASE_URL = "https://damkoi.xynly.com";
 
@@ -17,10 +18,9 @@ export const dynamicParams = true;
 
 export async function generateStaticParams() {
   try {
-    const res = await fetch(`${SERVER_API}/products?limit=500`, { cache: "no-store" });
-    if (!res.ok) return [];
-    const data = await res.json();
-    const products: { id: string }[] = Array.isArray(data) ? data : (data.products ?? []);
+    const db = createServerClient();
+    const { data } = await db.from("products").select("id").eq("is_active", true).limit(500);
+    const products: { id: string }[] = data ?? [];
     return (["en", "bn"] as const).flatMap((locale) =>
       products.map((p) => ({ locale, id: p.id }))
     );
@@ -90,30 +90,89 @@ type LensResponse = {
 
 async function getProduct(id: string): Promise<Product | null> {
   try {
-    const res = await fetch(`${SERVER_API}/products/${id}`, { next: { revalidate: 3600 } });
-    return res.ok ? res.json() : null;
+    const db = createServerClient();
+    const { data, error } = await db
+      .from("products")
+      .select("id, title, url, image_url, platform, category, brand, last_scraped_at, current_price, current_original_price, current_discount_pct, current_in_stock")
+      .eq("id", id)
+      .single();
+    if (error || !data) return null;
+    const p = data as Record<string, unknown>;
+    return {
+      id: p.id as string,
+      title: p.title as string,
+      platform: p.platform as string,
+      url: p.url as string,
+      image_url: (p.image_url as string) ?? null,
+      current_price: (p.current_price as number) ?? null,
+      original_price: (p.current_original_price as number) ?? null,
+      platform_discount_pct: (p.current_discount_pct as number) ?? null,
+      in_stock: (p.current_in_stock as boolean) ?? null,
+      last_updated: (p.last_scraped_at as string) ?? null,
+      brand: p.brand as string | undefined,
+      category: p.category as string | undefined,
+    };
   } catch { return null; }
 }
 
-async function getVerdict(id: string): Promise<Verdict | null> {
+async function getProductVerdict(id: string): Promise<Verdict | null> {
   try {
-    const res = await fetch(`${SERVER_API}/products/${id}/verdict`, { next: { revalidate: 3600 } });
-    return res.ok ? res.json() : null;
+    const db = createServerClient();
+    const since30dMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const [{ data: prod }, { data: hist }] = await Promise.all([
+      db.from("products").select("current_price, first_seen_at, last_scraped_at").eq("id", id).single(),
+      db.from("price_history").select("series").eq("product_id", id).single(),
+    ]);
+    const series: [number, number][] = (hist?.series as [number, number][]) ?? [];
+    const pts = series.map(([day, price]) => ({ price, ms: day * 86400 * 1000 }));
+    const current = (prod?.current_price as number) ?? pts[pts.length - 1]?.price ?? 0;
+    if (!current && !pts.length) return null;
+    const allPrices = pts.length ? pts.map((p) => p.price) : [current];
+    const prices30 = pts.filter((p) => p.ms >= since30dMs).map((p) => p.price);
+    const first = prod?.first_seen_at ? new Date(prod.first_seen_at as string).getTime() : null;
+    const last = prod?.last_scraped_at ? new Date(prod.last_scraped_at as string).getTime() : Date.now();
+    const trackingDays = first ? Math.max(0, Math.floor((last - first) / 86400000)) : 0;
+    const minPrice = Math.min(...allPrices);
+    const atl = pts.find((p) => p.price === minPrice);
+    const atlDate = atl ? new Date(atl.ms).toISOString().slice(0, 10) : null;
+    return computeVerdict(current, prices30, allPrices, atlDate, "en", trackingDays);
   } catch { return null; }
 }
 
 async function getCompare(id: string): Promise<CompareResponse | null> {
   try {
-    const res = await fetch(`${SERVER_API}/products/${id}/compare`, { next: { revalidate: 86400 } });
-    return res.ok ? res.json() : null;
+    const db = createServerClient();
+    const { data: product } = await db
+      .from("products")
+      .select("id, match_group_id")
+      .eq("id", id)
+      .single();
+    if (!product) return null;
+    const p = product as Record<string, unknown>;
+    let alternatives: CompareAlternative[] = [];
+    if (p.match_group_id) {
+      const { data: grouped } = await db
+        .from("products")
+        .select("id, title, url, image_url, platform, current_price")
+        .eq("match_group_id", p.match_group_id as string);
+      if (grouped && grouped.length > 0) {
+        alternatives = (grouped as Record<string, unknown>[]).map((g) => ({
+          id: g.id as string,
+          title: g.title as string,
+          url: g.url as string,
+          image_url: (g.image_url as string) ?? null,
+          platform: g.platform as string,
+          current_price: (g.current_price as number) ?? null,
+          is_original_request: g.id === id,
+        }));
+      }
+    }
+    return { product_id: id, match_group_id: (p.match_group_id as string) ?? null, alternatives };
   } catch { return null; }
 }
 
-async function getLens(id: string): Promise<LensResponse | null> {
-  try {
-    const res = await fetch(`${SERVER_API}/products/${id}/lens`, { next: { revalidate: 86400 } });
-    return res.ok ? res.json() : null;
-  } catch { return null; }
+async function getLens(_id: string): Promise<LensResponse | null> {
+  return null;
 }
 
 // ── generateMetadata ───────────────────────────────────────────
@@ -124,7 +183,7 @@ export async function generateMetadata({
   params: Promise<{ id: string; locale: string }>;
 }): Promise<Metadata> {
   const { id, locale } = await params;
-  const [product, verdict] = await Promise.all([getProduct(id), getVerdict(id)]);
+  const [product, verdict] = await Promise.all([getProduct(id), getProductVerdict(id)]);
   if (!product) {
     return { title: "Product Not Found | DamKoi" };
   }
@@ -268,7 +327,7 @@ export default async function ProductPage({
 
   const [product, verdict, compare, lens] = await Promise.all([
     getProduct(id),
-    getVerdict(id),
+    getProductVerdict(id),
     getCompare(id),
     getLens(id),
   ]);
