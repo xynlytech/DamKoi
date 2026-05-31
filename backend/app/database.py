@@ -29,8 +29,15 @@ _is_sqlite = _db_url.startswith("sqlite")
 engine = create_async_engine(
     _db_url,
     echo=settings.APP_DEBUG,
-    # SQLite doesn't support pool_size / max_overflow
-    **({} if _is_sqlite else {"pool_size": 5, "max_overflow": 10, "pool_pre_ping": True}),
+    # SQLite doesn't support pool_size / max_overflow / connect_args
+    **({} if _is_sqlite else {
+        "pool_size": 5,
+        "max_overflow": 10,
+        "pool_pre_ping": True,
+        # Disable asyncpg prepared-statement cache — required for Supabase pgBouncer
+        # transaction pooling (prepared statements don't survive connection hand-back)
+        "connect_args": {"statement_cache_size": 0},
+    }),
 )
 
 # Session factory
