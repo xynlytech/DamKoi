@@ -251,7 +251,10 @@ def _parse_product(url: str, data: dict) -> Optional[ScrapedProduct]:
             next(iter(sku_infos.values()), {}),
         )
         if isinstance(sku_entry, dict):
-            price = _parse_price_to_paisa(sku_entry.get("price"))
+            price = (
+                _parse_price_to_paisa(sku_entry.get("salePrice"))
+                or _parse_price_to_paisa(sku_entry.get("price"))
+            )
             original_price = _parse_price_to_paisa(sku_entry.get("originalPrice"))
 
     if not price:
@@ -598,22 +601,23 @@ def _parse_module_data_product(url: str, data: dict) -> Optional[ScrapedProduct]
     if not sku_obj and sku_infos:
         sku_obj = next(iter(sku_infos.values()), {})
 
-    # Sale price: skuInfos.price is the actual checkout/discounted price.
-    # tracking.pdt_price is the list/original price used for analytics revenue tracking —
-    # use it only as a fallback when skuInfos has no price.
+    # salePrice is the checkout/discounted price; price key may be list/MRP in
+    # some SSR formats. Always prefer salePrice, fall back to price, then pdt_price.
     price = (
-        _parse_price_to_paisa(sku_obj.get("price"))
-        or _parse_price_to_paisa(sku_obj.get("salePrice"))
+        _parse_price_to_paisa(sku_obj.get("salePrice"))
+        or _parse_price_to_paisa(sku_obj.get("price"))
         or _parse_price_to_paisa(tracking.get("pdt_price"))
     )
     if not price:
         return None
 
-    # Original/list price: prefer skuInfos fields, then check if pdt_price is
-    # the list price (it will be > price when a discount is active).
+    # Original/list price: explicit field first; if salePrice was discounted, the
+    # plain price key holds the MRP in SSR formats — use it as fallback.
+    _sku_list_price = _parse_price_to_paisa(sku_obj.get("price"))
     original_price: Optional[int] = (
         _parse_price_to_paisa(sku_obj.get("originalPrice"))
         or _parse_price_to_paisa(sku_obj.get("listPrice"))
+        or (_sku_list_price if _sku_list_price and price and _sku_list_price > price else None)
     )
     if not original_price:
         pdt_price_raw = _parse_price_to_paisa(tracking.get("pdt_price"))
