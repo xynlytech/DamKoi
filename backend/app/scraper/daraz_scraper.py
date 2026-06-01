@@ -316,14 +316,19 @@ class DarazScraper:
             # The SSR blob only carries the LIST price. Replace it with the real
             # discounted price from the signed mtop detail API (same source the
             # live page renders).
+            # If mtop fails for any reason, return None so the caller falls
+            # through to DOM extraction — which reads the rendered sale price
+            # directly and never stores the list price by mistake.
             ids = _ids_from_module_data(data)
-            if ids:
-                async with httpx.AsyncClient(timeout=15) as client:
-                    real = await _fetch_mtop_price(client, url, *ids)
-                if real:
-                    product.price = real["price"]
-                    product.original_price = real["original_price"]
-                    product.discount_pct = real["discount_pct"]
+            if not ids:
+                return None
+            async with httpx.AsyncClient(timeout=15) as client:
+                real = await _fetch_mtop_price(client, url, *ids)
+            if not real:
+                return None
+            product.price = real["price"]
+            product.original_price = real["original_price"]
+            product.discount_pct = real["discount_pct"]
             return product
         except Exception as e:
             print(f"   ⚠️ __moduleData__ extraction failed: {e}")
