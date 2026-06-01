@@ -28,6 +28,10 @@ env:
   DARAZ_TRACKING_ID: ${{ secrets.DARAZ_TRACKING_ID }}
   ENABLED_PLATFORMS: daraz,rokomari,pickaboo,cartup,chaldal,othoba
   REDIS_URL: ''
+  # Use NullPool for all cron jobs — prevents DuplicatePreparedStatementError
+  # from asyncpg named prepared statements persisting on pgBouncer-recycled
+  # physical connections. Alembic uses its own sync engine and is unaffected.
+  DAMKOI_NULLPOOL: '1'
 
 jobs:
   # ── 0. Migrate: apply pending Alembic migrations to production DB ──

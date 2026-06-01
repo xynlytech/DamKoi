@@ -5,6 +5,8 @@ Async SQLAlchemy engine connected to Supabase PostgreSQL (free tier).
 Uses connection pooling to stay within the 60 connection limit.
 """
 
+import os
+
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 from app.config import settings
@@ -25,19 +27,31 @@ def _async_db_url(url: str) -> str:
 _db_url = _async_db_url(settings.DATABASE_URL)
 _is_sqlite = _db_url.startswith("sqlite")
 
+# Cron jobs set DAMKOI_NULLPOOL=1. NullPool closes each physical connection
+# immediately after use so pgBouncer never returns a connection that still has
+# named prepared statements registered (asyncpg names them __asyncpg_stmt_N__
+# and the counter resets per-object, so recycled connections cause
+# DuplicatePreparedStatementError even with statement_cache_size=0).
+_use_nullpool = bool(os.environ.get("DAMKOI_NULLPOOL")) and not _is_sqlite
+
+if _use_nullpool:
+    from sqlalchemy.pool import NullPool
+    _pool_kwargs: dict = {"poolclass": NullPool}
+elif _is_sqlite:
+    _pool_kwargs = {}
+else:
+    _pool_kwargs = {
+        "pool_size": 5,
+        "max_overflow": 10,
+        "pool_pre_ping": True,
+        "connect_args": {"statement_cache_size": 0},
+    }
+
 # Async engine — uses asyncpg for PostgreSQL, aiosqlite for local dev
 engine = create_async_engine(
     _db_url,
     echo=settings.APP_DEBUG,
-    # SQLite doesn't support pool_size / max_overflow / connect_args
-    **({} if _is_sqlite else {
-        "pool_size": 5,
-        "max_overflow": 10,
-        "pool_pre_ping": True,
-        # Disable asyncpg prepared-statement cache — required for Supabase pgBouncer
-        # transaction pooling (prepared statements don't survive connection hand-back)
-        "connect_args": {"statement_cache_size": 0},
-    }),
+    **_pool_kwargs,
 )
 
 # Session factory
