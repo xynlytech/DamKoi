@@ -44,6 +44,7 @@ export default function AdminCronPage() {
   const [runs, setRuns] = useState<Run[]>([]);
   const [running, setRunning] = useState<string | null>(null);
   const [dispatched, setDispatched] = useState<Record<string, boolean>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   const loadHistory = async () => {
@@ -63,11 +64,18 @@ export default function AdminCronPage() {
 
   const trigger = async (job: string) => {
     setRunning(job);
+    setErrors((prev) => ({ ...prev, [job]: "" }));
     try {
       const res = await adminFetch(`/admin/cron/trigger/${job}`, { method: "POST" });
       if (res.ok) {
         setDispatched((prev) => ({ ...prev, [job]: true }));
+      } else {
+        const body = await res.json().catch(() => ({}));
+        const msg = body?.detail ?? `HTTP ${res.status}`;
+        setErrors((prev) => ({ ...prev, [job]: msg }));
       }
+    } catch (e) {
+      setErrors((prev) => ({ ...prev, [job]: String(e) }));
     } finally {
       setRunning(null);
     }
@@ -99,6 +107,11 @@ export default function AdminCronPage() {
             {dispatched[id] && (
               <p className="text-[10px] font-semibold flex items-center gap-1 mb-2" style={{ color: "var(--green)" }}>
                 <CheckCircle2 size={10} /> Dispatched
+              </p>
+            )}
+            {errors[id] && (
+              <p className="text-[10px] font-semibold flex items-center gap-1 mb-2 break-all" style={{ color: "var(--red)" }}>
+                <XCircle size={10} /> {errors[id]}
               </p>
             )}
             <button
