@@ -10,6 +10,7 @@ All entries with that day recorded current_original_price instead of current_pri
 from typing import Sequence, Union
 
 from alembic import op
+import sqlalchemy as sa
 
 
 revision: str = "b3c4d5e6f7a8"
@@ -21,6 +22,13 @@ BAD_DAY = 20604  # 2026-05-31 UTC
 
 
 def upgrade() -> None:
+    # Guard: fresh DB (CI) has no data — skip cleanly.
+    conn = op.get_bind()
+    exists = conn.execute(
+        sa.text("SELECT to_regclass('public.price_history')")
+    ).scalar()
+    if not exists:
+        return
     # Step 1: strip epoch_day 20604 from every price_history series,
     # decrement point_count by the number of removed entries.
     op.execute(
