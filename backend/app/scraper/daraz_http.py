@@ -694,8 +694,9 @@ async def _fetch_one(
             if module_data:
                 result = _parse_module_data_product(url, module_data)
                 if result:
-                    # SSR price is the LIST price — replace it with the real
-                    # discounted price from the signed mtop detail API.
+                    # SSR price is the LIST price — must replace with real
+                    # discounted price from mtop. If mtop fails, skip this
+                    # result so the caller falls through to __NEXT_DATA__.
                     ids = _ids_from_module_data(module_data)
                     if ids:
                         real = await _fetch_mtop_price(client, url, *ids)
@@ -703,7 +704,7 @@ async def _fetch_one(
                             result.price = real["price"]
                             result.original_price = real["original_price"]
                             result.discount_pct = real["discount_pct"]
-                    return result
+                            return result
             m = _NEXT_DATA_RE.search(html)
             if m:
                 try:
