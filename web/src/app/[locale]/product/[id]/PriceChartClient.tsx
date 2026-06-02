@@ -87,7 +87,7 @@ function PriceChart({
   const curP   = sorted.at(-1)?.price ?? 0;
   const atlIdx = sorted.findIndex((p) => p.price === minP);
 
-  const isATL  = curP > 0 && curP <= minP * 1.01;          // within 1% of all-time low
+  const isATL  = curP > 0 && curP <= minP;
   const buyScore = curP > 0 && avgP > 0
     ? Math.round(Math.max(0, Math.min(100, ((avgP - curP) / avgP) * 200 + 50)))
     : 50;
@@ -269,7 +269,7 @@ function PriceChart({
             Should you buy this now?
           </p>
           <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-            {curP <= minP * 1.01
+            {curP <= minP
               ? "At all-time low. Best time to buy."
               : curP <= avgP
               ? "Below average price. Good time to buy."
