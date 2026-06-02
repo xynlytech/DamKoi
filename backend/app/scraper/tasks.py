@@ -25,6 +25,7 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
 from sqlalchemy import select, func, and_, text
+from sqlalchemy.orm import lazyload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import async_session_factory
@@ -853,23 +854,41 @@ class ScrapeAgent:
         changed_ids: list[str] = []
         changed_ext_ids: list[str] = [s.external_id for s in products]
 
+        from app.scraper.daraz_scraper import _normalize_title
+
         async with async_session_factory() as db:
-            # ── Pass 1: resolve/create products ───────────────────────
-            resolved = []  # (product, scraped)
+            # ── Pass 1: resolve/create products (batched) ─────────────
+            # Fetch all existing rows for this batch in ONE query per platform
+            # (external_id IN (...)) instead of one SELECT per product. The
+            # lazyload("*") suppresses Product's selectin relationships
+            # (price_snapshots / tracked_by / alerts) — we never touch them
+            # here, and eager-loading them was firing ~3 extra queries per
+            # product (the N+1 that made the save crawl).
+            by_platform: dict[str, dict] = {}
             for scraped in products:
-                platform = getattr(scraped, 'platform', self.platform)
-                result = await db.execute(
-                    select(Product).where(
-                        and_(
-                            Product.platform == platform,
-                            Product.external_id == scraped.external_id,
-                        )
+                platform = getattr(scraped, "platform", self.platform)
+                by_platform.setdefault(platform, {})[scraped.external_id] = scraped
+
+            existing: dict[tuple[str, str], Product] = {}
+            for platform, ext_map in by_platform.items():
+                rows = await db.execute(
+                    select(Product)
+                    .where(
+                        Product.platform == platform,
+                        Product.external_id.in_(list(ext_map.keys())),
                     )
+                    .options(lazyload("*"))
                 )
-                product = result.scalar_one_or_none()
+                for p in rows.scalars():
+                    existing[(platform, p.external_id)] = p
+
+            resolved = []  # (product, scraped)
+            has_new = False
+            for scraped in products:
+                platform = getattr(scraped, "platform", self.platform)
+                product = existing.get((platform, scraped.external_id))
 
                 if not product:
-                    from app.scraper.daraz_scraper import _normalize_title
                     product = Product(
                         platform=platform,
                         external_id=scraped.external_id,
@@ -882,12 +901,13 @@ class ScrapeAgent:
                         image_url=scraped.image_url,
                     )
                     db.add(product)
-                    await db.flush()
+                    has_new = True
+                    # Dedupe repeats within this same batch.
+                    existing[(platform, scraped.external_id)] = product
                 else:
                     # Backfill metadata for discovery stubs (title "[Discovered …]")
                     # and fill any gaps once we have real scraped data.
                     if (product.title or "").startswith("[Discovered") and scraped.title:
-                        from app.scraper.daraz_scraper import _normalize_title
                         product.title = scraped.title
                         product.normalized_title = _normalize_title(scraped.title)
                     if scraped.image_url and not product.image_url:
@@ -897,6 +917,9 @@ class ScrapeAgent:
                     if scraped.category and not product.category:
                         product.category = scraped.category
                 resolved.append((product, scraped))
+
+            if has_new:
+                await db.flush()  # assign IDs for all new products at once
 
             # ── Pass 2: dedupe vs denormalized current price; append change-points ─
             # No snapshot rows: history lives in price_history.series as compact

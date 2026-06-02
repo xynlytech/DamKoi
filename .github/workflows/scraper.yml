@@ -32,6 +32,9 @@ env:
   # from asyncpg named prepared statements persisting on pgBouncer-recycled
   # physical connections. Alembic uses its own sync engine and is unaffected.
   DAMKOI_NULLPOOL: '1'
+  # Never run the engine with echo=True in cron — SQLAlchemy logs every
+  # statement (tens of thousands of lines/batch) and slows the save path.
+  APP_DEBUG: 'false'
 
 jobs:
   # ── 0. Migrate: apply pending Alembic migrations to production DB ──
