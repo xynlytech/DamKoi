@@ -6,6 +6,7 @@ Uses connection pooling to stay within the 60 connection limit.
 """
 
 import os
+from uuid import uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
@@ -29,14 +30,25 @@ _is_sqlite = _db_url.startswith("sqlite")
 
 # Cron jobs set DAMKOI_NULLPOOL=1. NullPool closes each physical connection
 # immediately after use so pgBouncer never returns a connection that still has
-# named prepared statements registered (asyncpg names them __asyncpg_stmt_N__
-# and the counter resets per-object, so recycled connections cause
-# DuplicatePreparedStatementError even with statement_cache_size=0).
+# named prepared statements registered.
 _use_nullpool = bool(os.environ.get("DAMKOI_NULLPOOL")) and not _is_sqlite
+
+# Supabase routes through pgBouncer in transaction-pooling mode. asyncpg names
+# its prepared statements deterministically (__asyncpg_stmt_N__), so when
+# pgBouncer hands the same backend to a fresh asyncpg connection, the name
+# collides -> DuplicatePreparedStatementError (seen even on the dialect's
+# connect-time `select pg_catalog.version()`). Disabling both caches is not
+# enough; the names must be globally unique. prepared_statement_name_func gives
+# every statement a uuid-based name so recycled backends never collide.
+_pg_connect_args = {
+    "statement_cache_size": 0,                 # asyncpg: no per-connection cache
+    "prepared_statement_cache_size": 0,        # SQLAlchemy dialect: no cache
+    "prepared_statement_name_func": lambda: f"__asyncpg_{uuid4()}__",
+}
 
 if _use_nullpool:
     from sqlalchemy.pool import NullPool
-    _pool_kwargs: dict = {"poolclass": NullPool}
+    _pool_kwargs: dict = {"poolclass": NullPool, "connect_args": _pg_connect_args}
 elif _is_sqlite:
     _pool_kwargs = {}
 else:
@@ -44,7 +56,7 @@ else:
         "pool_size": 5,
         "max_overflow": 10,
         "pool_pre_ping": True,
-        "connect_args": {"statement_cache_size": 0},
+        "connect_args": _pg_connect_args,
     }
 
 # Async engine — uses asyncpg for PostgreSQL, aiosqlite for local dev
