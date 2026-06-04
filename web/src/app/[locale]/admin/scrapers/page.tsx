@@ -74,7 +74,7 @@ export default function ScraperHealthPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
             <Activity size={22} style={{ color: "var(--lav)" }} />

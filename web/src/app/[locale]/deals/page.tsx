@@ -80,19 +80,21 @@ export default async function DealsPage({
         </p>
       </div>
 
-      {/* Platform filters */}
-      <div className="flex flex-wrap gap-2 mb-3">
-        {PLATFORMS.map((p) => (
-          <Link
-            key={p}
-            href={`/deals?platform=${p}&category=${category}&score=${minScore}`}
-            className="px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-widest transition-all"
-            style={platform === p ? activeFilterStyle : inactiveFilterStyle}
-          >
-            {p || "All Platforms"}
-          </Link>
-        ))}
-        <div className="ml-auto flex gap-2">
+      {/* Platform + score filters */}
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 mb-3">
+        <div className="flex flex-wrap gap-2">
+          {PLATFORMS.map((p) => (
+            <Link
+              key={p}
+              href={`/deals?platform=${p}&category=${category}&score=${minScore}`}
+              className="px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-widest transition-all"
+              style={platform === p ? activeFilterStyle : inactiveFilterStyle}
+            >
+              {p || "All Platforms"}
+            </Link>
+          ))}
+        </div>
+        <div className="flex gap-2 sm:ml-auto">
           {[7, 8, 9].map((s) => (
             <Link
               key={s}

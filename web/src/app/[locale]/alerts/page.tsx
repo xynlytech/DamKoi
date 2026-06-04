@@ -237,7 +237,7 @@ export default function AlertsPage() {
   return (
     <div className="mx-auto px-5 max-w-3xl py-10">
       {/* Header */}
-      <div className="flex items-start justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-white flex items-center gap-3 mb-1">
             <Bell size={26} style={{ color: "var(--lav)" }} />
@@ -248,13 +248,13 @@ export default function AlertsPage() {
           </p>
         </div>
         {email && (
-          <div className="text-right">
-            <p className="text-xs flex items-center gap-1 justify-end" style={{ color: "var(--text-muted)" }}>
-              <Mail size={11} /> {email}
+          <div className="sm:text-right flex sm:flex-col items-center sm:items-end gap-3 sm:gap-0">
+            <p className="text-xs flex items-center gap-1" style={{ color: "var(--text-muted)" }}>
+              <Mail size={11} /> <span className="truncate max-w-[180px]">{email}</span>
             </p>
             <button
               onClick={async () => { await supabase.auth.signOut(); setEmail(null); setAlerts([]); }}
-              className="text-[10px] mt-1 transition-colors dk-focus"
+              className="text-[10px] sm:mt-1 transition-colors dk-focus"
               style={{ color: "var(--text-faint)" }}
             >
               Sign out
@@ -276,7 +276,7 @@ export default function AlertsPage() {
       ) : (
         <>
           {/* Limit bar */}
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <div className="w-32 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--bg2)" }}>

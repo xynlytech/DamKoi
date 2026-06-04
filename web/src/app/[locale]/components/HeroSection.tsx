@@ -288,7 +288,7 @@ export default function HeroSection() {
         {/* Stats strip */}
         <motion.div
           variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-80px" }}
-          className="mt-16 grid grid-cols-3 gap-4 w-full"
+          className="mt-16 grid grid-cols-3 gap-3 sm:gap-4 w-full"
         >
           {[
             { value: stats.total_products,   label: "Products Tracked",  suffix: "+" },

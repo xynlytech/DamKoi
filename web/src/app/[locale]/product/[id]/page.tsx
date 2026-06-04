@@ -442,7 +442,7 @@ export default async function ProductPage({
   const jsonLd = [productLd, breadcrumbLd];
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-12 md:py-20">
+    <div className="max-w-5xl mx-auto px-4 py-8 md:py-20">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -451,7 +451,7 @@ export default async function ProductPage({
       {/* Breadcrumb — mirrors BreadcrumbList schema, adds internal links */}
       <nav
         aria-label="Breadcrumb"
-        className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.25em] mb-12"
+        className="flex flex-wrap items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.25em] mb-8 md:mb-12"
         style={{ color: "var(--text-faint)" }}
       >
         <Link href="/" className="hover:underline dk-focus">Home</Link>

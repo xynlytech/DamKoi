@@ -160,7 +160,7 @@ export default function AdminOverviewPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-white">Overview</h1>
           <p className="text-xs mt-0.5" style={{ color: "var(--text-faint)" }}>
