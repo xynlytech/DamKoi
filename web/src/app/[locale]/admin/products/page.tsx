@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -109,6 +109,31 @@ function Chip({
   );
 }
 
+function SearchInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [local, setLocal] = useState(value);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+  useEffect(() => { setLocal(value); }, [value]);
+
+  const handleChange = (v: string) => {
+    setLocal(v);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => onChange(v), 300);
+  };
+
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+
+  return (
+    <input
+      type="text"
+      placeholder="Search products…"
+      value={local}
+      onChange={(e) => handleChange(e.target.value)}
+      className="dk-input pl-9 w-full"
+    />
+  );
+}
+
 export default function AdminProductsPage() {
   const router = useRouter();
   const pathname = usePathname();
@@ -213,13 +238,13 @@ export default function AdminProductsPage() {
 
       <div className="rounded-2xl p-4 space-y-4" style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)" }}>
         <div className="flex flex-wrap items-center gap-2">
-          <Chip active={hasPriceChange === "true"} onClick={() => updateParams({ has_price_change: hasPriceChange === "true" ? null : "true", direction: null, sort: "price_changed_at", sort_dir: "desc" })}>
+          <Chip active={hasPriceChange === "true"} onClick={() => updateParams(hasPriceChange === "true" ? { has_price_change: null, direction: null, sort: null, sort_dir: null } : { has_price_change: "true", direction: null, sort: "price_changed_at", sort_dir: "desc" })}>
             Has change
           </Chip>
-          <Chip active={direction === "down"} onClick={() => updateParams({ has_price_change: "true", direction: direction === "down" ? null : "down", sort: "price_change_delta_pct", sort_dir: "asc" })}>
+          <Chip active={direction === "down"} onClick={() => updateParams(direction === "down" ? { has_price_change: null, direction: null, sort: null, sort_dir: null } : { has_price_change: "true", direction: "down", sort: "price_change_delta_pct", sort_dir: "asc" })}>
             Price dropped
           </Chip>
-          <Chip active={direction === "up"} onClick={() => updateParams({ has_price_change: "true", direction: direction === "up" ? null : "up", sort: "price_change_delta_pct", sort_dir: "desc" })}>
+          <Chip active={direction === "up"} onClick={() => updateParams(direction === "up" ? { has_price_change: null, direction: null, sort: null, sort_dir: null } : { has_price_change: "true", direction: "up", sort: "price_change_delta_pct", sort_dir: "desc" })}>
             Price rose
           </Chip>
           <Chip active={inStock === "false"} onClick={() => updateParams({ in_stock: inStock === "false" ? null : "false" })}>
@@ -250,13 +275,7 @@ export default function AdminProductsPage() {
         <div className="flex flex-col gap-3 lg:flex-row">
           <div className="relative flex-1">
             <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--text-faint)" }} />
-            <input
-              type="text"
-              placeholder="Search products…"
-              value={search}
-              onChange={(e) => updateParams({ search: e.target.value })}
-              className="dk-input pl-9 w-full"
-            />
+            <SearchInput value={search} onChange={(v) => updateParams({ search: v })} />
           </div>
           <select
             value={platform}

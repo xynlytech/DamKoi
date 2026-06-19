@@ -22,7 +22,8 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = req.nextUrl;
   const search = searchParams.get("search") || "";
-  const platform = searchParams.get("platform") || "";
+  const rawPlatform = searchParams.get("platform") || "";
+  const platform = rawPlatform === "all" ? "" : rawPlatform;
   const category = searchParams.get("category") || "";
   const brand = searchParams.get("brand") || "";
   const hasPriceChange = parseBoolParam(searchParams.get("has_price_change"));
@@ -59,14 +60,25 @@ export async function GET(req: NextRequest) {
   let eligibleIds: string[] | null = null;
   if (minDataPoints) {
     const minPoints = Math.max(1, parseIntParam(minDataPoints, 1));
-    const { data: historyRows, error: historyError } = await db
-      .from("price_history")
-      .select("product_id")
-      .gte("point_count", minPoints);
-    if (historyError) {
-      return NextResponse.json({ detail: historyError.message }, { status: 500, headers: cors() });
+    // Paginate through all matching rows — Supabase caps at 1000 per request
+    const allIds: string[] = [];
+    let from = 0;
+    const batchSize = 1000;
+    while (true) {
+      const { data: historyRows, error: historyError } = await db
+        .from("price_history")
+        .select("product_id")
+        .gte("point_count", minPoints)
+        .range(from, from + batchSize - 1);
+      if (historyError) {
+        return NextResponse.json({ detail: historyError.message }, { status: 500, headers: cors() });
+      }
+      const rows = historyRows ?? [];
+      allIds.push(...rows.map((row: { product_id: string }) => row.product_id));
+      if (rows.length < batchSize) break;
+      from += batchSize;
     }
-    eligibleIds = (historyRows ?? []).map((row: { product_id: string }) => row.product_id);
+    eligibleIds = allIds;
     if (eligibleIds.length === 0) {
       return NextResponse.json({ products: [], total: 0, page, limit }, { headers: cors() });
     }
@@ -101,15 +113,15 @@ export async function GET(req: NextRequest) {
       query = query.lt("last_scraped_at", cutoff);
     }
 
-    if (selectColumns === enhancedSelect) {
-      if (hasPriceChange === true) query = query.not("price_changed_at", "is", null);
-      if (hasPriceChange === false) query = query.is("price_changed_at", null);
-      if (changedSince) query = query.gte("price_changed_at", changedSince);
-      if (direction === "up") query = query.gt("price_change_delta_pct", 0);
-      if (direction === "down") query = query.lt("price_change_delta_pct", 0);
-      if (deltaMin) query = query.gte("price_change_delta_pct", parseIntParam(deltaMin, 0));
-      if (deltaMax) query = query.lte("price_change_delta_pct", parseIntParam(deltaMax, 0));
-    }
+    // Price-change filters always apply — columns exist in schema.
+    // If they somehow fail, the outer fallback handles it.
+    if (hasPriceChange === true) query = query.not("price_changed_at", "is", null);
+    if (hasPriceChange === false) query = query.is("price_changed_at", null);
+    if (changedSince) query = query.gte("price_changed_at", changedSince);
+    if (direction === "up") query = query.gt("price_change_delta_pct", 0);
+    if (direction === "down") query = query.lt("price_change_delta_pct", 0);
+    if (deltaMin) query = query.gte("price_change_delta_pct", parseIntParam(deltaMin, 0));
+    if (deltaMax) query = query.lte("price_change_delta_pct", parseIntParam(deltaMax, 0));
 
     query = query.order(sortColumn, { ascending: sortDir === "asc", nullsFirst: false });
     if (sortColumn !== "last_scraped_at") {
