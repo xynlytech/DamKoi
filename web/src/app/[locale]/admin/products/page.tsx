@@ -294,8 +294,8 @@ export default function AdminProductsPage() {
             style={selectStyle}
           >
             <option value="last_scraped_at" style={{ background: "#0e0c24" }}>Sort: Last scraped</option>
-            <option value="price_changed_at" style={{ background: "#0e0c24" }}>Sort: Price changed</option>
-            <option value="price_change_delta_pct" style={{ background: "#0e0c24" }}>Sort: Change size</option>
+            <option value="price_changed_at" style={{ background: "#0e0c24" }}>Sort: Date changed</option>
+            <option value="price_change_delta_pct" style={{ background: "#0e0c24" }}>Sort: Change %</option>
             <option value="current_price" style={{ background: "#0e0c24" }}>Sort: Current price</option>
           </select>
           <select
