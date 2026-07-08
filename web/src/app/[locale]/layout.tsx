@@ -46,6 +46,8 @@ export const metadata: Metadata = {
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { routing } from "@/routing";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 // Pre-render both locales statically (enables ISR instead of fully-dynamic SSR
 // → cacheable HTML, faster TTFB/LCP for crawlers and users).
@@ -178,6 +180,8 @@ export default async function RootLayout({
               </div>
             </div>
           </footer>
+          <Analytics />
+          <SpeedInsights />
         </NextIntlClientProvider>
       </body>
     </html>
