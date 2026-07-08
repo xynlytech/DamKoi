@@ -16,6 +16,11 @@ const BASE_URL = "https://damkoi.xynly.com";
 // Non-pre-built product IDs are still served via on-demand SSR and then cached.
 export const dynamicParams = true;
 
+// ISR: regenerate each product page at most once every 24 hours.
+// Price data refreshes daily via the scraper — hourly regeneration was burning
+// through Vercel's free-tier ISR write quota (200K/month).
+export const revalidate = 86400;
+
 export async function generateStaticParams() {
   try {
     const db = createServerClient();

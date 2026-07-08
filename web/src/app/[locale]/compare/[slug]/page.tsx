@@ -36,7 +36,7 @@ type CompareResponse = {
 async function getCompare(productId: string): Promise<CompareResponse | null> {
   try {
     const res = await fetch(`${SERVER_API}/products/${productId}/compare`, {
-      next: { revalidate: 300 },
+      next: { revalidate: 86400 },
     });
     if (!res.ok) return null;
     return res.json();

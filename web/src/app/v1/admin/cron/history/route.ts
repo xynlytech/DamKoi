@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
         Authorization: `Bearer ${token}`,
         Accept: 'application/vnd.github+json',
       },
-      next: { revalidate: 60 },
+      next: { revalidate: 300 },
     },
   );
 

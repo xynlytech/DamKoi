@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 async function getTopDeals() {
   try {
     const res = await fetch(`${SERVER_API}/products/deals?min_score=6&limit=6`, {
-      next: { revalidate: 3600 }, // ISR: revalidate every hour
+      next: { revalidate: 14400 }, // ISR: revalidate every 4 hours
     });
     if (!res.ok) return [];
     return res.json();

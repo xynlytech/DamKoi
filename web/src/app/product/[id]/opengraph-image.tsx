@@ -49,10 +49,10 @@ export default async function OgImage({
 
   try {
     [product, verdict] = await Promise.all([
-      fetch(`${API}/products/${id}`, { next: { revalidate: 3600 } }).then((r) =>
+      fetch(`${API}/products/${id}`, { next: { revalidate: 86400 } }).then((r) =>
         r.ok ? r.json() : null
       ),
-      fetch(`${API}/products/${id}/verdict`, { next: { revalidate: 3600 } }).then((r) =>
+      fetch(`${API}/products/${id}/verdict`, { next: { revalidate: 86400 } }).then((r) =>
         r.ok ? r.json() : null
       ),
     ]);

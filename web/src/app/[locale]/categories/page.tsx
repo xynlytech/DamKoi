@@ -5,7 +5,7 @@ import { fetchCategories } from "@/lib/categories";
 
 const BASE_URL = "https://damkoi.xynly.com";
 
-export const revalidate = 3600;
+export const revalidate = 86400;
 
 export const metadata: Metadata = {
   title: "All Product Categories — Price History in Bangladesh",

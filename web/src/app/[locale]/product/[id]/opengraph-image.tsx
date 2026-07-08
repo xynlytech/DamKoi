@@ -28,8 +28,8 @@ export default async function OgImage({
 
   try {
     const [prodRes, verdRes] = await Promise.all([
-      fetch(`${SERVER_API}/products/${id}`, { next: { revalidate: 3600 } }),
-      fetch(`${SERVER_API}/products/${id}/verdict`, { next: { revalidate: 3600 } }),
+      fetch(`${SERVER_API}/products/${id}`, { next: { revalidate: 86400 } }),
+      fetch(`${SERVER_API}/products/${id}/verdict`, { next: { revalidate: 86400 } }),
     ]);
     if (prodRes.ok) {
       const p = await prodRes.json();
