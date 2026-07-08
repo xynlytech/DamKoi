@@ -1,0 +1,10 @@
+# Temporary Netlify deployment while Vercel is paused (until Aug 1, 2026)
+# SWITCH BACK TO VERCEL on Aug 1 — just update DNS and delete this file.
+
+[build]
+  base = "web"
+  command = "npm run build"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
