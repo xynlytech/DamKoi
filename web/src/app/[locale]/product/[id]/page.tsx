@@ -24,7 +24,9 @@ export const revalidate = 86400;
 export async function generateStaticParams() {
   try {
     const db = createServerClient();
-    const { data } = await db.from("products").select("id").eq("is_active", true).limit(500);
+    // Only pre-build top 50 products to save ISR quota. The rest are
+    // rendered on-demand on first visit and cached for 24h (revalidate above).
+    const { data } = await db.from("products").select("id").eq("is_active", true).limit(50);
     const products: { id: string }[] = data ?? [];
     return (["en", "bn"] as const).flatMap((locale) =>
       products.map((p) => ({ locale, id: p.id }))
