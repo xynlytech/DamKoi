@@ -1,0 +1,53 @@
+name: Revert DNS to Vercel
+
+on:
+  schedule:
+    # Runs at 00:00 UTC on August 1st
+    - cron: '0 0 1 8 *'
+  workflow_dispatch: # Allows running this manually from the GitHub UI if needed
+
+jobs:
+  switch-dns:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Switch Cloudflare DNS to Vercel
+        env:
+          CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          echo "Fetching DNS Record ID for damkoi.xynly.com..."
+          
+          # 1. Get the specific DNS record ID
+          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/dns_records?name=damkoi.xynly.com&type=CNAME" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Content-Type: application/json" | jq -r '.result[0].id')
+            
+          if [ "$RECORD_ID" = "null" ] || [ -z "$RECORD_ID" ]; then
+            echo "Error: Could not find CNAME record for damkoi.xynly.com"
+            exit 1
+          fi
+          
+          echo "Found Record ID: $RECORD_ID"
+          echo "Updating record to point back to Vercel..."
+          
+          # 2. Update the DNS record back to Vercel (Proxied/Orange Cloud)
+          RESPONSE=$(curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/dns_records/$RECORD_ID" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data '{
+              "type": "CNAME",
+              "name": "damkoi.xynly.com",
+              "content": "ce1a89e0280d55f6.vercel-dns-017.com",
+              "ttl": 1,
+              "proxied": true
+            }')
+            
+          SUCCESS=$(echo $RESPONSE | jq -r '.success')
+          
+          if [ "$SUCCESS" != "true" ]; then
+            echo "Failed to update DNS record!"
+            echo "Response: $RESPONSE"
+            exit 1
+          fi
+          
+          echo "Successfully switched damkoi.xynly.com back to Vercel!"
