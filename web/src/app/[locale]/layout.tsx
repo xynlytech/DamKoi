@@ -114,6 +114,11 @@ export default async function RootLayout({
       data-theme="dark"
       className={`${spaceGrotesk.variable} ${ibmPlexMono.variable}`}
     >
+      <head>
+        {/* Preconnect to Daraz product-image CDN — saves ~300 ms LCP */}
+        <link rel="preconnect" href="https://bd-live-21.slatic.net" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://bd-live-21.slatic.net" />
+      </head>
       <body className="min-h-dvh flex flex-col" style={{ backgroundColor: "var(--bg)", color: "var(--text-primary)", fontFamily: "var(--font-space-grotesk), system-ui, sans-serif" }}>
         <script
           type="application/ld+json"

@@ -75,6 +75,7 @@ export default function MobileNav({ locale }: { locale: string }) {
           </div>
           <button
             onClick={() => setOpen(false)}
+            aria-label="Close menu"
             className="p-2 rounded-lg dk-focus"
             style={{ color: "var(--text-muted)", background: "var(--bg2)", border: "1px solid var(--border-sm)" }}
           >

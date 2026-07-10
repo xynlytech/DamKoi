@@ -159,11 +159,8 @@ export default function HeroSection() {
           BD Shopping Intelligence · Live
         </motion.div>
 
-        {/* Headline */}
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
+        {/* Headline — no opacity animation: this is the LCP element */}
+        <h1
           className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-6 leading-none text-white"
         >
           Stop paying for{" "}
@@ -187,18 +184,16 @@ export default function HeroSection() {
             />
           </span>{" "}
           <span style={{ color: "var(--lav)" }}>discounts.</span>
-        </motion.h1>
+        </h1>
 
-        <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
+        {/* Subtitle — no opacity animation: this is the LCP element */}
+        <p
           className="text-base sm:text-lg mb-10 max-w-2xl leading-relaxed"
           style={{ color: "var(--text-muted)" }}
         >
           Sellers inflate prices before sales. DamKoi shows you the real price history
           across Daraz, Cartup, Rokomari, and Pickaboo — and alerts you when prices genuinely drop.
-        </motion.p>
+        </p>
 
         {/* URL Input */}
         <motion.div
@@ -314,7 +309,7 @@ export default function HeroSection() {
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: f.bg, color: f.color }}>
                   <Icon size={20} />
                 </div>
-                <h3 className="font-semibold text-base text-white">{f.title}</h3>
+                <h2 className="font-semibold text-base text-white">{f.title}</h2>
                 <p className="text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>{f.desc}</p>
               </motion.div>
             );

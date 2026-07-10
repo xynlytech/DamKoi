@@ -73,9 +73,9 @@
     --text-primary:    #ffffff;
     --text-secondary:  rgba(255,255,255,0.80);
     --text-body:       rgba(255,255,255,0.65);
-    --text-muted:      rgba(255,255,255,0.45);
-    --text-faint:      rgba(255,255,255,0.25);
-    --text-ghost:      rgba(255,255,255,0.10);
+    --text-muted:      rgba(255,255,255,0.60);
+    --text-faint:      rgba(255,255,255,0.45);
+    --text-ghost:      rgba(255,255,255,0.15);
 
     /* ── Surface overlays ───────────────────────────────── */
     --surface-ghost:   rgba(255,255,255,0.04);
@@ -135,9 +135,9 @@ html[data-theme="light"] {
   --text-primary:    #0a0718;
   --text-secondary:  rgba(10,7,24,0.80);
   --text-body:       rgba(10,7,24,0.65);
-  --text-muted:      rgba(10,7,24,0.45);
-  --text-faint:      rgba(10,7,24,0.25);
-  --text-ghost:      rgba(10,7,24,0.10);
+  --text-muted:      rgba(10,7,24,0.58);
+  --text-faint:      rgba(10,7,24,0.38);
+  --text-ghost:      rgba(10,7,24,0.14);
 
   /* ── Surface overlays ───────────────────────────────────── */
   --surface-ghost:   rgba(10,7,24,0.04);
