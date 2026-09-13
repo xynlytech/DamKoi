@@ -6,7 +6,9 @@
 [build]
   base = "web"
   command = "npm run build"
-  publish = ".next"
+  # Resolved relative to the repo root by the CLI build (this file lives at
+  # the root), so it must include the base directory.
+  publish = "web/.next"
 
 [build.environment]
   NODE_VERSION = "22"
