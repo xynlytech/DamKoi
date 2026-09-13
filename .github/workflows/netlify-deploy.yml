@@ -68,8 +68,8 @@ jobs:
           netlify env:set NEXT_PUBLIC_API_URL "$NEXT_PUBLIC_API_URL" > /dev/null
           netlify env:set NEXT_PUBLIC_SUPABASE_URL "${SUPABASE_URL%/}" > /dev/null
           netlify env:set NEXT_PUBLIC_SUPABASE_ANON_KEY "$NEXT_PUBLIC_SUPABASE_ANON_KEY" > /dev/null
-          netlify env:set SUPABASE_SERVICE_ROLE_KEY "$SUPABASE_SERVICE_ROLE_KEY" --secret > /dev/null
-          netlify env:set GH_PAT "$GH_PAT" --secret > /dev/null
+          netlify env:set SUPABASE_SERVICE_ROLE_KEY "$SUPABASE_SERVICE_ROLE_KEY" --secret --context production > /dev/null
+          netlify env:set GH_PAT "$GH_PAT" --secret --context production > /dev/null
           echo "Synced 5 env vars"
 
       - name: Build and deploy to production
