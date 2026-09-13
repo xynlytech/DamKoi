@@ -1,0 +1,62 @@
+name: Point damkoi.xynly.com DNS
+
+# Moves the damkoi.xynly.com CNAME (Cloudflare zone xynly.com) between hosts.
+# Run manually from the Actions tab. "netlify" is production; "vercel" is the
+# pre-September-2026 record, kept only as a documented rollback.
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Host that damkoi.xynly.com should resolve to
+        required: true
+        default: netlify
+        type: choice
+        options: [netlify, vercel]
+
+jobs:
+  dns:
+    name: Update Cloudflare CNAME
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update record
+        env:
+          CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TARGET: ${{ inputs.target }}
+        run: |
+          set -euo pipefail
+          NAME=damkoi.xynly.com
+          case "$TARGET" in
+            # DNS-only (grey cloud): Netlify terminates TLS and needs to see the
+            # real hostname to issue its Let's Encrypt certificate.
+            netlify) CONTENT=damkoi-web.netlify.app; PROXIED=false ;;
+            vercel)  CONTENT=ce1a89e0280d55f6.vercel-dns-017.com; PROXIED=true ;;
+            *) echo "unknown target $TARGET"; exit 1 ;;
+          esac
+
+          API="https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/dns_records"
+          AUTH="Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+
+          CURRENT=$(curl -sf --max-time 30 "$API?name=$NAME&per_page=50" -H "$AUTH")
+          echo "Records for $NAME before the change (keep for rollback):"
+          echo "$CURRENT" | jq '.result[] | {id, type, content, proxied, ttl}'
+
+          BODY=$(jq -n --arg n "$NAME" --arg c "$CONTENT" --argjson p "$PROXIED" \
+            '{type:"CNAME", name:$n, content:$c, ttl:1, proxied:$p, comment:"managed by .github/workflows/dns.yml"}')
+
+          CNAME_ID=$(echo "$CURRENT" | jq -r '[.result[] | select(.type=="CNAME")][0].id // empty')
+          if [ -n "$CNAME_ID" ]; then
+            RESP=$(curl -sf --max-time 30 -X PUT "$API/$CNAME_ID" -H "$AUTH" -H "Content-Type: application/json" --data "$BODY")
+          else
+            # A CNAME cannot coexist with A/AAAA records for the same name.
+            for id in $(echo "$CURRENT" | jq -r '.result[] | select(.type=="A" or .type=="AAAA") | .id'); do
+              curl -sf --max-time 30 -X DELETE "$API/$id" -H "$AUTH" > /dev/null
+              echo "deleted stray record $id"
+            done
+            RESP=$(curl -sf --max-time 30 -X POST "$API" -H "$AUTH" -H "Content-Type: application/json" --data "$BODY")
+          fi
+
+          echo "Result:"
+          echo "$RESP" | jq '{success, errors, record: (.result | {type, name, content, proxied, ttl})}'
+          [ "$(echo "$RESP" | jq -r '.success')" = "true" ]

@@ -1,5 +1,7 @@
-# Temporary Netlify deployment while Vercel is paused (until Aug 1, 2026)
-# SWITCH BACK TO VERCEL on Aug 1 — just update DNS and delete this file.
+# Production hosting for the web app (Netlify Free, site "damkoi-web").
+# Builds run on GitHub Actions (.github/workflows/netlify-deploy.yml) and are
+# pushed with `netlify deploy --build --prod`, so no Netlify build minutes are
+# used. This file is still read by the CLI build for base dir, plugin and env.
 
 [build]
   base = "web"
@@ -7,7 +9,10 @@
   publish = ".next"
 
 [build.environment]
-  SECRETS_SCAN_ENABLED = "false"
+  NODE_VERSION = "22"
+  # Public build-time values are inlined into the HTML/JS on purpose; keep the
+  # secrets scanner on for everything else (e.g. SUPABASE_SERVICE_ROLE_KEY).
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_API_URL,NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY,NEXT_PUBLIC_VAPID_PUBLIC_KEY"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

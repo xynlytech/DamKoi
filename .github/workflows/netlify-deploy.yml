@@ -1,0 +1,89 @@
+name: Deploy Web to Netlify
+
+# Builds the Next.js app on GitHub's runners and pushes the result to the
+# Netlify site "damkoi-web" (production). Every run that reaches the deploy
+# step costs 15 Netlify credits out of the 300/month Free allowance, so this
+# only triggers on pushes to main that touch the web app.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - "netlify.toml"
+      - ".github/workflows/netlify-deploy.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: netlify-production
+  cancel-in-progress: false
+
+env:
+  NETLIFY_SITE_ID: b0fdb653-9917-47b1-a453-117346c2d242
+  NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+  NETLIFY_CLI_DISABLE_TELEMETRY: "1"
+  NEXT_PUBLIC_API_URL: https://damkoi.xynly.com/v1
+  EXPECTED_SUPABASE_PROJECT: https://hvujgbnqxgqaopnhcmrv.supabase.co
+
+jobs:
+  deploy:
+    name: Build on GitHub, deploy to Netlify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Install Netlify CLI
+        run: npm install -g netlify-cli@27.5.2
+
+      - name: Check SUPABASE_URL matches the public anon key's project
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        run: |
+          if [ "${SUPABASE_URL%/}" != "$EXPECTED_SUPABASE_PROJECT" ]; then
+            echo "::error::SUPABASE_URL secret points at a different Supabase project than NEXT_PUBLIC_SUPABASE_ANON_KEY"
+            exit 1
+          fi
+
+      - name: Sync runtime env vars to the Netlify site
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          set -euo pipefail
+          netlify env:set NEXT_PUBLIC_API_URL "$NEXT_PUBLIC_API_URL" > /dev/null
+          netlify env:set NEXT_PUBLIC_SUPABASE_URL "${SUPABASE_URL%/}" > /dev/null
+          netlify env:set NEXT_PUBLIC_SUPABASE_ANON_KEY "$NEXT_PUBLIC_SUPABASE_ANON_KEY" > /dev/null
+          netlify env:set SUPABASE_SERVICE_ROLE_KEY "$SUPABASE_SERVICE_ROLE_KEY" --secret > /dev/null
+          netlify env:set GH_PAT "$GH_PAT" --secret > /dev/null
+          echo "Synced 5 env vars"
+
+      - name: Build and deploy to production
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: netlify deploy --build --prod --message "${{ github.sha }}"
+
+      - name: Smoke test
+        run: |
+          set -euo pipefail
+          for path in / /bn /v1/products/deals?limit=1; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 60 --retry 3 --retry-delay 5 "https://damkoi-web.netlify.app$path")
+            echo "$path -> $code"
+            [ "$code" = "200" ]
+          done
