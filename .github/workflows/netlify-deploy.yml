@@ -73,6 +73,10 @@ jobs:
           echo "Synced 5 env vars"
 
       - name: Build and deploy to production
+        # Run from web/: the CLI resolves the publish dir and looks for the
+        # bundled edge functions (.netlify/edge-functions-dist, which carries
+        # the proxy middleware) relative to its working directory.
+        working-directory: web
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}

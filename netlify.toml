@@ -6,9 +6,10 @@
 [build]
   base = "web"
   command = "npm run build"
-  # Resolved relative to the repo root by the CLI build (this file lives at
-  # the root), so it must include the base directory.
-  publish = "web/.next"
+  # The CLI resolves this relative to its working directory, so the deploy
+  # workflow runs `netlify deploy` from web/ (matches Netlify CI, which
+  # resolves it relative to base).
+  publish = ".next"
 
 [build.environment]
   NODE_VERSION = "22"
