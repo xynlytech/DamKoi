@@ -68,7 +68,7 @@ const CHART_TOOLTIP_STYLE = {
   borderRadius: 8,
   color: "var(--text-body)",
   fontSize: 11,
-  fontFamily: "'IBM Plex Mono', monospace",
+  fontVariantNumeric: "tabular-nums",
 };
 
 function StatCard({
@@ -78,10 +78,10 @@ function StatCard({
     <div className="rounded-2xl p-5 flex flex-col gap-1" style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)" }}>
       <div className="flex items-center gap-2 mb-1">
         <Icon size={13} style={{ color }} />
-        <span className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: "var(--text-faint)" }}>{label}</span>
+        <span className="text-xs font-semibold" style={{ color: "var(--text-faint)" }}>{label}</span>
       </div>
-      <p className="text-2xl font-bold text-white" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{value}</p>
-      {sub && <p className="text-[10px]" style={{ color: "var(--text-faint)" }}>{sub}</p>}
+      <p className="text-2xl font-bold text-white" style={{ fontVariantNumeric: "tabular-nums" }}>{value}</p>
+      {sub && <p className="text-xs" style={{ color: "var(--text-faint)" }}>{sub}</p>}
     </div>
   );
 }
@@ -90,7 +90,7 @@ function SectionHeader({ title, sub }: { title: string; sub?: string }) {
   return (
     <div className="mb-4">
       <h2 className="text-sm font-bold text-white">{title}</h2>
-      {sub && <p className="text-[10px] mt-0.5" style={{ color: "var(--text-faint)" }}>{sub}</p>}
+      {sub && <p className="text-xs mt-0.5" style={{ color: "var(--text-faint)" }}>{sub}</p>}
     </div>
   );
 }
@@ -167,7 +167,7 @@ export default function AnalyticsPage() {
       {loading ? (
         <div className="flex items-center justify-center py-32" style={{ color: "var(--text-faint)" }}>
           <RefreshCw size={28} className="animate-spin mr-3" />
-          <span className="text-sm font-semibold uppercase tracking-widest">Loading analytics…</span>
+          <span className="text-sm font-semibold">Loading analytics…</span>
         </div>
       ) : !data ? (
         <div className="text-center py-32" style={{ color: "var(--red)" }}>Failed to load data.</div>
@@ -202,12 +202,12 @@ export default function AnalyticsPage() {
                   <XAxis
                     dataKey="date"
                     tickFormatter={fmtDate}
-                    tick={{ fill: "var(--text-faint)", fontSize: 10, fontFamily: "'IBM Plex Mono', monospace" }}
+                    tick={{ fill: "var(--text-faint)", fontSize: 10 }}
                     axisLine={false} tickLine={false}
                     interval={Math.floor(prodTrend.length / 6)}
                   />
                   <YAxis
-                    tick={{ fill: "var(--text-faint)", fontSize: 10, fontFamily: "'IBM Plex Mono', monospace" }}
+                    tick={{ fill: "var(--text-faint)", fontSize: 10 }}
                     axisLine={false} tickLine={false}
                   />
                   <Tooltip
@@ -244,12 +244,12 @@ export default function AnalyticsPage() {
                   <XAxis
                     dataKey="date"
                     tickFormatter={fmtDate}
-                    tick={{ fill: "var(--text-faint)", fontSize: 10, fontFamily: "'IBM Plex Mono', monospace" }}
+                    tick={{ fill: "var(--text-faint)", fontSize: 10 }}
                     axisLine={false} tickLine={false}
                     interval={Math.floor(snapTrend.length / 6)}
                   />
                   <YAxis
-                    tick={{ fill: "var(--text-faint)", fontSize: 10, fontFamily: "'IBM Plex Mono', monospace" }}
+                    tick={{ fill: "var(--text-faint)", fontSize: 10 }}
                     axisLine={false} tickLine={false}
                   />
                   <Tooltip
@@ -280,10 +280,10 @@ export default function AnalyticsPage() {
                           <span className="text-xs font-semibold capitalize text-white">{p.platform}</span>
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="text-[10px]" style={{ color: "var(--text-faint)", fontFamily: "'IBM Plex Mono', monospace" }}>
+                          <span className="text-xs" style={{ color: "var(--text-faint)", fontVariantNumeric: "tabular-nums" }}>
                             {fmt(p.priced)} / {fmt(p.total)}
                           </span>
-                          <span className="text-[10px] font-semibold" style={{ color: col, fontFamily: "'IBM Plex Mono', monospace" }}>
+                          <span className="text-xs font-semibold" style={{ color: col, fontVariantNumeric: "tabular-nums" }}>
                             {pct}%
                           </span>
                         </div>
@@ -302,7 +302,7 @@ export default function AnalyticsPage() {
               <SectionHeader title="Storage Usage" sub="Supabase free tier: 500 MB" />
 
               <div className="flex items-end gap-3 mb-6">
-                <p className="text-4xl font-bold text-white" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
+                <p className="text-4xl font-bold text-white" style={{ fontVariantNumeric: "tabular-nums" }}>
                   {data.storage.usage_pct}%
                 </p>
                 <p className="text-sm mb-1" style={{ color: "var(--text-faint)" }}>
@@ -323,7 +323,7 @@ export default function AnalyticsPage() {
               </div>
 
               <div className="mt-6 pt-4" style={{ borderTop: "1px solid var(--border-sm)" }}>
-                <p className="text-[10px]" style={{ color: "var(--text-faint)" }}>
+                <p className="text-xs" style={{ color: "var(--text-faint)" }}>
                   <Database size={9} className="inline mr-1" />
                   Supabase free tier limit is 500 MB total. Upgrade before reaching 80%.
                 </p>
@@ -334,16 +334,16 @@ export default function AnalyticsPage() {
           {/* Snapshot KPI row */}
           <div className="grid grid-cols-3 gap-4">
             <div className="rounded-2xl p-5" style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)" }}>
-              <p className="text-[10px] uppercase tracking-widest font-semibold mb-2" style={{ color: "var(--text-faint)" }}>Snapshots — Today</p>
-              <p className="text-2xl font-bold text-white" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(data.snapshots.today)}</p>
+              <p className="text-xs font-semibold mb-2" style={{ color: "var(--text-faint)" }}>Snapshots — Today</p>
+              <p className="text-2xl font-bold text-white" style={{ fontVariantNumeric: "tabular-nums" }}>{fmt(data.snapshots.today)}</p>
             </div>
             <div className="rounded-2xl p-5" style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)" }}>
-              <p className="text-[10px] uppercase tracking-widest font-semibold mb-2" style={{ color: "var(--text-faint)" }}>Snapshots — Last 7d</p>
-              <p className="text-2xl font-bold text-white" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(data.snapshots.last_7d)}</p>
+              <p className="text-xs font-semibold mb-2" style={{ color: "var(--text-faint)" }}>Snapshots — Last 7d</p>
+              <p className="text-2xl font-bold text-white" style={{ fontVariantNumeric: "tabular-nums" }}>{fmt(data.snapshots.last_7d)}</p>
             </div>
             <div className="rounded-2xl p-5" style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)" }}>
-              <p className="text-[10px] uppercase tracking-widest font-semibold mb-2" style={{ color: "var(--text-faint)" }}>Snapshots — Total</p>
-              <p className="text-2xl font-bold text-white" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(data.snapshots.total)}</p>
+              <p className="text-xs font-semibold mb-2" style={{ color: "var(--text-faint)" }}>Snapshots — Total</p>
+              <p className="text-2xl font-bold text-white" style={{ fontVariantNumeric: "tabular-nums" }}>{fmt(data.snapshots.total)}</p>
             </div>
           </div>
         </>
@@ -355,8 +355,8 @@ export default function AnalyticsPage() {
 function StorageRow({ label, value, color }: { label: string; value: string; color: string }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-[10px] uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>{label}</span>
-      <span className="text-xs font-semibold" style={{ color, fontFamily: "'IBM Plex Mono', monospace" }}>{value}</span>
+      <span className="text-xs" style={{ color: "var(--text-faint)" }}>{label}</span>
+      <span className="text-xs font-semibold" style={{ color, fontVariantNumeric: "tabular-nums" }}>{value}</span>
     </div>
   );
 }

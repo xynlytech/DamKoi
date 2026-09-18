@@ -141,7 +141,7 @@ export default function AdminComparePage() {
               <div className="p-4 flex items-center justify-between" style={{ background: "var(--bg2)", borderBottom: "1px solid var(--border-sm)" }}>
                 <div>
                   <h2 className="font-bold text-base text-white">{group.name}</h2>
-                  <p className="text-[10px] mt-1" style={{ color: "var(--text-faint)", fontFamily: "'IBM Plex Mono', monospace" }}>ID: {group.id}</p>
+                  <p className="text-xs mt-1" style={{ color: "var(--text-faint)", fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>ID: {group.id}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="px-3 py-1 rounded-full text-xs font-semibold" style={{ background: "rgba(124,58,237,0.15)", color: "var(--lav)", border: "1px solid rgba(124,58,237,0.25)" }}>
@@ -162,14 +162,14 @@ export default function AdminComparePage() {
                   <input
                     type="text"
                     placeholder="Paste internal Product ID to inject…"
-                    className="dk-input flex-1 font-mono text-sm"
+                    className="dk-input flex-1 tabular-nums text-sm"
                     value={mergeProductId}
                     onChange={(e) => setMergeProductId(e.target.value)}
-                    style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+                    style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}
                   />
                   <button
                     onClick={() => handleMerge(group.id)}
-                    className="dk-btn-primary text-xs uppercase tracking-widest"
+                    className="dk-btn-primary text-xs"
                   >
                     Execute Merge
                   </button>
@@ -185,9 +185,9 @@ export default function AdminComparePage() {
                       <div className="w-10 h-10 rounded-lg flex-shrink-0" style={{ background: "var(--bg3)" }} />
                     )}
                     <div className="flex-1 min-w-0">
-                      <div className="text-[9px] font-semibold uppercase tracking-widest mb-1" style={{ color: PLATFORM_COLOR[p.platform] ?? "var(--text-muted)" }}>{p.platform}</div>
+                      <div className="text-xs font-semibold mb-1 capitalize" style={{ color: PLATFORM_COLOR[p.platform] ?? "var(--text-muted)" }}>{p.platform}</div>
                       <p className="text-sm font-medium truncate" style={{ color: "var(--text-secondary)" }}>{p.title}</p>
-                      <p className="text-[9px] mt-1" style={{ color: "var(--text-faint)", fontFamily: "'IBM Plex Mono', monospace" }}>{p.id}</p>
+                      <p className="text-xs mt-1" style={{ color: "var(--text-faint)", fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>{p.id}</p>
                     </div>
                     <button
                       onClick={() => handleSplit(p.id)}

@@ -442,7 +442,7 @@ export default function AdminProductsPage() {
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[10px] uppercase tracking-widest" style={{ borderBottom: "1px solid var(--border-sm)", color: "var(--text-faint)" }}>
+              <tr className="text-xs" style={{ borderBottom: "1px solid var(--border-sm)", color: "var(--text-faint)" }}>
                 <th className="px-4 py-3 text-left font-semibold">Product</th>
                 <th className="px-4 py-3 text-left font-semibold hidden md:table-cell">Platform</th>
                 <th className="px-4 py-3 text-right font-semibold hidden sm:table-cell">Price</th>
@@ -462,48 +462,48 @@ export default function AdminProductsPage() {
                     <p className="text-xs font-medium line-clamp-1" style={{ color: "var(--text-secondary)" }}>
                       {p.title}
                     </p>
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-[9px]" style={{ color: "var(--text-faint)" }}>
-                      <span style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{p.id.slice(0, 8)}…</span>
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs" style={{ color: "var(--text-faint)" }}>
+                      <span style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>{p.id.slice(0, 8)}…</span>
                       {p.category && <span>{p.category}</span>}
                       {p.brand && <span>{p.brand}</span>}
                     </div>
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
-                    <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: PLATFORM_COLOR[p.platform] ?? "var(--text-faint)" }}>
+                    <span className="text-xs font-semibold capitalize" style={{ color: PLATFORM_COLOR[p.platform] ?? "var(--text-faint)" }}>
                       {p.platform}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right text-xs hidden sm:table-cell" style={{ fontFamily: "'IBM Plex Mono', monospace", color: "var(--text-body)" }}>
+                  <td className="px-4 py-3 text-right text-xs hidden sm:table-cell" style={{ fontVariantNumeric: "tabular-nums", color: "var(--text-body)" }}>
                     {fmtPrice(p.current_price)}
                   </td>
                   <td
                     className="px-4 py-3 text-right text-xs hidden sm:table-cell"
                     style={{
-                      fontFamily: "'IBM Plex Mono', monospace",
+                      fontVariantNumeric: "tabular-nums",
                       color: p.price_change_delta_pct === null ? "var(--text-faint)" : p.price_change_delta_pct < 0 ? "var(--green)" : p.price_change_delta_pct > 0 ? "var(--red)" : "var(--text-body)",
                     }}
                   >
                     {fmtPct(p.price_change_delta_pct)}
                   </td>
-                  <td className="px-4 py-3 text-right text-[10px] hidden lg:table-cell" style={{ color: "var(--text-faint)" }}>
+                  <td className="px-4 py-3 text-right text-xs hidden lg:table-cell" style={{ color: "var(--text-faint)" }}>
                     {fmtDate(p.price_changed_at)}
                   </td>
                   <td className="px-4 py-3 text-center hidden lg:table-cell">
                     {p.in_stock === false ? (
-                      <span className="text-[9px]" style={{ color: "var(--red)" }}>Out</span>
+                      <span className="text-xs" style={{ color: "var(--red)" }}>Out</span>
                     ) : p.in_stock ? (
-                      <span className="text-[9px]" style={{ color: "var(--green)" }}>In</span>
+                      <span className="text-xs" style={{ color: "var(--green)" }}>In</span>
                     ) : (
-                      <span className="text-[9px]" style={{ color: "var(--text-faint)" }}>—</span>
+                      <span className="text-xs" style={{ color: "var(--text-faint)" }}>—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right text-[10px] hidden lg:table-cell" style={{ color: "var(--text-faint)" }}>
+                  <td className="px-4 py-3 text-right text-xs hidden lg:table-cell" style={{ color: "var(--text-faint)" }}>
                     {fmtDate(p.last_scraped_at)}
                   </td>
-                  <td className="px-4 py-3 text-right text-[10px] hidden xl:table-cell" style={{ color: "var(--text-muted)", fontFamily: "'IBM Plex Mono', monospace" }}>
+                  <td className="px-4 py-3 text-right text-xs hidden xl:table-cell" style={{ color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
                     {p.price_history_points ?? "—"}
                   </td>
-                  <td className="px-4 py-3 text-right text-[10px] hidden xl:table-cell" style={{ color: p.consecutive_misses > 0 ? "var(--amber)" : "var(--text-muted)", fontFamily: "'IBM Plex Mono', monospace" }}>
+                  <td className="px-4 py-3 text-right text-xs hidden xl:table-cell" style={{ color: p.consecutive_misses > 0 ? "var(--amber)" : "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
                     {p.consecutive_misses}
                   </td>
                   <td className="px-4 py-3">

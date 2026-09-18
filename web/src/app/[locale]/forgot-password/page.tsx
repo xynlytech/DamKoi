@@ -46,7 +46,7 @@ export default function ForgotPasswordPage() {
         <div className="dk-card p-8">
           <Link
             href="/login"
-            className="flex items-center gap-1.5 text-[11px] mb-6 transition-colors dk-focus"
+            className="flex items-center gap-1.5 text-xs mb-6 transition-colors dk-focus"
             style={{ color: "var(--text-faint)" }}
           >
             <ArrowLeft size={12} /> Back to Sign In
@@ -76,7 +76,7 @@ export default function ForgotPasswordPage() {
             <button
               type="submit"
               disabled={status === "loading"}
-              className="dk-btn-primary w-full text-xs uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-2"
+              className="dk-btn-primary w-full text-xs disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {status === "loading" ? (
                 <><Loader2 size={14} className="animate-spin" /> Sending…</>

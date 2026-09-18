@@ -51,7 +51,7 @@ export default function RegisterPage() {
             <p className="text-sm leading-relaxed mb-6" style={{ color: "var(--text-muted)" }}>
               We sent a confirmation link to <span className="text-white font-semibold">{email}</span>. Click it to activate your account.
             </p>
-            <Link href="/login" className="dk-btn-primary inline-flex items-center gap-2 text-xs uppercase tracking-widest dk-focus">
+            <Link href="/login" className="dk-btn-primary inline-flex items-center gap-2 text-xs dk-focus">
               Back to Sign In
             </Link>
           </div>
@@ -99,7 +99,7 @@ export default function RegisterPage() {
 
             {status === "err" && <p className="text-xs -mt-1" style={{ color: "var(--red)" }}>{msg}</p>}
 
-            <button type="submit" disabled={status === "loading"} className="dk-btn-primary w-full text-xs uppercase tracking-widest mt-1 disabled:opacity-50">
+            <button type="submit" disabled={status === "loading"} className="dk-btn-primary w-full text-xs mt-1 disabled:opacity-50">
               {status === "loading" ? <><Loader2 size={14} className="animate-spin" /> Creating account…</> : "Create Account"}
             </button>
           </form>

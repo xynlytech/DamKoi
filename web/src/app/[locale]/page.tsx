@@ -6,6 +6,11 @@ import { setRequestLocale } from "next-intl/server";
 import HowItWorks from "./components/HowItWorks";
 import FAQSection from "./components/FAQSection";
 import { SERVER_API } from "@/lib/server-api";
+import { createServerClient } from "@/lib/supabase-server";
+import type { HeroStats } from "./components/HeroSection";
+
+// ISR: rebuild the home page at most every 4 hours (stats + deals).
+export const revalidate = 14400;
 
 const BASE_URL = "https://damkoi.xynly.com";
 
@@ -35,6 +40,23 @@ async function getTopDeals() {
   }
 }
 
+// Two head-only COUNT queries: no rows leave the database, so no egress.
+async function getStats(): Promise<HeroStats | null> {
+  try {
+    const db = createServerClient();
+    const [tracked, drops] = await Promise.all([
+      db.from("products").select("id", { count: "exact", head: true })
+        .eq("is_active", true).not("last_scraped_at", "is", null),
+      db.from("products").select("id", { count: "exact", head: true })
+        .eq("is_active", true).lt("price_change_delta_pct", 0),
+    ]);
+    if (tracked.error || !tracked.count) return null;
+    return { products: tracked.count, drops: drops.count ?? 0, stores: 6 };
+  } catch {
+    return null;
+  }
+}
+
 export default async function HomePage({
   params,
 }: {
@@ -42,12 +64,12 @@ export default async function HomePage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const deals = await getTopDeals();
+  const [deals, stats] = await Promise.all([getTopDeals(), getStats()]);
 
   return (
-    <div className="container mx-auto px-4">
+    <div className="mx-auto px-5 max-w-6xl">
       {/* Hero — URL paste + CTA */}
-      <HeroSection />
+      <HeroSection stats={stats} />
 
       {/* Platform logos strip */}
       <PlatformBadges />

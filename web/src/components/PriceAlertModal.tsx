@@ -117,7 +117,7 @@ export function PriceAlertModal({
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-white/40">Email Address</label>
+                <label className="text-xs font-semibold text-white/40">Email Address</label>
                 <div className="relative group">
                   <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-white/20 group-focus-within:text-primary transition-colors" />
                   <input
@@ -132,7 +132,7 @@ export function PriceAlertModal({
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-white/40">Target Price (BDT)</label>
+                <label className="text-xs font-semibold text-white/40">Target Price (BDT)</label>
                 <div className="relative group">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-primary font-bold transition-colors">৳</div>
                   <input
@@ -143,7 +143,7 @@ export function PriceAlertModal({
                     className="w-full rounded-xl border border-white/5 bg-white/5 py-3 pl-10 pr-4 text-white outline-none focus:border-primary/50 focus:bg-white/10 transition-all font-bold text-lg"
                   />
                 </div>
-                <p className="text-[10px] text-white/30 italic">
+                <p className="text-xs text-white/30 italic">
                   Current Price: ৳{currentPrice.toLocaleString()}
                 </p>
               </div>

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion, useMotionValue, useSpring, useInView, animate } from "framer-motion";
-import { Search, Clock, Info, ArrowRight, TrendingDown, ShieldAlert, Bell } from "lucide-react";
+import { motion } from "framer-motion";
+import { Search, Clock, Info, ArrowRight, TrendingDown, ShieldCheck, Bell, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "https://damkoi.xynly.com/v1";
@@ -19,98 +19,32 @@ function detectPlatform(url: string): string | null {
 }
 
 const FEATURES = [
-  { icon: TrendingDown, color: "var(--lav)", bg: "rgba(124,58,237,0.12)", title: "Price History",       desc: "90 days of price data across every platform we track." },
-  { icon: ShieldAlert,  color: "#f59e0b", bg: "rgba(245,158,11,0.12)", title: "Fake Deal Detector",   desc: "Instant verdict: is this discount real or inflated noise?" },
-  { icon: Bell,         color: "#22c55e", bg: "rgba(34,197,94,0.12)",  title: "Price Alerts",         desc: "Email the moment it hits your target price. No account needed." },
+  { icon: TrendingDown, color: "var(--lav)",   bg: "rgba(124,58,237,0.12)", title: "Real price history", desc: "See what a product actually cost over the last 90 days, not what the seller claims." },
+  { icon: ShieldCheck,  color: "var(--amber)", bg: "rgba(245,158,11,0.12)", title: "Fake discount check", desc: "A plain verdict on every product: best price, good deal, fair price, or fake discount." },
+  { icon: Bell,         color: "var(--green)", bg: "rgba(34,197,94,0.12)",  title: "Price drop alerts",  desc: "Pick a target price and get an email when it's reached. No account needed." },
 ];
 
-type HeroStats = { total_products: number; price_drops_caught: number; avg_savings_pct: number };
-const STAT_FALLBACK: HeroStats = { total_products: 0, price_drops_caught: 0, avg_savings_pct: 0 };
+export type HeroStats = { products: number; drops: number; stores: number };
 
-function CountUpInView({ to, suffix = "" }: { to: number; suffix?: string }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-60px" });
-  const count = useMotionValue(0);
-
-  useEffect(() => {
-    if (!inView) return;
-    const c = animate(count, to, { duration: 1.4, ease: "easeOut" });
-    return c.stop;
-  }, [inView, count, to]);
-
-  useEffect(() => {
-    if (!inView || !ref.current) return;
-    const el = ref.current;
-    const unsub = count.on("change", (v) => { el.textContent = Math.floor(v).toLocaleString() + suffix; });
-    return unsub;
-  }, [inView, count, suffix]);
-
-  return <span ref={ref}>0{suffix}</span>;
+function compact(n: number): string {
+  if (n < 1000) return n.toLocaleString("en");
+  return new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: n < 10000 ? 1 : 0 }).format(n);
 }
 
-function MagneticBtn({ children, className, style, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
-  const ref = useRef<HTMLButtonElement>(null);
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const sx = useSpring(x, { stiffness: 400, damping: 30 });
-  const sy = useSpring(y, { stiffness: 400, damping: 30 });
-
-  const onMove = (e: React.MouseEvent) => {
-    if (!ref.current) return;
-    const r  = ref.current.getBoundingClientRect();
-    x.set((e.clientX - (r.left + r.width  / 2)) * 0.25);
-    y.set((e.clientY - (r.top  + r.height / 2)) * 0.25);
-  };
-
-  return (
-    <motion.button
-      ref={ref}
-      style={{ x: sx, y: sy, ...style }}
-      onMouseMove={onMove}
-      onMouseLeave={() => { x.set(0); y.set(0); }}
-      className={className}
-      {...(rest as object)}
-    >
-      {children}
-    </motion.button>
-  );
-}
-
-const item = {
-  hidden:  { y: 24, opacity: 0 },
-  visible: { y: 0,  opacity: 1, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as [number,number,number,number] } },
-};
-
-const stagger = {
-  hidden:  {},
-  visible: { transition: { staggerChildren: 0.08 } },
-};
-
-export default function HeroSection() {
+export default function HeroSection({ stats }: { stats: HeroStats | null }) {
   const router = useRouter();
-  const [url, setUrl]       = useState("");
-  const [state, setState]   = useState<State>("idle");
-  const [errorMsg, setMsg]  = useState("");
-  const [stats, setStats]   = useState<HeroStats>(STAT_FALLBACK);
-
-  useEffect(() => {
-    fetch(`${API}/products/stats`)
-      .then((r) => r.ok ? r.json() : null)
-      .then((d) => { if (d) setStats(d); })
-      .catch(() => {});
-  }, []);
+  const [url, setUrl]      = useState("");
+  const [state, setState]  = useState<State>("idle");
+  const [errorMsg, setMsg] = useState("");
 
   const platform = detectPlatform(url);
   const isValid  = platform !== null;
 
-  /* cursor glow */
-  const glowX = useMotionValue(-400);
-  const glowY = useMotionValue(-400);
-  const sgx = useSpring(glowX, { stiffness: 200, damping: 30 });
-  const sgy = useSpring(glowY, { stiffness: 200, damping: 30 });
+  const [touched, setTouched] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setTouched(true);
     const trimmed = url.trim();
     if (!trimmed || !isValid) return;
     setState("loading");
@@ -119,203 +53,168 @@ export default function HeroSection() {
       const res = await fetch(`${API}/products/lookup?url=${encodeURIComponent(trimmed)}`);
       if (res.ok)              { const d = await res.json(); router.push(`/product/${d.product.id}`); return; }
       if (res.status === 404)  { setState("tracking_started"); return; }
-      if (res.status === 503)  { const e = await res.json().catch(() => ({})); setMsg(e.detail || "This platform is coming soon!"); setState("error"); return; }
+      if (res.status === 503)  { const e = await res.json().catch(() => ({})); setMsg(e.detail || "This store isn't supported yet."); setState("error"); return; }
       const e = await res.json().catch(() => ({}));
-      throw new Error(e.detail || `API error ${res.status}`);
+      throw new Error(e.detail || `Something went wrong (${res.status}). Please try again.`);
     } catch (e: unknown) {
-      setMsg(e instanceof Error ? e.message : "Something went wrong");
+      setMsg(e instanceof Error ? e.message : "Something went wrong. Please try again.");
       setState("error");
     }
   };
 
+  const statItems = stats
+    ? [
+        { value: `${compact(stats.products)}+`, label: "products tracked" },
+        { value: `${compact(stats.drops)}+`,    label: "real price drops found" },
+        { value: String(stats.stores),          label: "Bangladeshi stores" },
+      ]
+    : null;
+
   return (
-    <section
-      className="relative overflow-hidden"
-      onMouseMove={(e) => { glowX.set(e.clientX); glowY.set(e.clientY); }}
-    >
-      {/* Cursor glow */}
-      <motion.div
-        className="dk-cursor-glow"
-        style={{ left: sgx, top: sgy }}
+    <section className="relative">
+      {/* Soft brand wash behind the headline */}
+      <div
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-[480px] pointer-events-none"
+        style={{ background: "radial-gradient(60% 60% at 50% 0%, rgba(124,58,237,0.14) 0%, transparent 70%)" }}
       />
 
-      {/* Background glow */}
-      <div className="absolute inset-0 pointer-events-none" style={{
-        background: "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(124,58,237,0.15) 0%, transparent 70%)",
-        zIndex: 0,
-      }} />
+      <div className="relative flex flex-col items-center text-center max-w-3xl mx-auto pt-16 pb-12 sm:pt-24 sm:pb-16 px-1">
 
-      <div className="relative z-10 flex flex-col items-center text-center max-w-3xl mx-auto py-20 sm:py-28 px-4">
-
-        {/* Live badge */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-7 text-xs font-semibold uppercase tracking-widest"
-          style={{ background: "rgba(124,58,237,0.12)", border: "1px solid rgba(124,58,237,0.25)", color: "var(--lav)" }}
+        {/* Eyebrow */}
+        <span
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full mb-6 text-sm font-medium"
+          style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)", color: "var(--text-secondary)", boxShadow: "var(--shadow-card)" }}
         >
-          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: "#22c55e", boxShadow: "0 0 6px #22c55e" }} />
-          BD Shopping Intelligence · Live
-        </motion.div>
+          <span className="relative flex w-2 h-2" aria-hidden>
+            <span className="absolute inline-flex w-full h-full rounded-full opacity-60 animate-ping" style={{ background: "var(--green)" }} />
+            <span className="relative inline-flex w-2 h-2 rounded-full" style={{ background: "var(--green)" }} />
+          </span>
+          Live price tracking for Bangladesh
+        </span>
 
-        {/* Headline — no opacity animation: this is the LCP element */}
-        <h1
-          className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-6 leading-none text-white"
-        >
+        {/* Headline: no fade-in, it's the LCP element */}
+        <h1 className="text-[2.5rem] leading-[1.08] sm:text-6xl font-bold mb-5" style={{ color: "var(--text-primary)" }}>
           Stop paying for{" "}
-          <span style={{ position: "relative", display: "inline-block" }}>
+          <span className="relative inline-block whitespace-nowrap">
             <span style={{ color: "var(--text-faint)" }}>fake</span>
             <motion.span
+              aria-hidden
               initial={{ scaleX: 0 }}
               animate={{ scaleX: 1 }}
-              transition={{ delay: 0.9, duration: 0.35, ease: "easeOut" }}
-              style={{
-                position: "absolute",
-                left: "-4%",
-                top: "52%",
-                width: "108%",
-                height: "3px",
-                background: "var(--red)",
-                transformOrigin: "left center",
-                transform: "translateY(-50%) rotate(-3deg)",
-                borderRadius: "2px",
-              }}
+              transition={{ delay: 0.6, duration: 0.35, ease: "easeOut" }}
+              className="absolute left-[-4%] top-[55%] w-[108%] h-[3px] rounded-full origin-left"
+              style={{ background: "var(--red)", rotate: -3 }}
             />
           </span>{" "}
           <span style={{ color: "var(--lav)" }}>discounts.</span>
         </h1>
 
-        {/* Subtitle — no opacity animation: this is the LCP element */}
-        <p
-          className="text-base sm:text-lg mb-10 max-w-2xl leading-relaxed"
-          style={{ color: "var(--text-muted)" }}
-        >
-          Sellers inflate prices before sales. DamKoi shows you the real price history
-          across Daraz, Cartup, Rokomari, and Pickaboo — and alerts you when prices genuinely drop.
+        <p className="text-lg sm:text-xl max-w-2xl mb-9" style={{ color: "var(--text-muted)", lineHeight: 1.55 }}>
+          Sellers raise prices before a sale, then &ldquo;discount&rdquo; them.
+          DamKoi checks every price against its real history, so you know if a deal is genuine.
         </p>
 
-        {/* URL Input */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="w-full max-w-xl"
-        >
-          <form
-            onSubmit={handleSubmit}
-            className="flex items-center rounded-xl overflow-hidden"
-            style={{ background: "var(--bg2)", border: "1px solid var(--border-sm)" }}
+        {/* URL input */}
+        <form onSubmit={handleSubmit} className="w-full max-w-2xl" role="search" aria-label="Check a product">
+          <div
+            className="flex flex-col sm:flex-row gap-2 p-2 rounded-2xl transition-shadow focus-within:shadow-[0_0_0_4px_rgba(124,58,237,0.18)]"
+            style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)", boxShadow: "var(--shadow-card)" }}
           >
-            <div className="pl-4 flex-shrink-0" style={{ color: "var(--text-faint)" }}>
-              <Search size={18} />
-            </div>
-            <input
-              type="text"
-              value={url}
-              onChange={(e) => { setUrl(e.target.value); if (state !== "idle") setState("idle"); }}
-              placeholder="Paste any product URL — Daraz, Rokomari, Cartup…"
-              className="flex-1 bg-transparent py-4 px-3 text-sm focus:outline-none min-w-0"
-              style={{ color: "var(--text-secondary)" }}
-              aria-label="Product URL"
-            />
-            {platform && (
-              <span
-                className="hidden sm:flex items-center px-3 text-[10px] font-semibold uppercase tracking-widest"
-                style={{ color: "var(--lav)", borderLeft: "1px solid var(--border-sm)", padding: "1rem 0.75rem" }}
-              >
-                {platform}
-              </span>
-            )}
-            <MagneticBtn
+            <label className="flex items-center gap-3 flex-1 min-w-0 px-3">
+              <Search size={20} aria-hidden style={{ color: "var(--text-faint)", flexShrink: 0 }} />
+              <span className="sr-only">Product URL</span>
+              <input
+                type="url"
+                inputMode="url"
+                value={url}
+                onChange={(e) => { setUrl(e.target.value); setTouched(false); if (state !== "idle") setState("idle"); }}
+                placeholder="Paste a product link"
+                className="flex-1 min-w-0 bg-transparent py-3 text-base focus:outline-none"
+                style={{ color: "var(--text-primary)" }}
+              />
+              {platform && (
+                <span className="hidden sm:inline-flex dk-badge dk-badge-purple capitalize">{platform}</span>
+              )}
+            </label>
+            <button
               type="submit"
-              disabled={state === "loading" || !isValid}
-              className="dk-btn-primary text-xs uppercase tracking-widest flex-shrink-0"
-              style={{ borderRadius: 0, padding: "1rem 1.25rem" }}
+              disabled={state === "loading"}
+              className="dk-btn-primary sm:w-auto w-full"
+              style={{ minHeight: "3rem", paddingInline: "1.5rem" }}
             >
-              {state === "loading" ? "Checking…" : "Analyze"}
-            </MagneticBtn>
-          </form>
-        </motion.div>
+              {state === "loading" ? (<><Loader2 size={18} className="animate-spin" aria-hidden /> Checking…</>) : "Check price"}
+            </button>
+          </div>
+        </form>
 
-        {url.length > 10 && !isValid && (
-          <p className="mt-3 text-sm flex items-center gap-1.5" style={{ color: "var(--red)" }} role="alert">
-            <Info size={14} /> Paste a URL from Daraz, Cartup, Rokomari, or Pickaboo
-          </p>
-        )}
+        <div className="min-h-[1.5rem] mt-3 w-full max-w-2xl" aria-live="polite">
+          {!isValid && (url.length > 10 || touched) && (
+            <p className="text-sm flex items-center justify-center gap-1.5" style={{ color: "var(--red)" }}>
+              <Info size={15} aria-hidden />
+              {url.trim() ? "That link isn't from a supported store yet." : "Paste a product link first."}
+            </p>
+          )}
 
-        {state === "tracking_started" && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-4 px-5 py-4 rounded-xl text-left max-w-xl w-full flex items-start gap-3"
-            style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)", borderLeft: "3px solid var(--amber)" }}
-            role="status"
-          >
-            <Clock size={16} className="mt-0.5 flex-shrink-0" style={{ color: "var(--amber)" }} />
-            <div>
-              <p className="font-semibold text-sm mb-1" style={{ color: "var(--amber)" }}>Tracking Started!</p>
-              <p className="text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>
-                Added to queue. Our scraper collects the first price within the next hour.
-              </p>
+          {state === "error" && (
+            <p className="text-sm flex items-center justify-center gap-1.5" style={{ color: "var(--red)" }}>
+              <Info size={15} aria-hidden /> {errorMsg}
+            </p>
+          )}
+
+          {state === "tracking_started" && (
+            <div
+              className="px-4 py-3.5 rounded-xl text-left flex items-start gap-3"
+              style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.25)" }}
+            >
+              <Clock size={18} className="mt-0.5 flex-shrink-0" style={{ color: "var(--amber)" }} aria-hidden />
+              <div>
+                <p className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>We&apos;ve started tracking this product</p>
+                <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+                  Its first price is collected within a day. Check back soon for the full verdict.
+                </p>
+              </div>
             </div>
-          </motion.div>
-        )}
-
-        {state === "error" && (
-          <p className="mt-3 text-sm flex items-center gap-1.5" style={{ color: "var(--red)" }} role="alert">
-            <Info size={14} /> {errorMsg}
-          </p>
-        )}
+          )}
+        </div>
 
         {/* Quick links */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
-          className="mt-6 flex flex-wrap items-center justify-center gap-4 sm:gap-6"
-        >
-          <Link href="/deals" className="text-sm flex items-center gap-1.5 hover:text-white/60 transition-colors dk-focus" style={{ color: "var(--text-faint)" }}>
-            Browse top deals <ArrowRight size={13} />
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm font-medium">
+          <Link href="/deals" className="inline-flex items-center gap-1.5 dk-focus" style={{ color: "var(--lav)" }}>
+            Browse today&apos;s deals <ArrowRight size={15} aria-hidden />
           </Link>
-          <Link href="/dashboard" className="text-sm flex items-center gap-1.5 hover:text-white/60 transition-colors dk-focus" style={{ color: "var(--text-faint)" }}>
-            My tracked products <ArrowRight size={13} />
+          <Link href="/install" className="inline-flex items-center gap-1.5 dk-focus" style={{ color: "var(--text-muted)" }}>
+            Check prices while you shop <ArrowRight size={15} aria-hidden />
           </Link>
-        </motion.div>
+        </div>
 
-        {/* Stats strip */}
-        <motion.div
-          variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-80px" }}
-          className="mt-16 grid grid-cols-3 gap-3 sm:gap-4 w-full"
-        >
-          {[
-            { value: stats.total_products,   label: "Products Tracked",  suffix: "+" },
-            { value: stats.price_drops_caught, label: "Price Drops Caught", suffix: "+" },
-            { value: stats.avg_savings_pct,  label: "Avg Savings",        suffix: "%" },
-          ].map((s) => (
-            <motion.div key={s.label} variants={item} className="dk-stat-card text-center">
-              <div className="dk-stat-value mb-1"><CountUpInView to={s.value} suffix={s.suffix} /></div>
-              <div className="dk-stat-label">{s.label}</div>
-            </motion.div>
-          ))}
-        </motion.div>
+        {/* Stats */}
+        {statItems && (
+          <dl className="mt-12 grid grid-cols-3 w-full max-w-2xl rounded-2xl overflow-hidden" style={{ border: "1px solid var(--border-sm)", background: "var(--bg1)", boxShadow: "var(--shadow-card)" }}>
+            {statItems.map((s, i) => (
+              <div key={s.label} className="flex flex-col-reverse px-3 py-5 sm:py-6" style={i ? { borderLeft: "1px solid var(--border-sm)" } : undefined}>
+                <dt className="dk-stat-label mt-1">{s.label}</dt>
+                <dd className="dk-stat-value">{s.value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+      </div>
 
-        {/* Feature cards */}
-        <motion.div
-          variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }}
-          className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 w-full text-left"
-        >
-          {FEATURES.map((f) => {
-            const Icon = f.icon;
-            return (
-              <motion.div key={f.title} variants={item} className="dk-card p-5 flex flex-col gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: f.bg, color: f.color }}>
-                  <Icon size={20} />
-                </div>
-                <h2 className="font-semibold text-base text-white">{f.title}</h2>
-                <p className="text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>{f.desc}</p>
-              </motion.div>
-            );
-          })}
-        </motion.div>
-
+      {/* Feature cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-5xl mx-auto pb-4">
+        {FEATURES.map((f) => {
+          const Icon = f.icon;
+          return (
+            <div key={f.title} className="dk-card p-6 flex flex-col gap-3">
+              <span className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: f.bg, color: f.color }} aria-hidden>
+                <Icon size={22} />
+              </span>
+              <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>{f.title}</h2>
+              <p className="text-[0.9375rem]" style={{ color: "var(--text-muted)" }}>{f.desc}</p>
+            </div>
+          );
+        })}
       </div>
     </section>
   );

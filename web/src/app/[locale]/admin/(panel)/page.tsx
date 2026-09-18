@@ -82,7 +82,7 @@ function MiniBarChart({ data, color, height = 48 }: {
   color: string;
   height?: number;
 }) {
-  if (!data.length) return <p className="text-[10px]" style={{ color: "var(--text-faint)" }}>No data yet.</p>;
+  if (!data.length) return <p className="text-xs" style={{ color: "var(--text-faint)" }}>No data yet.</p>;
   const max = Math.max(...data.map((d) => d.count), 1);
   return (
     <div className="flex items-end gap-0.5" style={{ height }}>
@@ -99,7 +99,7 @@ function MiniBarChart({ data, color, height = 48 }: {
             title={`${d.date}: ${d.count}`}
           />
           {data.length <= 14 && (
-            <span className="text-[7px]" style={{ color: "var(--text-ghost)" }}>
+            <span className="text-xs" style={{ color: "var(--text-faint)" }}>
               {new Date(d.date + "T00:00:00").toLocaleDateString("en", { day: "numeric" })}
             </span>
           )}
@@ -197,18 +197,18 @@ export default function AdminOverviewPage() {
             ].map((s) => (
               <div key={s.label} className="dk-card p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>{s.label}</p>
+                  <p className="text-xs font-semibold" style={{ color: "var(--text-faint)" }}>{s.label}</p>
                   <s.icon size={13} style={{ color: s.color }} />
                 </div>
-                <p className="text-2xl font-bold" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{s.value}</p>
-                {s.sub && <p className="text-[9px] mt-0.5" style={{ color: "var(--text-faint)" }}>{s.sub}</p>}
+                <p className="text-2xl font-bold" style={{ fontVariantNumeric: "tabular-nums" }}>{s.value}</p>
+                {s.sub && <p className="text-xs mt-0.5" style={{ color: "var(--text-faint)" }}>{s.sub}</p>}
               </div>
             ))}
           </div>
 
           {/* Scraper status strip */}
           <div className="dk-card p-5">
-            <h2 className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: "var(--text-muted)" }}>
+            <h2 className="text-xs font-semibold mb-4" style={{ color: "var(--text-muted)" }}>
               Scraper Health
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -216,11 +216,11 @@ export default function AdminOverviewPage() {
                 <div key={s.platform} className="rounded-xl p-3" style={{ background: "var(--bg2)", border: "1px solid var(--border-sm)" }}>
                   <div className="flex items-center gap-1.5 mb-1.5">
                     <StatusIcon status={s.status} />
-                    <span className="text-[10px] font-medium capitalize text-white">{s.platform}</span>
+                    <span className="text-xs font-medium capitalize text-white">{s.platform}</span>
                   </div>
-                  <p className="text-lg font-bold" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{s.total_products}</p>
-                  <p className="text-[9px]" style={{ color: "var(--text-faint)" }}>products</p>
-                  <p className="text-[9px] mt-1" style={{ color: "var(--text-faint)" }}>
+                  <p className="text-lg font-bold" style={{ fontVariantNumeric: "tabular-nums" }}>{s.total_products}</p>
+                  <p className="text-xs" style={{ color: "var(--text-faint)" }}>products</p>
+                  <p className="text-xs mt-1" style={{ color: "var(--text-faint)" }}>
                     {s.hours_since_last_scrape != null ? `${s.hours_since_last_scrape}h ago` : "never"}
                   </p>
                 </div>
@@ -231,7 +231,7 @@ export default function AdminOverviewPage() {
           {/* DB Analytics */}
           {dbAnalytics && (
             <div className="space-y-4">
-              <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
+              <h2 className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>
                 Database Analytics
               </h2>
 
@@ -241,7 +241,7 @@ export default function AdminOverviewPage() {
                 <div className="dk-card p-5">
                   <div className="flex items-center gap-2 mb-4">
                     <Package size={13} style={{ color: "#3b82f6" }} />
-                    <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Catalog Quality</span>
+                    <span className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>Catalog Quality</span>
                   </div>
                   <div className="space-y-3">
                     {[
@@ -252,8 +252,8 @@ export default function AdminOverviewPage() {
                       { label: "Added Last 7d", value: dbAnalytics.catalog.added_7d, color: "var(--lav)" },
                     ].map((row) => (
                       <div key={row.label} className="flex items-center justify-between">
-                        <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{row.label}</span>
-                        <span className="text-sm font-bold" style={{ color: row.color, fontFamily: "'IBM Plex Mono', monospace" }}>{row.value.toLocaleString()}</span>
+                        <span className="text-xs" style={{ color: "var(--text-faint)" }}>{row.label}</span>
+                        <span className="text-sm font-bold" style={{ color: row.color, fontVariantNumeric: "tabular-nums" }}>{row.value.toLocaleString()}</span>
                       </div>
                     ))}
                     <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--bg2)" }}>
@@ -265,7 +265,7 @@ export default function AdminOverviewPage() {
                         }}
                       />
                     </div>
-                    <p className="text-[9px]" style={{ color: "var(--text-faint)" }}>
+                    <p className="text-xs" style={{ color: "var(--text-faint)" }}>
                       {Math.round((dbAnalytics.catalog.priced / Math.max(dbAnalytics.catalog.total, 1)) * 100)}% priced
                     </p>
                   </div>
@@ -275,10 +275,10 @@ export default function AdminOverviewPage() {
                 <div className="dk-card p-5">
                   <div className="flex items-center gap-2 mb-4">
                     <HardDrive size={13} style={{ color: "var(--lav)" }} />
-                    <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Storage (Supabase Free 500MB)</span>
+                    <span className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>Storage (Supabase Free 500MB)</span>
                   </div>
-                  <p className="text-2xl font-bold mb-1" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{dbAnalytics.total_db_size}</p>
-                  <p className="text-[10px] mb-3" style={{ color: "var(--text-faint)" }}>{dbAnalytics.supabase_usage_pct}% of 500MB used</p>
+                  <p className="text-2xl font-bold mb-1" style={{ fontVariantNumeric: "tabular-nums" }}>{dbAnalytics.total_db_size}</p>
+                  <p className="text-xs mb-3" style={{ color: "var(--text-faint)" }}>{dbAnalytics.supabase_usage_pct}% of 500MB used</p>
                   <div className="h-2 rounded-full overflow-hidden mb-4" style={{ background: "var(--bg2)" }}>
                     <div
                       className="h-full rounded-full transition-all"
@@ -291,8 +291,8 @@ export default function AdminOverviewPage() {
                   <div className="space-y-1.5">
                     {dbAnalytics.table_sizes.slice(0, 5).map((t) => (
                       <div key={t.table} className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono" style={{ color: "var(--text-faint)" }}>{t.table}</span>
-                        <span className="text-[10px] font-mono text-white">{t.size}</span>
+                        <span className="text-xs tabular-nums" style={{ color: "var(--text-faint)" }}>{t.table}</span>
+                        <span className="text-xs tabular-nums text-white">{t.size}</span>
                       </div>
                     ))}
                   </div>
@@ -303,7 +303,7 @@ export default function AdminOverviewPage() {
               <div className="dk-card p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <BarChart3 size={13} style={{ color: "#22d3ee" }} />
-                  <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Price Snapshots — Last 7 Days</span>
+                  <span className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>Price Snapshots — Last 7 Days</span>
                 </div>
                 {dbAnalytics.snapshot_trend.length > 0 ? (
                   <div className="flex items-end gap-1.5 h-16">
@@ -319,7 +319,7 @@ export default function AdminOverviewPage() {
                               opacity: 0.8,
                             }}
                           />
-                          <span className="text-[8px]" style={{ color: "var(--text-faint)" }}>
+                          <span className="text-xs" style={{ color: "var(--text-faint)" }}>
                             {new Date(d.date).toLocaleDateString("en", { weekday: "short" })}
                           </span>
                         </div>
@@ -327,7 +327,7 @@ export default function AdminOverviewPage() {
                     })()}
                   </div>
                 ) : (
-                  <p className="text-[10px]" style={{ color: "var(--text-faint)" }}>No snapshot data yet.</p>
+                  <p className="text-xs" style={{ color: "var(--text-faint)" }}>No snapshot data yet.</p>
                 )}
               </div>
 
@@ -335,9 +335,9 @@ export default function AdminOverviewPage() {
               <div className="dk-card p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <Activity size={13} style={{ color: "var(--amber)" }} />
-                  <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Catalog by Platform</span>
+                  <span className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>Catalog by Platform</span>
                 </div>
-                <table className="w-full text-[10px]">
+                <table className="w-full text-xs">
                   <thead>
                     <tr style={{ color: "var(--text-faint)" }}>
                       <th className="text-left pb-2">Platform</th>
@@ -351,9 +351,9 @@ export default function AdminOverviewPage() {
                     {dbAnalytics.platforms.map((p) => (
                       <tr key={p.platform} style={{ borderTop: "1px solid var(--border-sm)" }}>
                         <td className="py-1.5 capitalize text-white font-medium">{p.platform}</td>
-                        <td className="text-right" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{p.total.toLocaleString()}</td>
-                        <td className="text-right" style={{ color: "var(--green)", fontFamily: "'IBM Plex Mono', monospace" }}>{p.priced.toLocaleString()}</td>
-                        <td className="text-right" style={{ color: "var(--amber)", fontFamily: "'IBM Plex Mono', monospace" }}>{p.stubs.toLocaleString()}</td>
+                        <td className="text-right" style={{ fontVariantNumeric: "tabular-nums" }}>{p.total.toLocaleString()}</td>
+                        <td className="text-right" style={{ color: "var(--green)", fontVariantNumeric: "tabular-nums" }}>{p.priced.toLocaleString()}</td>
+                        <td className="text-right" style={{ color: "var(--amber)", fontVariantNumeric: "tabular-nums" }}>{p.stubs.toLocaleString()}</td>
                         <td className="text-right" style={{ color: "var(--text-faint)" }}>
                           {Math.round((p.priced / Math.max(p.total, 1)) * 100)}%
                         </td>
@@ -367,13 +367,13 @@ export default function AdminOverviewPage() {
               <div className="dk-card p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <Database size={13} style={{ color: "#22d3ee" }} />
-                  <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Table Row Counts</span>
+                  <span className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>Table Row Counts</span>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                   {Object.entries(dbAnalytics.table_counts).map(([table, count]) => (
                     <div key={table} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: "var(--bg2)" }}>
-                      <span className="text-[9px] font-mono" style={{ color: "var(--text-faint)" }}>{table}</span>
-                      <span className="text-[10px] font-bold font-mono text-white">{Number(count).toLocaleString()}</span>
+                      <span className="text-xs tabular-nums" style={{ color: "var(--text-faint)" }}>{table}</span>
+                      <span className="text-xs font-bold tabular-nums text-white">{Number(count).toLocaleString()}</span>
                     </div>
                   ))}
                 </div>
@@ -384,7 +384,7 @@ export default function AdminOverviewPage() {
           {/* Growth Trends */}
           {growth && (
             <div className="space-y-4">
-              <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
+              <h2 className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>
                 Growth — Last 30 Days
               </h2>
 
@@ -392,8 +392,8 @@ export default function AdminOverviewPage() {
                 <div className="dk-card p-5">
                   <div className="flex items-center gap-2 mb-3">
                     <Users size={12} style={{ color: "var(--lav)" }} />
-                    <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>New Users</span>
-                    <span className="ml-auto text-sm font-bold" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
+                    <span className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>New Users</span>
+                    <span className="ml-auto text-sm font-bold" style={{ fontVariantNumeric: "tabular-nums" }}>
                       {growth.users_trend.reduce((s, d) => s + d.count, 0)}
                     </span>
                   </div>
@@ -403,8 +403,8 @@ export default function AdminOverviewPage() {
                 <div className="dk-card p-5">
                   <div className="flex items-center gap-2 mb-3">
                     <Bell size={12} style={{ color: "var(--amber)" }} />
-                    <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Alerts Created</span>
-                    <span className="ml-auto text-sm font-bold" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
+                    <span className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>Alerts Created</span>
+                    <span className="ml-auto text-sm font-bold" style={{ fontVariantNumeric: "tabular-nums" }}>
                       {growth.alerts_trend.reduce((s, d) => s + d.count, 0)}
                     </span>
                   </div>
@@ -414,8 +414,8 @@ export default function AdminOverviewPage() {
                 <div className="dk-card p-5">
                   <div className="flex items-center gap-2 mb-3">
                     <Send size={12} style={{ color: "var(--green)" }} />
-                    <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Notifications Sent</span>
-                    <span className="ml-auto text-sm font-bold" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
+                    <span className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>Notifications Sent</span>
+                    <span className="ml-auto text-sm font-bold" style={{ fontVariantNumeric: "tabular-nums" }}>
                       {growth.notifications_trend.reduce((s, d) => s + d.count, 0)}
                     </span>
                   </div>
@@ -424,7 +424,7 @@ export default function AdminOverviewPage() {
               </div>
 
               {/* Engagement KPIs */}
-              <h2 className="text-xs font-semibold uppercase tracking-widest pt-2" style={{ color: "var(--text-muted)" }}>
+              <h2 className="text-xs font-semibold pt-2" style={{ color: "var(--text-muted)" }}>
                 Engagement Insights
               </h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -460,11 +460,11 @@ export default function AdminOverviewPage() {
                 ].map((s) => (
                   <div key={s.label} className="dk-card p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>{s.label}</p>
+                      <p className="text-xs font-semibold" style={{ color: "var(--text-faint)" }}>{s.label}</p>
                       <s.icon size={13} style={{ color: s.color }} />
                     </div>
-                    <p className="text-2xl font-bold" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{s.value}</p>
-                    {s.sub && <p className="text-[9px] mt-0.5" style={{ color: "var(--text-faint)" }}>{s.sub}</p>}
+                    <p className="text-2xl font-bold" style={{ fontVariantNumeric: "tabular-nums" }}>{s.value}</p>
+                    {s.sub && <p className="text-xs mt-0.5" style={{ color: "var(--text-faint)" }}>{s.sub}</p>}
                   </div>
                 ))}
               </div>
@@ -472,13 +472,13 @@ export default function AdminOverviewPage() {
               {/* Top Alerted Products */}
               {growth.top_alerted_products.length > 0 && (
                 <>
-                  <h2 className="text-xs font-semibold uppercase tracking-widest pt-2" style={{ color: "var(--text-muted)" }}>
+                  <h2 className="text-xs font-semibold pt-2" style={{ color: "var(--text-muted)" }}>
                     Most Watched Products
                   </h2>
                   <div className="dk-card p-5">
                     <div className="flex items-center gap-2 mb-4">
                       <Trophy size={13} style={{ color: "var(--amber)" }} />
-                      <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Top Alerted Products (active alerts)</span>
+                      <span className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>Top Alerted Products (active alerts)</span>
                     </div>
                     <div className="space-y-2">
                       {growth.top_alerted_products.map((p, i) => {
@@ -487,19 +487,19 @@ export default function AdminOverviewPage() {
                         const color = PLATFORM_COLOR[p.platform] ?? "var(--text-muted)";
                         return (
                           <div key={p.id} className="flex items-center gap-3">
-                            <span className="text-[10px] w-4 text-right flex-shrink-0" style={{ color: "var(--text-ghost)" }}>
+                            <span className="text-xs w-4 text-right flex-shrink-0" style={{ color: "var(--text-faint)" }}>
                               {i + 1}
                             </span>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1.5 mb-0.5">
-                                <span className="text-[8px] font-semibold uppercase" style={{ color }}>{p.platform}</span>
-                                <span className="text-[10px] truncate text-white">{p.title}</span>
+                                <span className="text-xs font-semibold capitalize" style={{ color }}>{p.platform}</span>
+                                <span className="text-xs truncate text-white">{p.title}</span>
                               </div>
                               <div className="h-1 rounded-full overflow-hidden" style={{ background: "var(--bg2)" }}>
                                 <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
                               </div>
                             </div>
-                            <span className="text-[10px] font-bold flex-shrink-0" style={{ fontFamily: "'IBM Plex Mono', monospace", color: "var(--text-muted)" }}>
+                            <span className="text-xs font-bold flex-shrink-0" style={{ fontVariantNumeric: "tabular-nums", color: "var(--text-muted)" }}>
                               {p.alert_count}
                             </span>
                           </div>

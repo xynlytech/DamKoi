@@ -15,17 +15,17 @@ export default function DashboardError({
 
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 px-5 text-center">
-      <p className="text-sm font-mono" style={{ color: "var(--red)" }}>
+      <p className="text-sm tabular-nums" style={{ color: "var(--red)" }}>
         {error?.message || "Unknown error"}
       </p>
       {error?.digest && (
-        <p className="text-xs font-mono" style={{ color: "var(--text-faint)" }}>
+        <p className="text-xs tabular-nums" style={{ color: "var(--text-faint)" }}>
           digest: {error.digest}
         </p>
       )}
       <button
         onClick={reset}
-        className="dk-btn-primary text-xs uppercase tracking-widest"
+        className="dk-btn-primary text-xs"
       >
         Retry
       </button>

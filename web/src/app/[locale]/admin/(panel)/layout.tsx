@@ -93,7 +93,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
           <div>
             <p className="text-sm font-bold text-white">DamKoi</p>
-            <p className="text-[9px] font-semibold uppercase tracking-widest flex items-center gap-1" style={{ color: "var(--red)" }}>
+            <p className="text-xs font-semibold flex items-center gap-1" style={{ color: "var(--red)" }}>
               <Shield size={8} /> Admin
             </p>
           </div>
@@ -123,10 +123,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* User footer */}
         <div className="px-4 py-4" style={{ borderTop: "1px solid var(--border-sm)" }}>
-          <p className="text-[10px] truncate mb-2" style={{ color: "var(--text-faint)", fontFamily: "'IBM Plex Mono', monospace" }}>{email}</p>
+          <p className="text-xs truncate mb-2" style={{ color: "var(--text-faint)", fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>{email}</p>
           <button
             onClick={signOut}
-            className="flex items-center gap-2 text-[10px] font-medium transition-colors dk-focus"
+            className="flex items-center gap-2 text-xs font-medium transition-colors dk-focus"
             style={{ color: "var(--text-faint)" }}
             onMouseEnter={(e) => (e.currentTarget.style.color = "var(--red)")}
             onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-faint)")}

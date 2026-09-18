@@ -137,7 +137,7 @@ export default function AdminAlertsPage() {
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[10px] uppercase tracking-widest" style={{ borderBottom: "1px solid var(--border-sm)", color: "var(--text-faint)" }}>
+              <tr className="text-xs" style={{ borderBottom: "1px solid var(--border-sm)", color: "var(--text-faint)" }}>
                 <th className="text-left px-4 py-3 font-semibold">Product</th>
                 <th className="text-left px-4 py-3 font-semibold hidden md:table-cell">User</th>
                 <th className="text-right px-4 py-3 font-semibold hidden sm:table-cell">Target</th>
@@ -157,21 +157,21 @@ export default function AdminAlertsPage() {
                         <p className="text-xs line-clamp-1" style={{ color: "var(--text-body)" }}>{a.products?.title ?? "Unknown"}</p>
                       </div>
                       {hit && (
-                        <span className="text-[8px] font-semibold flex items-center gap-0.5 mt-0.5" style={{ color: "var(--green)" }}>
+                        <span className="text-xs font-semibold flex items-center gap-0.5 mt-0.5" style={{ color: "var(--green)" }}>
                           <CheckCircle2 size={8} /> PRICE HIT
                         </span>
                       )}
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
-                      <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{a.users?.email ?? "anon"}</span>
+                      <span className="text-xs" style={{ color: "var(--text-muted)" }}>{a.users?.email ?? "anon"}</span>
                     </td>
-                    <td className="px-4 py-3 text-right text-xs hidden sm:table-cell" style={{ fontFamily: "'IBM Plex Mono', monospace", color: "var(--text-body)" }}>
+                    <td className="px-4 py-3 text-right text-xs hidden sm:table-cell" style={{ fontVariantNumeric: "tabular-nums", color: "var(--text-body)" }}>
                       {fmt(a.target_price)}
                     </td>
-                    <td className="px-4 py-3 text-right text-xs hidden sm:table-cell" style={{ fontFamily: "'IBM Plex Mono', monospace", color: hit ? "var(--green)" : "var(--text-body)", fontWeight: hit ? 600 : 400 }}>
+                    <td className="px-4 py-3 text-right text-xs hidden sm:table-cell" style={{ fontVariantNumeric: "tabular-nums", color: hit ? "var(--green)" : "var(--text-body)", fontWeight: hit ? 600 : 400 }}>
                       {fmt(a.current_price)}
                     </td>
-                    <td className="px-4 py-3 text-center text-[10px] hidden lg:table-cell" style={{ color: "var(--text-faint)" }}>
+                    <td className="px-4 py-3 text-center text-xs hidden lg:table-cell" style={{ color: "var(--text-faint)" }}>
                       {a.last_triggered
                         ? new Date(a.last_triggered).toLocaleDateString("en-BD", { month: "short", day: "numeric" })
                         : "—"}

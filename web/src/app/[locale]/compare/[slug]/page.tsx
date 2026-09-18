@@ -133,7 +133,7 @@ export default async function ComparePage({
               <p className="text-sm" style={{ color: "rgba(34,197,94,0.9)" }}>
                 Cheapest on{" "}
                 <span className="font-black capitalize">{cheapest.platform}</span>{" "}
-                at <span className="font-black" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(cheapest.current_price)}</span>
+                at <span className="font-black" style={{ fontVariantNumeric: "tabular-nums" }}>{fmt(cheapest.current_price)}</span>
               </p>
             </div>
           )}
@@ -156,7 +156,7 @@ export default async function ComparePage({
                 >
                   {isCheapest && (
                     <div
-                      className="absolute -top-2.5 left-4 text-white text-[10px] font-black uppercase tracking-widest px-3 py-0.5 rounded-full"
+                      className="absolute -top-2.5 left-4 text-white text-xs font-black px-3 py-0.5 rounded-full"
                       style={{ background: "#16a34a", color: "#ffffff" }}
                     >
                       Cheapest
@@ -164,7 +164,7 @@ export default async function ComparePage({
                   )}
                   {isOriginal && !isCheapest && (
                     <div
-                      className="absolute -top-2.5 left-4 text-white text-[10px] font-black uppercase tracking-widest px-3 py-0.5 rounded-full"
+                      className="absolute -top-2.5 left-4 text-white text-xs font-black px-3 py-0.5 rounded-full"
                       style={{ background: "var(--purple)", color: "#ffffff" }}
                     >
                       You viewed
@@ -182,7 +182,7 @@ export default async function ComparePage({
                     )}
                     <div className="flex-1 min-w-0">
                       <span
-                        className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
+                        className="text-xs font-black px-2 py-0.5 rounded-full capitalize"
                         style={pc
                           ? { color: pc.color, background: pc.bg, border: `1px solid ${pc.border}` }
                           : { color: "var(--text-muted)", background: "var(--surface-ghost)", border: "1px solid var(--border-sm)" }
@@ -197,7 +197,7 @@ export default async function ComparePage({
                   </div>
 
                   <div className="flex items-end justify-between">
-                    <span className="font-black text-xl text-white" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
+                    <span className="font-black text-xl text-white" style={{ fontVariantNumeric: "tabular-nums" }}>
                       {fmt(item.current_price)}
                     </span>
                     {priceDelta !== null && (
@@ -217,7 +217,7 @@ export default async function ComparePage({
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 rounded-xl py-2 text-xs font-black uppercase tracking-widest transition-opacity hover:opacity-80"
+                    className="flex items-center justify-center gap-2 rounded-xl py-2 text-xs font-black transition-opacity hover:opacity-80"
                     style={{ background: "var(--bg3)", border: "1px solid var(--border-sm)", color: "var(--text-body)" }}
                   >
                     Buy on {item.platform} <ExternalLink size={11} />

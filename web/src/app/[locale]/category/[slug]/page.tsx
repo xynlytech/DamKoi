@@ -133,7 +133,7 @@ export default async function CategoryPage({
       {/* Breadcrumb */}
       <nav
         aria-label="Breadcrumb"
-        className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.25em] mb-8"
+        className="flex items-center gap-2 text-xs font-semibold mb-8"
         style={{ color: "var(--text-faint)" }}
       >
         <Link href="/" className="hover:underline dk-focus">Home</Link>
@@ -174,11 +174,11 @@ export default async function CategoryPage({
                 {p.title}
               </p>
               <div className="mt-auto flex items-baseline gap-2">
-                <span className="text-sm font-semibold text-white" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
+                <span className="text-sm font-semibold text-white" style={{ fontVariantNumeric: "tabular-nums" }}>
                   {fmt(p.current_price)}
                 </span>
                 {p.discount_pct ? (
-                  <span className="text-[10px] font-semibold" style={{ color: "var(--green)" }}>
+                  <span className="text-xs font-semibold" style={{ color: "var(--green)" }}>
                     -{p.discount_pct}%
                   </span>
                 ) : null}
@@ -189,7 +189,7 @@ export default async function CategoryPage({
       )}
 
       <div className="mt-12">
-        <Link href="/categories" className="text-xs font-semibold uppercase tracking-widest dk-focus" style={{ color: "var(--lav)" }}>
+        <Link href="/categories" className="text-xs font-semibold dk-focus" style={{ color: "var(--lav)" }}>
           ← Browse all categories
         </Link>
       </div>

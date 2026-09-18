@@ -103,8 +103,8 @@ export default function ScraperHealthPage() {
           { label: "Dead",    count: dead,    color: "var(--red)",    bg: "rgba(239,68,68,0.08)",  border: "rgba(239,68,68,0.2)"  },
         ].map((s) => (
           <div key={s.label} className="rounded-2xl p-5" style={{ background: s.bg, border: `1px solid ${s.border}` }}>
-            <p className="text-3xl font-bold" style={{ color: s.color, fontFamily: "'IBM Plex Mono', monospace" }}>{s.count}</p>
-            <p className="text-xs font-semibold uppercase tracking-widest mt-1" style={{ color: "var(--text-muted)" }}>{s.label}</p>
+            <p className="text-3xl font-bold" style={{ color: s.color, fontVariantNumeric: "tabular-nums" }}>{s.count}</p>
+            <p className="text-xs font-semibold mt-1" style={{ color: "var(--text-muted)" }}>{s.label}</p>
           </div>
         ))}
       </div>
@@ -113,7 +113,7 @@ export default function ScraperHealthPage() {
       {loading ? (
         <div className="text-center py-20" style={{ color: "var(--text-faint)" }}>
           <RefreshCw size={32} className="animate-spin mx-auto mb-4" />
-          <p className="text-sm font-semibold uppercase tracking-widest">Loading scraper status…</p>
+          <p className="text-sm font-semibold">Loading scraper status…</p>
         </div>
       ) : (
         <div className="flex flex-col gap-4">
@@ -129,7 +129,7 @@ export default function ScraperHealthPage() {
               <div key={p.platform} className="rounded-2xl p-5" style={{ background: cfg.bgColor, border: `1px solid ${cfg.borderColor}` }}>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <span className="text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full" style={{ color: PLATFORM_COLOR[p.platform] ?? "var(--text-muted)", background: "var(--surface-ghost)" }}>
+                    <span className="text-xs font-semibold px-3 py-1 rounded-full capitalize" style={{ color: PLATFORM_COLOR[p.platform] ?? "var(--text-muted)", background: "var(--surface-ghost)" }}>
                       {p.platform}
                     </span>
                     <div className="flex items-center gap-1.5" style={{ color: cfg.color }}>
@@ -137,7 +137,7 @@ export default function ScraperHealthPage() {
                       <span className="text-xs font-semibold">{cfg.label}</span>
                     </div>
                   </div>
-                  <span className="text-xs" style={{ color: "var(--text-faint)", fontFamily: "'IBM Plex Mono', monospace" }}>
+                  <span className="text-xs" style={{ color: "var(--text-faint)", fontVariantNumeric: "tabular-nums" }}>
                     {p.hours_since_last_scrape !== null ? `${p.hours_since_last_scrape}h ago` : "never scraped"}
                   </span>
                 </div>
@@ -153,7 +153,7 @@ export default function ScraperHealthPage() {
                   <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--surface-ghost)" }}>
                     <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(coveragePct, 100)}%`, background: barColor }} />
                   </div>
-                  <p className="text-[10px] mt-1" style={{ color: "var(--text-faint)" }}>{coveragePct}% of products scraped in last 6h</p>
+                  <p className="text-xs mt-1" style={{ color: "var(--text-faint)" }}>{coveragePct}% of products scraped in last 6h</p>
                 </div>
               </div>
             );
@@ -167,9 +167,9 @@ export default function ScraperHealthPage() {
 function Stat({ label, value, sub, small }: { label: string; value: string; sub?: string; small?: boolean }) {
   return (
     <div>
-      <p className={`font-bold ${small ? "text-sm" : "text-xl"} text-white`} style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{value}</p>
-      <p className="text-[10px] uppercase tracking-widest mt-0.5" style={{ color: "var(--text-faint)" }}>{label}</p>
-      {sub && <p className="text-[10px] mt-0.5" style={{ color: "var(--text-faint)" }}>{sub}</p>}
+      <p className={`font-bold ${small ? "text-sm" : "text-xl"} text-white`} style={{ fontVariantNumeric: "tabular-nums" }}>{value}</p>
+      <p className="text-xs mt-0.5" style={{ color: "var(--text-faint)" }}>{label}</p>
+      {sub && <p className="text-xs mt-0.5" style={{ color: "var(--text-faint)" }}>{sub}</p>}
     </div>
   );
 }

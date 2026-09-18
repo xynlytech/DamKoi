@@ -62,14 +62,14 @@ function ProductCard({ p }: { p: Product }) {
         }
       </div>
       <div className="flex-1 min-w-0">
-        <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color }}>{p.platform}</span>
+        <span className="text-xs font-semibold capitalize" style={{ color }}>{p.platform}</span>
         <p className="text-sm font-medium line-clamp-2 leading-snug mt-0.5" style={{ color: "var(--text-secondary)" }}>{p.title}</p>
         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-          <span className="font-medium text-sm text-white" style={{ fontFamily: "var(--font-ibm-plex-mono), monospace" }}>{fmt(p.current_price)}</span>
-          {p.in_stock === false && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full" style={{ color: "var(--red)", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}>Out of stock</span>}
+          <span className="font-medium text-sm text-white" style={{ }}>{fmt(p.current_price)}</span>
+          {p.in_stock === false && <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ color: "var(--red)", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}>Out of stock</span>}
         </div>
       </div>
-      <ArrowUpRight size={14} className="flex-shrink-0 mt-1 transition-colors" style={{ color: "var(--text-ghost)" }}
+      <ArrowUpRight size={14} className="flex-shrink-0 mt-1 transition-colors" style={{ color: "var(--text-faint)" }}
         onMouseEnter={(e) => (e.currentTarget.style.color = "var(--lav)")}
         onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-ghost)")}
       />
@@ -86,13 +86,13 @@ function AlertRow({ a }: { a: Alert }) {
         : <TrendingUp size={14} style={{ color: "var(--amber)" }} />}
       <div className="flex-1 min-w-0">
         <p className="text-sm line-clamp-1 leading-snug" style={{ color: "var(--text-body)" }}>{a.product_title ?? "Product"}</p>
-        <p className="text-[10px] mt-0.5" style={{ color: "var(--text-faint)" }}>
+        <p className="text-xs mt-0.5" style={{ color: "var(--text-faint)" }}>
           Target: <span style={{ color: "var(--text-body)" }}>{fmt(a.target_price)}</span>
           {a.current_price && <> · Now: <span style={{ color: hit ? "var(--green)" : "var(--text-body)", fontWeight: hit ? 600 : 400 }}>{fmt(a.current_price)}</span></>}
         </p>
       </div>
-      {hit && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ color: "var(--green)", background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)" }}>HIT</span>}
-      {!a.is_active && <span className="text-[9px] font-medium px-2 py-0.5 rounded-full flex-shrink-0" style={{ color: "var(--text-faint)", background: "var(--surface-ghost)" }}>Paused</span>}
+      {hit && <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ color: "var(--green)", background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)" }}>HIT</span>}
+      {!a.is_active && <span className="text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0" style={{ color: "var(--text-faint)", background: "var(--surface-ghost)" }}>Paused</span>}
     </Link>
   );
 }
@@ -209,7 +209,7 @@ export default function DashboardPage() {
           <motion.div key={s.label} variants={item} className="dk-stat-card text-center">
             <div className="dk-stat-value mb-0.5">{s.value}</div>
             <div className="dk-stat-label">{s.label}</div>
-            <div className="text-[9px] mt-0.5" style={{ color: "var(--text-faint)" }}>{s.sub}</div>
+            <div className="text-xs mt-0.5" style={{ color: "var(--text-faint)" }}>{s.sub}</div>
           </motion.div>
         ))}
       </motion.div>
@@ -218,7 +218,7 @@ export default function DashboardPage() {
         {/* Products — 2/3 */}
         <div className="lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>All tracked products</h2>
+            <h2 className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>All tracked products</h2>
             <Link href="/" className="text-xs transition-colors dk-focus" style={{ color: "var(--lav)" }}>+ Track another</Link>
           </div>
 
@@ -231,7 +231,7 @@ export default function DashboardPage() {
               <Activity size={44} strokeWidth={1.5} className="mx-auto mb-4" style={{ color: "var(--text-faint)" }} />
               <h3 className="font-semibold text-white mb-2">Nothing tracked yet</h3>
               <p className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>Paste a product URL on the homepage to start.</p>
-              <Link href="/" className="dk-btn-primary text-xs uppercase tracking-widest inline-flex dk-focus">Start Tracking</Link>
+              <Link href="/" className="dk-btn-primary text-xs inline-flex dk-focus">Start Tracking</Link>
             </div>
           ) : (
             <motion.div variants={stagger} initial="hidden" animate="visible" className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -243,7 +243,7 @@ export default function DashboardPage() {
         {/* Alerts panel — 1/3 */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xs font-semibold uppercase tracking-widest flex items-center gap-2" style={{ color: "var(--text-muted)" }}>
+            <h2 className="text-xs font-semibold flex items-center gap-2" style={{ color: "var(--text-muted)" }}>
               <Bell size={13} /> My Alerts
             </h2>
             <Link href="/alerts" className="text-xs transition-colors dk-focus" style={{ color: "var(--lav)" }}>Manage</Link>

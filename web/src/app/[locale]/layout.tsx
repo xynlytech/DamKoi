@@ -1,21 +1,34 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
+import { Space_Grotesk, Inter, Noto_Sans_Bengali } from "next/font/google";
 import Link from "next/link";
 import "../globals.css";
 import NavAuthButton from "@/components/NavAuthButton";
 import ThemeToggle from "@/components/ThemeToggle";
 import MobileNav from "@/components/MobileNav";
 
+// Headings + brand
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-space-grotesk",
-  weight: ["400", "500", "600", "700"],
+  weight: ["500", "600", "700"],
+  display: "swap",
 });
 
-const ibmPlexMono = IBM_Plex_Mono({
+// Body copy, UI, numbers (tabular figures)
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-ibm-plex-mono",
-  weight: ["400", "500", "600"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+// Bangla text and the Taka sign. Not preloaded: most first views are English,
+// and the browser only fetches it once a Bengali glyph appears.
+const notoBengali = Noto_Sans_Bengali({
+  subsets: ["bengali"],
+  variable: "--font-bengali",
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -110,14 +123,14 @@ export default async function RootLayout({
     <html
       lang={locale}
       data-theme="dark"
-      className={`${spaceGrotesk.variable} ${ibmPlexMono.variable}`}
+      className={`${spaceGrotesk.variable} ${inter.variable} ${notoBengali.variable}`}
     >
       <head>
         {/* Preconnect to Daraz product-image CDN — saves ~300 ms LCP */}
         <link rel="preconnect" href="https://bd-live-21.slatic.net" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://bd-live-21.slatic.net" />
       </head>
-      <body className="min-h-dvh flex flex-col" style={{ backgroundColor: "var(--bg)", color: "var(--text-primary)", fontFamily: "var(--font-space-grotesk), system-ui, sans-serif" }}>
+      <body className="min-h-dvh flex flex-col" style={{ backgroundColor: "var(--bg)", color: "var(--text-primary)" }}>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(orgLd) }}
@@ -127,23 +140,24 @@ export default async function RootLayout({
           <header className="fixed top-0 left-0 right-0 z-50 dk-nav">
             <div className="mx-auto px-5 h-16 flex items-center justify-between gap-4 max-w-6xl">
               {/* Logo */}
-              <Link href="/" className="flex items-center gap-3 flex-shrink-0">
-                <div className="w-8 h-8 rounded-xl overflow-hidden flex items-center justify-center" style={{ background: "var(--bg2)", border: "1px solid var(--border-sm)" }}>
-                  <img src="/dk-logo.svg" alt="DamKoi" className="w-full h-full object-contain" />
-                </div>
-                <span className="text-lg font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>DamKoi</span>
+              <Link href={`/${locale}`} className="flex items-center gap-2.5 flex-shrink-0 dk-focus" aria-label="DamKoi home">
+                <span className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center" style={{ background: "var(--bg2)", border: "1px solid var(--border-sm)" }}>
+                  <img src="/dk-logo.svg" alt="" className="w-full h-full object-contain" />
+                </span>
+                <span className="dk-display text-lg font-bold" style={{ color: "var(--text-primary)" }}>DamKoi</span>
               </Link>
 
               {/* Desktop Nav */}
-              <nav className="hidden md:flex items-center gap-5">
-                <Link href={`/${locale}/`}         className="dk-nav-link text-xs font-medium uppercase tracking-widest dk-focus">Home</Link>
-                <Link href={`/${locale}/deals`}     className="dk-nav-link text-xs font-medium uppercase tracking-widest dk-focus">Deals</Link>
-                <Link href={`/${locale}/dashboard`} className="dk-nav-link text-xs font-medium uppercase tracking-widest dk-focus">Dashboard</Link>
-                <Link href={`/${locale}/alerts`}    className="dk-nav-link text-xs font-medium uppercase tracking-widest dk-focus">Alerts</Link>
+              <nav className="hidden md:flex items-center gap-1" aria-label="Main">
+                <Link href={`/${locale}/deals`}      className="dk-nav-link dk-focus">Deals</Link>
+                <Link href={`/${locale}/categories`} className="dk-nav-link dk-focus">Categories</Link>
+                <Link href={`/${locale}/dashboard`}  className="dk-nav-link dk-focus">Dashboard</Link>
+                <Link href={`/${locale}/alerts`}     className="dk-nav-link dk-focus">Alerts</Link>
+                <span className="w-px h-5 mx-2" style={{ background: "var(--border-sm)" }} aria-hidden />
                 <NavAuthButton />
                 <ThemeToggle />
-                <Link href={`/${locale}/install`} className="dk-btn-primary text-xs px-4 py-2.5 dk-focus">
-                  Install Extension
+                <Link href={`/${locale}/install`} className="dk-btn-primary ml-2 dk-focus" style={{ minHeight: "2.5rem", padding: "0.5rem 1rem", fontSize: "0.875rem" }}>
+                  Get the extension
                 </Link>
               </nav>
 
@@ -158,29 +172,29 @@ export default async function RootLayout({
           </main>
 
           {/* ── Footer ── */}
-          <footer className="mt-auto py-12" style={{ borderTop: "1px solid var(--border-sm)" }}>
-            <div className="mx-auto px-5 max-w-6xl">
-              <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-lg overflow-hidden flex items-center justify-center" style={{ background: "var(--bg2)", border: "1px solid var(--border-sm)" }}>
-                    <img src="/dk-logo.svg" alt="DamKoi" className="w-full h-full object-contain" />
-                  </div>
-                  <span className="font-bold" style={{ color: "var(--text-primary)" }}>DamKoi</span>
-                  <span className="text-[10px] uppercase tracking-widest ml-2 hidden sm:block" style={{ borderLeft: "1px solid var(--border-sm)", paddingLeft: "0.5rem", color: "var(--text-ghost)" }}>
-                    Bangladesh Shopping Intelligence
+          <footer className="mt-auto py-10" style={{ borderTop: "1px solid var(--border-sm)", background: "var(--bg1)" }}>
+            <div className="mx-auto px-5 max-w-6xl flex flex-col md:flex-row justify-between gap-8">
+              <div className="max-w-xs">
+                <Link href={`/${locale}`} className="flex items-center gap-2.5 dk-focus w-fit">
+                  <span className="w-7 h-7 rounded-lg overflow-hidden flex items-center justify-center" style={{ background: "var(--bg2)", border: "1px solid var(--border-sm)" }}>
+                    <img src="/dk-logo.svg" alt="" className="w-full h-full object-contain" />
                   </span>
-                </div>
-
-                <nav className="flex flex-wrap items-center justify-center gap-5">
-                  {[["Deals", "/deals"], ["Categories", "/categories"], ["Dashboard", "/dashboard"], ["Alerts", "/alerts"], ["Extension", "/install"], ["Privacy", "/privacy"]].map(([label, href]) => (
-                    <Link key={href} href={href} className="text-xs transition-colors dk-focus" style={{ color: "var(--text-faint)" }}>{label}</Link>
-                  ))}
-                </nav>
-
-                <p className="text-[10px]" style={{ color: "var(--text-ghost)", fontFamily: "var(--font-ibm-plex-mono), monospace" }}>
-                  &copy; {new Date().getFullYear()} DamKoi
+                  <span className="dk-display font-bold" style={{ color: "var(--text-primary)" }}>DamKoi</span>
+                </Link>
+                <p className="mt-3 text-sm" style={{ color: "var(--text-muted)" }}>
+                  Real price history and honest deal verdicts for online shoppers in Bangladesh.
                 </p>
               </div>
+
+              <nav className="grid grid-cols-2 sm:grid-cols-3 gap-x-10 gap-y-2.5 text-sm" aria-label="Footer">
+                {[["Deals", "deals"], ["Categories", "categories"], ["Dashboard", "dashboard"], ["Price alerts", "alerts"], ["Browser extension", "install"], ["Privacy", "privacy"]].map(([label, href]) => (
+                  <Link key={href} href={`/${locale}/${href}`} className="dk-nav-link dk-focus" style={{ padding: 0, fontSize: "0.875rem" }}>{label}</Link>
+                ))}
+              </nav>
+            </div>
+            <div className="mx-auto px-5 max-w-6xl mt-8 pt-6 text-xs flex flex-wrap justify-between gap-2" style={{ borderTop: "1px solid var(--border-sm)", color: "var(--text-faint)" }}>
+              <span>&copy; {new Date().getFullYear()} DamKoi</span>
+              <span>Prices in Bangladeshi Taka, checked daily.</span>
             </div>
           </footer>
         </NextIntlClientProvider>

@@ -55,7 +55,7 @@ export default function PremiumPage() {
           {/* Free Tier */}
           <div className="dk-card p-8" style={{ opacity: 0.6 }}>
             <h3 className="text-2xl font-bold mb-2 text-white">Free</h3>
-            <div className="text-4xl font-bold mb-6 text-white" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
+            <div className="text-4xl font-bold mb-6 text-white" style={{ fontVariantNumeric: "tabular-nums" }}>
               ৳0<span className="text-lg font-normal" style={{ color: "var(--text-muted)" }}>/mo</span>
             </div>
             <ul className="space-y-4 mb-8 text-sm">
@@ -79,9 +79,9 @@ export default function PremiumPage() {
 
           {/* Premium Tier */}
           <div className="dk-card p-8 relative overflow-hidden" style={{ border: "1px solid rgba(124,58,237,0.3)" }}>
-            <div className="absolute top-0 right-0 dk-btn-primary text-[10px] font-semibold uppercase tracking-widest py-1 px-4 rounded-bl-xl">Most Popular</div>
+            <div className="absolute top-0 right-0 dk-btn-primary text-xs font-semibold py-1 px-4 rounded-bl-xl">Most Popular</div>
             <h3 className="text-2xl font-bold mb-2" style={{ color: "var(--lav2)" }}>Premium</h3>
-            <div className="text-4xl font-bold mb-6 text-white" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
+            <div className="text-4xl font-bold mb-6 text-white" style={{ fontVariantNumeric: "tabular-nums" }}>
               ৳199<span className="text-lg font-normal" style={{ color: "var(--text-muted)" }}>/mo</span>
             </div>
             <ul className="space-y-4 mb-8 text-sm">

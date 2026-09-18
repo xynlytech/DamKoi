@@ -92,7 +92,7 @@ export default function InstallPage() {
 
       {/* Platforms strip */}
       <section className="py-10" style={{ borderTop: "1px solid var(--border-sm)" }}>
-        <p className="text-center text-[10px] font-semibold uppercase tracking-widest mb-6" style={{ color: "var(--text-faint)" }}>
+        <p className="text-center text-xs font-semibold mb-6" style={{ color: "var(--text-faint)" }}>
           Works automatically on
         </p>
         <div className="flex flex-wrap justify-center gap-3">
@@ -145,7 +145,7 @@ export default function InstallPage() {
                 <img src="/dk-logo.svg" alt="DamKoi" className="w-full h-full object-contain" />
               </div>
               <span className="font-bold text-sm" style={{ color: "var(--lav)" }}>DamKoi</span>
-              <span className="ml-auto text-[9px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full" style={{ background: "var(--bg3)", color: "var(--text-faint)" }}>
+              <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: "var(--bg3)", color: "var(--text-faint)" }}>
                 v2.0
               </span>
             </div>
@@ -162,18 +162,18 @@ export default function InstallPage() {
                   { label: "Deal Score", val: "9 / 10" },
                 ].map((item) => (
                   <div key={item.label} className="rounded-xl p-3" style={{ background: "var(--bg2)", border: "1px solid var(--border-sm)" }}>
-                    <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: "var(--text-faint)" }}>{item.label}</p>
-                    <p className="font-semibold text-white" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{item.val}</p>
+                    <p className="text-xs mb-1" style={{ color: "var(--text-faint)" }}>{item.label}</p>
+                    <p className="font-semibold text-white" style={{ fontVariantNumeric: "tabular-nums" }}>{item.val}</p>
                   </div>
                 ))}
               </div>
               <div className="flex gap-2 pt-1">
                 <div className="flex-1 rounded-xl px-3 py-2 text-center" style={{ background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.2)" }}>
-                  <p className="text-[9px] uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Platform</p>
+                  <p className="text-xs" style={{ color: "var(--text-faint)" }}>Platform</p>
                   <p className="text-xs mt-0.5 font-semibold" style={{ color: "#f97316" }}>Daraz</p>
                 </div>
                 <div className="flex-1 rounded-xl px-3 py-2 text-center" style={{ background: "rgba(124,58,237,0.08)", border: "1px solid rgba(124,58,237,0.2)" }}>
-                  <p className="text-[9px] uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Confidence</p>
+                  <p className="text-xs" style={{ color: "var(--text-faint)" }}>Confidence</p>
                   <p className="text-xs mt-0.5 font-semibold" style={{ color: "var(--lav)" }}>High</p>
                 </div>
               </div>

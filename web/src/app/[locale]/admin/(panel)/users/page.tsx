@@ -112,7 +112,7 @@ export default function AdminUsersPage() {
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[10px] uppercase tracking-widest" style={{ borderBottom: "1px solid var(--border-sm)", color: "var(--text-faint)" }}>
+              <tr className="text-xs" style={{ borderBottom: "1px solid var(--border-sm)", color: "var(--text-faint)" }}>
                 <th className="text-left px-4 py-3 font-semibold">Email</th>
                 <th className="text-left px-4 py-3 font-semibold hidden md:table-cell">Provider</th>
                 <th className="text-center px-4 py-3 font-semibold hidden sm:table-cell">Alerts</th>
@@ -129,22 +129,22 @@ export default function AdminUsersPage() {
                         {u.email ?? <span className="italic" style={{ color: "var(--text-faint)" }}>anonymous</span>}
                       </p>
                       {u.is_admin && (
-                        <span className="text-[8px] font-semibold px-1.5 py-0.5 rounded-full uppercase" style={{ color: "var(--red)", background: "rgba(239,68,68,0.1)" }}>
+                        <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full" style={{ color: "var(--red)", background: "rgba(239,68,68,0.1)" }}>
                           Admin
                         </span>
                       )}
                     </div>
-                    <p className="text-[9px] mt-0.5" style={{ color: "var(--text-faint)", fontFamily: "'IBM Plex Mono', monospace" }}>{u.id.slice(0, 8)}…</p>
+                    <p className="text-xs mt-0.5" style={{ color: "var(--text-faint)", fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>{u.id.slice(0, 8)}…</p>
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
-                    <span className="text-[10px] capitalize" style={{ color: "var(--text-faint)" }}>{u.auth_provider ?? "—"}</span>
+                    <span className="text-xs capitalize" style={{ color: "var(--text-faint)" }}>{u.auth_provider ?? "—"}</span>
                   </td>
                   <td className="px-4 py-3 text-center hidden sm:table-cell">
-                    <span className="text-xs" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{u.active_alert_count}</span>
-                    <span className="text-[9px]" style={{ color: "var(--text-faint)" }}>/{u.alert_count}</span>
+                    <span className="text-xs" style={{ fontVariantNumeric: "tabular-nums" }}>{u.active_alert_count}</span>
+                    <span className="text-xs" style={{ color: "var(--text-faint)" }}>/{u.alert_count}</span>
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
-                    <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>
+                    <span className="text-xs" style={{ color: "var(--text-faint)" }}>
                       {u.created_at ? new Date(u.created_at).toLocaleDateString("en-BD", { month: "short", day: "numeric", year: "2-digit" }) : "—"}
                     </span>
                   </td>
@@ -152,7 +152,7 @@ export default function AdminUsersPage() {
                     <button
                       onClick={() => togglePremium(u)}
                       disabled={toggling === u.id}
-                      className="inline-flex items-center gap-1 text-[10px] font-medium transition-colors disabled:opacity-40 dk-focus"
+                      className="inline-flex items-center gap-1 text-xs font-medium transition-colors disabled:opacity-40 dk-focus"
                     >
                       {toggling === u.id ? (
                         <Loader2 size={14} className="animate-spin" style={{ color: "var(--text-faint)" }} />

@@ -52,7 +52,7 @@ export default async function CategoriesIndex({
             style={{ color: "var(--text-body)" }}
           >
             {c.name}
-            <span className="ml-2 text-[10px]" style={{ color: "var(--text-faint)" }}>
+            <span className="ml-2 text-xs" style={{ color: "var(--text-faint)" }}>
               {c.count.toLocaleString("en-BD")}
             </span>
           </Link>

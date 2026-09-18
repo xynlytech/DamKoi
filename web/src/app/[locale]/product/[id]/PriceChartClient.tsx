@@ -143,7 +143,7 @@ function PriceChart({
         <div className="flex items-center gap-2 px-4 py-2 rounded-xl mb-4 text-sm font-semibold"
           style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", color: "var(--green)" }}>
           <Flame size={14} />
-          All-Time Low! Best chance to buy!
+          At its lowest recorded price
         </div>
       )}
 
@@ -175,7 +175,7 @@ function PriceChart({
               <line x1={PAD.l} y1={t.y} x2={W - PAD.r} y2={t.y}
                 stroke="var(--border-sm)" strokeWidth={1} strokeDasharray="3 4" />
               <text x={W - PAD.r + 4} y={t.y + 4} textAnchor="start"
-                fill="var(--text-ghost)" fontSize={9} fontFamily="'IBM Plex Mono',monospace">
+                fill="var(--text-faint)" fontSize={9}>
                 {fmt(Math.round(t.val))}
               </text>
             </g>
@@ -184,7 +184,7 @@ function PriceChart({
           {/* X labels */}
           {xTicks.map((t, i) => (
             <text key={i} x={t.x} y={H - 6} textAnchor="middle"
-              fill="var(--text-ghost)" fontSize={9} fontFamily="'IBM Plex Mono',monospace">
+              fill="var(--text-faint)" fontSize={9}>
               {t.label}
             </text>
           ))}
@@ -228,10 +228,8 @@ function PriceChart({
                   <g>
                     <rect x={bx} y={by} width={bW} height={bH} rx={6}
                       fill="var(--bg3)" stroke="rgba(124,58,237,0.4)" strokeWidth={1} />
-                    <text x={bx + 10} y={by + 17} fill="var(--lav)" fontSize={12} fontWeight="bold"
-                      fontFamily="'IBM Plex Mono',monospace">{fmt(tooltip.pt.price)}</text>
-                    <text x={bx + 10} y={by + 33} fill="var(--text-faint)" fontSize={9}
-                      fontFamily="'IBM Plex Mono',monospace">{fmtFull(tooltip.pt.scraped_at)}</text>
+                    <text x={bx + 10} y={by + 17} fill="var(--lav)" fontSize={12} fontWeight="bold">{fmt(tooltip.pt.price)}</text>
+                    <text x={bx + 10} y={by + 33} fill="var(--text-faint)" fontSize={9}>{fmtFull(tooltip.pt.scraped_at)}</text>
                   </g>
                 );
               })()}
@@ -243,17 +241,17 @@ function PriceChart({
       {/* Stat cards */}
       <div className="grid grid-cols-3 gap-3 mt-5">
         {[
-          { label: "Highest Price", val: fmt(maxP), icon: <TrendingUp size={11} />, color: "var(--red)"  },
-          { label: "Average Price", val: fmt(avgP), icon: <Minus size={11} />,       color: "var(--amber)" },
-          { label: "Lowest Price",  val: fmt(minP), icon: <TrendingDown size={11} />, color: "var(--green)" },
+          { label: "Highest", val: fmt(maxP), icon: <TrendingUp size={11} />, color: "var(--red)"  },
+          { label: "Average", val: fmt(avgP), icon: <Minus size={11} />,       color: "var(--amber)" },
+          { label: "Lowest",  val: fmt(minP), icon: <TrendingDown size={11} />, color: "var(--green)" },
         ].map((s) => (
           <div key={s.label} className="rounded-xl p-3 text-center"
             style={{ background: "var(--bg2)", border: "1px solid var(--border-sm)" }}>
             <div className="flex items-center justify-center gap-1 mb-1" style={{ color: s.color }}>
               {s.icon}
-              <span className="text-[9px] font-semibold uppercase tracking-widest">{s.label}</span>
+              <span className="text-xs font-semibold">{s.label}</span>
             </div>
-            <p className="text-sm font-bold text-white" style={{ fontFamily: "'IBM Plex Mono',monospace" }}>
+            <p className="text-sm font-bold text-white" style={{ fontVariantNumeric: "tabular-nums" }}>
               {s.val}
             </p>
           </div>
@@ -265,7 +263,7 @@ function PriceChart({
         style={{ background: "var(--bg2)", border: "1px solid var(--border-sm)" }}>
         <BuyGauge score={buyScore} />
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: "var(--text-faint)" }}>
+          <p className="text-xs font-semibold mb-1" style={{ color: "var(--text-faint)" }}>
             Should you buy this now?
           </p>
           <p className="text-xs" style={{ color: "var(--text-muted)" }}>
@@ -277,7 +275,7 @@ function PriceChart({
               ? "Near average price. Acceptable to buy now."
               : "Above average price. Consider waiting for a drop."}
           </p>
-          <p className="text-[9px] mt-1.5" style={{ color: "var(--text-ghost)" }}>
+          <p className="text-xs mt-1.5" style={{ color: "var(--text-faint)" }}>
             Based on {sorted.length} data points
           </p>
         </div>
@@ -291,7 +289,7 @@ function RangePicker({ days, setDays }: { days: number; setDays: (d: number) => 
     <div className="flex gap-1.5 mb-4">
       {RANGES.map((r) => (
         <button key={r.days} onClick={() => setDays(r.days)}
-          className="px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-widest transition-all dk-focus"
+          className="px-3 py-1 rounded-full text-xs font-semibold transition-all dk-focus"
           style={days === r.days
             ? { background: "rgba(124,58,237,0.15)", border: "1px solid rgba(124,58,237,0.4)", color: "var(--lav)" }
             : { background: "var(--surface-ghost)", border: "1px solid var(--border-sm)", color: "var(--text-faint)" }
@@ -320,17 +318,17 @@ export default function PriceChartClient({ productId }: { productId: string }) {
   return (
     <div className="dk-card p-6">
       <div className="flex items-center justify-between mb-5">
-        <h3 className="text-sm font-semibold uppercase tracking-widest" style={{ color: "var(--text-body)" }}>
+        <h3 className="text-sm font-semibold" style={{ color: "var(--text-body)" }}>
           Price History
         </h3>
         <div className="flex items-center gap-3">
-          <span className="text-[9px] font-medium uppercase tracking-widest" style={{ color: "var(--text-ghost)" }}>
-            Updated every 6h
+          <span className="text-xs font-medium" style={{ color: "var(--text-faint)" }}>
+            Checked daily
           </span>
           {!loading && points.length > 0 && (
             <a
               href={`${API}/products/${productId}/price-history.csv?days=${days || 365}`}
-              className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-widest transition-colors dk-focus"
+              className="flex items-center gap-1 text-xs font-semibold transition-colors dk-focus"
               style={{ color: "var(--text-faint)" }}
             >
               <Download size={10} /> CSV

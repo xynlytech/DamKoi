@@ -206,7 +206,7 @@ export default function AdminCouponsPage() {
               { key: "expires_at",      label: "Expires",               type: "date",    options: [],               placeholder: "" },
             ].map(({ key, label, type, placeholder, options }) => (
               <div key={key}>
-                <label className="block text-[10px] uppercase tracking-widest mb-1" style={{ color: "var(--text-faint)" }}>{label}</label>
+                <label className="block text-xs mb-1" style={{ color: "var(--text-faint)" }}>{label}</label>
                 {type === "select" ? (
                   <select
                     value={(form as Record<string, string>)[key]}
@@ -260,7 +260,7 @@ export default function AdminCouponsPage() {
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[10px] uppercase tracking-widest" style={{ borderBottom: "1px solid var(--border-sm)", color: "var(--text-faint)" }}>
+              <tr className="text-xs" style={{ borderBottom: "1px solid var(--border-sm)", color: "var(--text-faint)" }}>
                 <th className="text-left px-4 py-3 font-semibold">Code</th>
                 <th className="text-left px-4 py-3 font-semibold">Platform</th>
                 <th className="text-left px-4 py-3 font-semibold hidden md:table-cell">Discount</th>
@@ -273,13 +273,13 @@ export default function AdminCouponsPage() {
               {coupons.map((c) => (
                 <tr key={c.id} className="transition-colors" style={{ borderBottom: "1px solid var(--border-sm)" }}>
                   <td className="px-4 py-3">
-                    <p className="text-xs font-semibold text-white" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{c.code}</p>
+                    <p className="text-xs font-semibold text-white" style={{ fontVariantNumeric: "tabular-nums" }}>{c.code}</p>
                     {!c.is_active && (
-                      <span className="text-[8px]" style={{ color: "var(--text-faint)" }}>inactive</span>
+                      <span className="text-xs" style={{ color: "var(--text-faint)" }}>inactive</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-[10px] capitalize" style={{ color: "var(--text-muted)" }}>{c.platform}</span>
+                    <span className="text-xs capitalize" style={{ color: "var(--text-muted)" }}>{c.platform}</span>
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell text-xs">
                     {c.discount_pct ? <span style={{ color: "var(--green)" }}>{c.discount_pct}% off</span>
@@ -287,10 +287,10 @@ export default function AdminCouponsPage() {
                       : <span style={{ color: "var(--text-faint)" }}>—</span>}
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
-                    <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{c.payment_method ?? "Any"}</span>
+                    <span className="text-xs" style={{ color: "var(--text-muted)" }}>{c.payment_method ?? "Any"}</span>
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
-                    <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>
+                    <span className="text-xs" style={{ color: "var(--text-faint)" }}>
                       {c.expires_at ? new Date(c.expires_at).toLocaleDateString("en-BD", { month: "short", day: "numeric" }) : "—"}
                     </span>
                   </td>

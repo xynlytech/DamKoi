@@ -82,7 +82,7 @@ export default function UpdatePasswordPage() {
             <button
               type="submit"
               disabled={status === "loading"}
-              className="dk-btn-primary w-full text-xs uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-2 mt-1"
+              className="dk-btn-primary w-full text-xs disabled:opacity-50 flex items-center justify-center gap-2 mt-1"
             >
               {status === "loading" ? (
                 <><Loader2 size={14} className="animate-spin" /> Updating…</>

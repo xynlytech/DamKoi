@@ -9,8 +9,9 @@ import ThemeToggle from "@/components/ThemeToggle";
 
 const LINKS = [
   { href: "/",          label: "Home",      exact: true },
-  { href: "/deals",     label: "Deals",     exact: false },
-  { href: "/dashboard", label: "Dashboard", exact: false },
+  { href: "/deals",      label: "Deals",      exact: false },
+  { href: "/categories", label: "Categories", exact: false },
+  { href: "/dashboard",  label: "Dashboard",  exact: false },
   { href: "/alerts",    label: "Alerts",    exact: false },
 ];
 
@@ -31,7 +32,7 @@ export default function MobileNav({ locale }: { locale: string }) {
   }, []);
 
   // Close on route change
-  useEffect(() => { setOpen(false); }, [pathname]);
+  useEffect(() => { setOpen(false); }, [pathname]); // eslint-disable-line react-hooks/set-state-in-effect -- close drawer on route change
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -45,8 +46,9 @@ export default function MobileNav({ locale }: { locale: string }) {
         <button
           onClick={() => setOpen(true)}
           aria-label="Open menu"
-          className="p-2 rounded-lg dk-focus"
-          style={{ border: "1px solid var(--border-sm)", background: "var(--bg2)", color: "var(--text-muted)" }}
+          aria-expanded={open}
+          className="w-9 h-9 rounded-lg flex items-center justify-center dk-focus"
+          style={{ border: "1px solid var(--border-sm)", background: "transparent", color: "var(--text-muted)" }}
         >
           <Menu size={18} />
         </button>
@@ -94,7 +96,7 @@ export default function MobileNav({ locale }: { locale: string }) {
               <Link
                 key={href}
                 href={`/${locale}${href}`}
-                className="flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all dk-focus"
+                className="flex items-center px-4 py-3 rounded-xl text-base font-medium transition-all dk-focus"
                 style={active
                   ? { background: "var(--bg3)", color: "var(--lav)" }
                   : { color: "var(--text-muted)" }
@@ -110,20 +112,20 @@ export default function MobileNav({ locale }: { locale: string }) {
         <div className="px-4 py-5 space-y-3" style={{ borderTop: "1px solid var(--border-sm)" }}>
           <Link
             href={`/${locale}/install`}
-            className="dk-btn-primary text-xs uppercase tracking-widest w-full text-center block dk-focus"
+            className="dk-btn-primary w-full dk-focus"
           >
-            Install Extension
+            Get the extension
           </Link>
 
           {email ? (
             <div className="flex items-center justify-between gap-3 px-1">
-              <span className="text-[11px] truncate" style={{ color: "var(--text-faint)", fontFamily: "var(--font-ibm-plex-mono), monospace" }}>
+              <span className="text-sm truncate" style={{ color: "var(--text-muted)" }}>
                 {email}
               </span>
               <button
                 onClick={signOut}
-                className="flex items-center gap-1.5 text-[11px] font-medium flex-shrink-0 dk-focus"
-                style={{ color: "var(--text-faint)" }}
+                className="flex items-center gap-1.5 text-sm font-medium flex-shrink-0 dk-focus"
+                style={{ color: "var(--text-muted)" }}
               >
                 <LogOut size={13} /> Sign out
               </button>
@@ -134,7 +136,7 @@ export default function MobileNav({ locale }: { locale: string }) {
               className="flex items-center justify-center gap-2 text-sm font-medium py-2.5 rounded-xl dk-focus"
               style={{ color: "var(--text-muted)", background: "var(--bg2)", border: "1px solid var(--border-sm)" }}
             >
-              <User size={14} /> Sign In
+              <User size={15} aria-hidden /> Sign in
             </Link>
           )}
         </div>

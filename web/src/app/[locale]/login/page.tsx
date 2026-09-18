@@ -95,7 +95,7 @@ export default function LoginPage() {
             {status === "err" && <p className="text-xs -mt-1" style={{ color: "var(--red)" }}>{msg}</p>}
 
             <div className="flex justify-end -mt-1">
-              <Link href="/forgot-password" className="text-[11px] transition-colors dk-focus" style={{ color: "var(--text-faint)" }}>
+              <Link href="/forgot-password" className="text-xs transition-colors dk-focus" style={{ color: "var(--text-faint)" }}>
                 Forgot password?
               </Link>
             </div>
@@ -103,7 +103,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={status === "loading"}
-              className="dk-btn-primary w-full text-xs uppercase tracking-widest mt-1 disabled:opacity-50"
+              className="dk-btn-primary w-full text-xs mt-1 disabled:opacity-50"
             >
               {status === "loading"
                 ? <><Loader2 size={14} className="animate-spin" /> Signing in…</>

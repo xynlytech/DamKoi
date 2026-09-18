@@ -1,46 +1,37 @@
-import { ShoppingCart, ShoppingBag, BookOpen, Smartphone, Store } from "lucide-react";
-
 const PLATFORMS = [
-  { name: "Daraz",    icon: ShoppingCart, color: "#f97316", live: true  },
-  { name: "Cartup",   icon: ShoppingBag,  color: "#3b82f6", live: true  },
-  { name: "Rokomari", icon: BookOpen,     color: "#ef4444", live: true  },
-  { name: "Pickaboo", icon: Smartphone,   color: "#8b5cf6", live: true  },
-  { name: "Chaldal",  icon: ShoppingCart, color: "#22c55e", live: false },
-  { name: "Othoba",   icon: Store,        color: "#ec4899", live: false },
+  { name: "Daraz",    color: "#f97316", live: true  },
+  { name: "Cartup",   color: "#3b82f6", live: true  },
+  { name: "Rokomari", color: "#ef4444", live: true  },
+  { name: "Pickaboo", color: "#8b5cf6", live: true  },
+  { name: "Chaldal",  color: "#22c55e", live: false },
+  { name: "Othoba",   color: "#ec4899", live: false },
 ];
 
 export default function PlatformBadges() {
   return (
-    <section className="py-10">
-      <p className="text-center text-[10px] font-medium uppercase tracking-[0.22em] mb-6" style={{ color: "var(--text-faint)" }}>
-        Tracking prices across
+    <section className="py-8 sm:py-10" aria-label="Supported stores">
+      <p className="text-center text-sm font-medium mb-4" style={{ color: "var(--text-muted)" }}>
+        Works with the stores you already use
       </p>
-      <div className="flex flex-wrap items-center justify-center gap-3">
-        {PLATFORMS.map((p) => {
-          const Icon = p.icon;
-          const alive = p.live;
-          return (
-            <span
-              key={p.name}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-medium transition-all"
-              style={{
-                color:       alive ? p.color          : "var(--text-faint)",
-                background:  alive ? `${p.color}12`   : "var(--surface-ghost)",
-                border:      alive ? `1px solid ${p.color}25` : "1px solid var(--border-sm)",
-                opacity:     alive ? 1 : 0.45,
-              }}
-            >
-              <Icon size={13} />
-              {p.name}
-              {!alive && (
-                <span className="text-[8px] font-medium uppercase tracking-widest px-1.5 py-0.5 rounded-full" style={{ color: "var(--text-faint)", background: "var(--surface-ghost)" }}>
-                  soon
-                </span>
-              )}
-            </span>
-          );
-        })}
-      </div>
+      <ul className="flex flex-wrap items-center justify-center gap-2.5">
+        {PLATFORMS.map((p) => (
+          <li
+            key={p.name}
+            className="inline-flex items-center gap-2 pl-3 pr-3.5 py-2 rounded-full text-sm font-semibold"
+            style={{
+              background: "var(--bg1)",
+              border: "1px solid var(--border-sm)",
+              color: p.live ? "var(--text-primary)" : "var(--text-faint)",
+            }}
+          >
+            <span className="w-2.5 h-2.5 rounded-full" aria-hidden style={{ background: p.color, opacity: p.live ? 1 : 0.45 }} />
+            {p.name}
+            {!p.live && (
+              <span className="text-xs font-medium" style={{ color: "var(--text-faint)" }}>· coming soon</span>
+            )}
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

@@ -32,30 +32,37 @@ const FAQS: { q: string; a: string }[] = [
   },
 ];
 
+// Native <details> accordion: answers stay in the HTML (indexable, readable
+// without JavaScript) but only one wall of text is open at a time.
 export default function FAQSection() {
   return (
-    <section className="max-w-3xl mx-auto px-1 py-16 md:py-24" aria-labelledby="faq-heading">
-      <h2
-        id="faq-heading"
-        className="text-2xl md:text-3xl font-bold tracking-tight mb-3 text-white"
-      >
-        Frequently asked questions
-      </h2>
-      <p className="text-sm mb-10" style={{ color: "var(--text-muted)" }}>
-        How DamKoi tracks prices and spots fake discounts in Bangladesh.
-      </p>
+    <section className="py-14 sm:py-20" aria-labelledby="faq-heading">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-8 lg:gap-14">
+        <div>
+          <p className="dk-eyebrow mb-2">FAQ</p>
+          <h2 id="faq-heading" className="dk-section-title">Questions shoppers ask</h2>
+          <p className="dk-section-sub mt-3">
+            How DamKoi tracks prices and spots fake discounts in Bangladesh.
+          </p>
+        </div>
 
-      <div className="flex flex-col gap-4">
-        {FAQS.map(({ q, a }) => (
-          <details key={q} className="dk-card p-6 group" open>
-            <summary className="cursor-pointer list-none flex items-center justify-between gap-4">
-              <h3 className="text-base md:text-lg font-semibold text-white">{q}</h3>
-            </summary>
-            <p className="mt-4 text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>
-              {a}
-            </p>
-          </details>
-        ))}
+        <div className="dk-card divide-y" style={{ padding: 0 }}>
+          {FAQS.map(({ q, a }, i) => (
+            <details key={q} className="dk-faq group" open={i === 0} style={{ borderColor: "var(--border-sm)" }}>
+              <summary className="flex items-center justify-between gap-4 px-5 sm:px-6 py-5 dk-focus">
+                <h3 className="text-base sm:text-lg font-semibold" style={{ color: "var(--text-primary)", fontFamily: "var(--font-sans)", letterSpacing: "-0.01em" }}>
+                  {q}
+                </h3>
+                <svg className="dk-faq-chevron flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ color: "var(--text-muted)" }}>
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </summary>
+              <p className="px-5 sm:px-6 pb-6 -mt-1 text-[0.9375rem] max-w-[68ch]" style={{ color: "var(--text-body)", lineHeight: 1.7 }}>
+                {a}
+              </p>
+            </details>
+          ))}
+        </div>
       </div>
     </section>
   );

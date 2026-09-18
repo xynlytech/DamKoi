@@ -93,7 +93,7 @@ export default function AlertFormClient({
         <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(124,58,237,0.15)", border: "1px solid rgba(124,58,237,0.2)" }}>
           <Bell size={14} style={{ color: "var(--lav)" }} />
         </div>
-        <span className="text-sm font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+        <span className="text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>
           Set Price Alert
         </span>
       </div>
@@ -108,7 +108,7 @@ export default function AlertFormClient({
           className="dk-input"
         />
         <div className="relative">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm pointer-events-none" style={{ color: "var(--text-faint)", fontFamily: "'IBM Plex Mono', monospace" }}>৳</span>
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm pointer-events-none" style={{ color: "var(--text-faint)", fontVariantNumeric: "tabular-nums" }}>৳</span>
           <input
             type="number"
             placeholder="Target price"
@@ -117,11 +117,11 @@ export default function AlertFormClient({
             required
             min="1"
             className="dk-input pl-9"
-            style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+            style={{ fontVariantNumeric: "tabular-nums" }}
           />
         </div>
         {currentPrice && (
-          <p className="text-[10px] -mt-2" style={{ color: "var(--text-faint)" }}>
+          <p className="text-xs -mt-2" style={{ color: "var(--text-faint)" }}>
             Current: ৳{(currentPrice / 100).toLocaleString("en-BD")} · Suggested: ৳{((currentPrice / 100) * 0.9).toFixed(0)}
           </p>
         )}
@@ -155,7 +155,7 @@ export default function AlertFormClient({
         <button
           type="submit"
           disabled={status === "loading"}
-          className="dk-btn-primary w-full text-xs uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-2"
+          className="dk-btn-primary w-full text-xs disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {status === "loading" ? (
             <><Loader2 size={14} className="animate-spin" /> Setting Alert…</>
@@ -165,7 +165,7 @@ export default function AlertFormClient({
         </button>
 
         {status === "err" && (
-          <p className="text-[11px] text-center" style={{ color: "var(--red)" }}>{msg}</p>
+          <p className="text-xs text-center" style={{ color: "var(--red)" }}>{msg}</p>
         )}
       </form>
     </div>

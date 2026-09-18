@@ -110,7 +110,7 @@ function AlertCard({ alert, email, onUpdate, onDelete }: {
           )}
         </div>
         {alert.last_triggered && (
-          <p className="text-[10px] mt-1" style={{ color: "var(--lav)" }}>
+          <p className="text-xs mt-1" style={{ color: "var(--lav)" }}>
             Last triggered: {new Date(alert.last_triggered).toLocaleDateString("en-BD")}
           </p>
         )}
@@ -254,7 +254,7 @@ export default function AlertsPage() {
             </p>
             <button
               onClick={async () => { await supabase.auth.signOut(); setEmail(null); setAlerts([]); }}
-              className="text-[10px] sm:mt-1 transition-colors dk-focus"
+              className="text-xs sm:mt-1 transition-colors dk-focus"
               style={{ color: "var(--text-faint)" }}
             >
               Sign out
@@ -287,19 +287,19 @@ export default function AlertsPage() {
                   <span> / {FREE_LIMIT}</span>
                 </span>
               </div>
-              {atLimit && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ color: "var(--amber)", background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.2)" }}>Limit reached</span>}
+              {atLimit && <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ color: "var(--amber)", background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.2)" }}>Limit reached</span>}
             </div>
             <div className="flex items-center gap-2">
               {email && alerts.length > 0 && (
                 <a
                   href={`${API}/alerts/export.csv?email=${encodeURIComponent(email)}`}
-                  className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest transition-colors dk-focus"
+                  className="flex items-center gap-1.5 text-xs font-semibold transition-colors dk-focus"
                   style={{ color: "var(--text-faint)" }}
                 >
                   <Download size={11} /> CSV
                 </a>
               )}
-              <Link href="/" className="dk-btn-primary text-[10px] uppercase tracking-widest flex items-center gap-1.5 py-2 px-4 dk-focus">
+              <Link href="/" className="dk-btn-primary text-xs flex items-center gap-1.5 py-2 px-4 dk-focus">
                 <Plus size={11} /> New alert
               </Link>
             </div>
@@ -321,7 +321,7 @@ export default function AlertsPage() {
               <p className="text-sm mb-7" style={{ color: "var(--text-muted)" }}>
                 Go to any product page and set a target price to get started.
               </p>
-              <Link href="/" className="dk-btn-primary inline-flex items-center gap-2 text-xs uppercase tracking-widest dk-focus">Browse products</Link>
+              <Link href="/" className="dk-btn-primary inline-flex items-center gap-2 text-xs dk-focus">Browse products</Link>
             </div>
           ) : (
             <motion.div variants={stagger} initial="hidden" animate="visible" className="space-y-3">
@@ -335,12 +335,12 @@ export default function AlertsPage() {
 
           {/* Telegram linking */}
           <div className="mt-6 rounded-2xl p-6" style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)" }}>
-            <h3 className="text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-2"
+            <h3 className="text-xs font-semibold mb-3 flex items-center gap-2"
               style={{ color: tgLinked ? "var(--green)" : "var(--lav)" }}>
               <Send size={12} />
               Telegram Alerts
               {tgLinked && (
-                <span className="text-[9px] px-2 py-0.5 rounded-full ml-1 font-semibold"
+                <span className="text-xs px-2 py-0.5 rounded-full ml-1 font-semibold"
                   style={{ color: "var(--green)", background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)" }}>
                   Linked
                 </span>
@@ -349,11 +349,11 @@ export default function AlertsPage() {
             {tgLinked ? (
               <div className="flex items-center justify-between gap-4">
                 <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                  Chat ID: <span style={{ fontFamily: "'IBM Plex Mono', monospace", color: "var(--text-body)" }}>{tgChatId}</span>
+                  Chat ID: <span style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", color: "var(--text-body)" }}>{tgChatId}</span>
                   {" · "}Price-drop DMs active on all alerts.
                 </p>
                 <button onClick={unlinkTelegram} disabled={tgBusy}
-                  className="text-[10px] flex-shrink-0 transition-colors dk-focus disabled:opacity-40"
+                  className="text-xs flex-shrink-0 transition-colors dk-focus disabled:opacity-40"
                   style={{ color: "var(--text-faint)" }}>
                   {tgBusy ? <Loader2 size={12} className="animate-spin inline" /> : "Unlink"}
                 </button>
@@ -362,8 +362,8 @@ export default function AlertsPage() {
               <div>
                 <p className="text-xs mb-4" style={{ color: "var(--text-muted)" }}>
                   Get price-drop DMs on Telegram. Message{" "}
-                  <span style={{ color: "var(--lav)", fontFamily: "'IBM Plex Mono', monospace" }}>@DamKoiBot</span>
-                  {" "}and send <span style={{ color: "var(--lav)", fontFamily: "'IBM Plex Mono', monospace" }}>/start</span> — the bot replies with your chat ID.
+                  <span style={{ color: "var(--lav)", fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>@DamKoiBot</span>
+                  {" "}and send <span style={{ color: "var(--lav)", fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>/start</span> — the bot replies with your chat ID.
                 </p>
                 <div className="flex gap-2">
                   <input
@@ -373,7 +373,7 @@ export default function AlertsPage() {
                     onChange={(e) => setTgInput(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && linkTelegram()}
                     className="dk-input flex-1 text-xs"
-                    style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+                    style={{ fontVariantNumeric: "tabular-nums" }}
                   />
                   <button onClick={linkTelegram} disabled={tgBusy || !tgInput.trim()}
                     className="dk-btn-primary text-xs px-4 flex-shrink-0 disabled:opacity-40 flex items-center gap-1.5">
@@ -383,13 +383,13 @@ export default function AlertsPage() {
               </div>
             )}
             {tgMsg && (
-              <p className="text-[11px] mt-3" style={{ color: tgErr ? "var(--red)" : "var(--green)" }}>{tgMsg}</p>
+              <p className="text-xs mt-3" style={{ color: tgErr ? "var(--red)" : "var(--green)" }}>{tgMsg}</p>
             )}
           </div>
 
           {/* How it works */}
           <div className="mt-8 rounded-2xl p-6" style={{ background: "var(--bg1)", border: "1px solid var(--border-sm)" }}>
-            <h3 className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: "var(--lav)" }}>How alerts work</h3>
+            <h3 className="text-xs font-semibold mb-4" style={{ color: "var(--lav)" }}>How alerts work</h3>
             <div className="space-y-2.5">
               {[
                 "Set a target price on any product page",
@@ -398,7 +398,7 @@ export default function AlertsPage() {
                 `Free: ${FREE_LIMIT} active alerts · Premium: unlimited`,
               ].map((text, i) => (
                 <div key={i} className="flex items-center gap-3 text-sm" style={{ color: "var(--text-muted)" }}>
-                  <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] flex-shrink-0" style={{ background: "var(--bg2)", border: "1px solid var(--border-sm)", color: "var(--text-secondary)", fontFamily: "var(--font-ibm-plex-mono), monospace" }}>
+                  <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs flex-shrink-0" style={{ background: "var(--bg2)", border: "1px solid var(--border-sm)", color: "var(--text-secondary)" }}>
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <span>{text}</span>

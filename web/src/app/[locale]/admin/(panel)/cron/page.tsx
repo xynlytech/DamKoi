@@ -103,21 +103,21 @@ export default function AdminCronPage() {
         {JOBS.map(({ id, label, desc }) => (
           <div key={id} className="dk-card p-5">
             <p className="text-sm font-semibold text-white mb-1">{label}</p>
-            <p className="text-[11px] mb-4 leading-relaxed" style={{ color: "var(--text-muted)" }}>{desc}</p>
+            <p className="text-xs mb-4 leading-relaxed" style={{ color: "var(--text-muted)" }}>{desc}</p>
             {dispatched[id] && (
-              <p className="text-[10px] font-semibold flex items-center gap-1 mb-2" style={{ color: "var(--green)" }}>
+              <p className="text-xs font-semibold flex items-center gap-1 mb-2" style={{ color: "var(--green)" }}>
                 <CheckCircle2 size={10} /> Dispatched
               </p>
             )}
             {errors[id] && (
-              <p className="text-[10px] font-semibold flex items-center gap-1 mb-2 break-all" style={{ color: "var(--red)" }}>
+              <p className="text-xs font-semibold flex items-center gap-1 mb-2 break-all" style={{ color: "var(--red)" }}>
                 <XCircle size={10} /> {errors[id]}
               </p>
             )}
             <button
               onClick={() => trigger(id)}
               disabled={running !== null}
-              className="dk-btn-primary w-full flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest disabled:opacity-40"
+              className="dk-btn-primary w-full flex items-center justify-center gap-2 text-xs disabled:opacity-40"
             >
               {running === id ? (
                 <><Loader2 size={11} className="animate-spin" /> Dispatching…</>
@@ -132,7 +132,7 @@ export default function AdminCronPage() {
       {/* Run history */}
       <div className="dk-card overflow-hidden">
         <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--border-sm)" }}>
-          <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
+          <h2 className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>
             Recent Runs
           </h2>
         </div>
@@ -145,7 +145,7 @@ export default function AdminCronPage() {
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[10px] uppercase tracking-widest" style={{ borderBottom: "1px solid var(--border-sm)", color: "var(--text-faint)" }}>
+              <tr className="text-xs" style={{ borderBottom: "1px solid var(--border-sm)", color: "var(--text-faint)" }}>
                 <th className="text-left px-5 py-3 font-semibold">Job</th>
                 <th className="text-left px-5 py-3 font-semibold">Status</th>
                 <th className="text-left px-5 py-3 font-semibold hidden md:table-cell">Result</th>
@@ -160,29 +160,29 @@ export default function AdminCronPage() {
                       {JOB_LABELS[r.job] ?? r.job}
                     </span>
                     {r.event === "schedule" && (
-                      <span className="ml-2 text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: "rgba(99,102,241,0.15)", color: "var(--lav)" }}>cron</span>
+                      <span className="ml-2 text-xs px-1.5 py-0.5 rounded" style={{ background: "rgba(99,102,241,0.15)", color: "var(--lav)" }}>cron</span>
                     )}
                   </td>
                   <td className="px-5 py-3">
-                    <span className="text-[10px] capitalize" style={{
+                    <span className="text-xs capitalize" style={{
                       color: r.status === "completed" ? "var(--text-faint)" : r.status === "in_progress" ? "var(--amber)" : "var(--text-faint)"
                     }}>{r.status}</span>
                   </td>
                   <td className="px-5 py-3 hidden md:table-cell">
                     {r.conclusion === "success" ? (
-                      <span className="flex items-center gap-1 text-[10px] font-semibold" style={{ color: "var(--green)" }}>
+                      <span className="flex items-center gap-1 text-xs font-semibold" style={{ color: "var(--green)" }}>
                         <CheckCircle2 size={10} /> success
                       </span>
                     ) : r.conclusion === "failure" ? (
-                      <span className="flex items-center gap-1 text-[10px] font-semibold" style={{ color: "var(--red)" }}>
+                      <span className="flex items-center gap-1 text-xs font-semibold" style={{ color: "var(--red)" }}>
                         <XCircle size={10} /> failed
                       </span>
                     ) : (
-                      <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{r.conclusion ?? "—"}</span>
+                      <span className="text-xs" style={{ color: "var(--text-faint)" }}>{r.conclusion ?? "—"}</span>
                     )}
                   </td>
                   <td className="px-5 py-3 text-right hidden sm:table-cell">
-                    <span className="text-[10px] flex items-center justify-end gap-1" style={{ color: "var(--text-faint)" }}>
+                    <span className="text-xs flex items-center justify-end gap-1" style={{ color: "var(--text-faint)" }}>
                       <Clock size={9} />
                       {new Date(r.started_at).toLocaleString("en-BD", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                     </span>

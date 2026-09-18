@@ -14,7 +14,7 @@ export default function ThemeToggle() {
     const prefersDark = stored
       ? stored !== "light"
       : window.matchMedia("(prefers-color-scheme: dark)").matches;
-    setIsDark(prefersDark);
+    setIsDark(prefersDark); // eslint-disable-line react-hooks/set-state-in-effect -- sync with localStorage after hydration
     document.documentElement.setAttribute("data-theme", prefersDark ? "dark" : "light");
   }, []);
 
@@ -33,16 +33,16 @@ export default function ThemeToggle() {
     <button
       onClick={toggle}
       aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
-      className="rounded-xl p-2 transition-colors dk-focus"
+      className="w-9 h-9 rounded-lg flex items-center justify-center transition-colors dk-focus"
       style={{
-        background: "var(--bg2)",
+        background: "transparent",
         border: "1px solid var(--border-sm)",
         color: "var(--text-muted)",
       }}
       onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--lav)"; }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-muted)"; }}
     >
-      {isDark ? <Sun size={15} /> : <Moon size={15} />}
+      {isDark ? <Sun size={16} aria-hidden /> : <Moon size={16} aria-hidden />}
     </button>
   );
 }
