@@ -387,6 +387,17 @@ def _price_node_to_paisa(node: dict) -> Optional[int]:
     return _parse_price_to_paisa(node.get("text"))
 
 
+def _sku_in_stock(sku: dict) -> bool:
+    """
+    Stock state of one Daraz SKU. operation.disable stays false on sold-out
+    SKUs; the real signal is quantity.limit.max == 0 ("Out of stock").
+    """
+    if (sku.get("operation") or {}).get("disable", False):
+        return False
+    limit = (sku.get("quantity") or {}).get("limit") or {}
+    return limit.get("max") != 0
+
+
 async def _fetch_mtop_module(
     client: httpx.AsyncClient,
     item_id: str,
@@ -527,8 +538,7 @@ def _product_from_mtop_module(
     else:
         brand = tracking.get("brand_name")
 
-    op = sku.get("operation") or {}
-    in_stock = not op.get("disable", False)
+    in_stock = _sku_in_stock(sku)
 
     return ScrapedProduct(
         external_id=item_id,
@@ -640,9 +650,7 @@ def _parse_module_data_product(url: str, data: dict) -> Optional[ScrapedProduct]
     if original_price and original_price > price:
         discount_pct = int((original_price - price) / original_price * 100)
 
-    # in_stock — operation.disable == False means in stock
-    op = sku_obj.get("operation") or {}
-    in_stock = not op.get("disable", False)
+    in_stock = _sku_in_stock(sku_obj)
 
     image_url = tracking.get("pdt_photo") or product.get("image") or None
 
