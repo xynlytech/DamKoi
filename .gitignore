@@ -63,3 +63,6 @@ extension/popup.bundle.js
 
 # Netlify CLI local state / build output
 .netlify/
+
+# Local scraper runner state (scripts/local-scrape.sh)
+backend/logs/

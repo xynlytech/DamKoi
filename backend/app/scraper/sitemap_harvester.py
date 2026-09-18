@@ -143,8 +143,10 @@ class SitemapHarvester:
 
         # Use PostgreSQL ON CONFLICT DO NOTHING for massive speedup
         async with async_session_factory() as db:
-            # Postgres caps bind params at 32767; 7 cols/row → keep chunk < 4681.
-            chunk_size = 4000
+            # asyncpg caps bind params at 32767. Each row binds the 7 keys above
+            # plus every column with a Python-side default (id, consecutive_misses)
+            # → 9 params/row, so 4000 rows (36,000) overflowed. 3000 rows = 27,000.
+            chunk_size = 3000
             for i in range(0, len(to_insert), chunk_size):
                 chunk = to_insert[i:i + chunk_size]
                 stmt = insert(Product).values(chunk).on_conflict_do_nothing(

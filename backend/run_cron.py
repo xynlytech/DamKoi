@@ -117,6 +117,13 @@ async def main():
     args = sys.argv[1:]
     cmd = args[0] if args else "all"
 
+    # CRON_QUIET_HTTP=1 drops the one-line-per-request INFO logs from httpx
+    # (tens of thousands per scrape pass); errors and warnings still show.
+    if os.environ.get("CRON_QUIET_HTTP", "").lower() in ("1", "true", "yes"):
+        import logging
+        for name in ("httpx", "httpcore"):
+            logging.getLogger(name).setLevel(logging.WARNING)
+
     if cmd == "harvest":
         await run_harvest()
     elif cmd == "scrape":

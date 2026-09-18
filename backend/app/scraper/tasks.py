@@ -25,7 +25,7 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
 from sqlalchemy import select, func, and_, text
-from sqlalchemy.orm import lazyload
+from sqlalchemy.orm import lazyload, load_only
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import async_session_factory
@@ -870,17 +870,48 @@ class ScrapeAgent:
                 by_platform.setdefault(platform, {})[scraped.external_id] = scraped
 
             existing: dict[tuple[str, str], Product] = {}
+            # Which metadata fields are still empty, computed in SQL so the wide
+            # text columns never leave the database. Supabase Free bills every
+            # byte read as egress, and loading full rows (url, title, image_url,
+            # ...) for ~3k products per pass cost ~4 GB/month on its own.
+            gaps: dict[tuple[str, str], tuple[bool, bool, bool, bool]] = {}
             for platform, ext_map in by_platform.items():
                 rows = await db.execute(
-                    select(Product)
+                    select(
+                        Product,
+                        Product.title.like("[Discovered%").label("is_stub"),
+                        (Product.image_url.is_(None) | (Product.image_url == "")).label("no_image"),
+                        (Product.brand.is_(None) | (Product.brand == "")).label("no_brand"),
+                        (Product.category.is_(None) | (Product.category == "")).label("no_category"),
+                    )
                     .where(
                         Product.platform == platform,
                         Product.external_id.in_(list(ext_map.keys())),
                     )
-                    .options(lazyload("*"))
+                    .options(
+                        lazyload("*"),
+                        # Only the columns the save path reads; everything else
+                        # stays deferred (writes to deferred columns need no load).
+                        load_only(
+                            Product.platform,
+                            Product.external_id,
+                            Product.current_price,
+                            Product.current_original_price,
+                            Product.current_discount_pct,
+                            Product.current_in_stock,
+                            Product.previous_price,
+                            Product.price_changed_at,
+                            Product.price_change_delta_pct,
+                            Product.out_of_stock_since,
+                            Product.consecutive_misses,
+                            Product.last_scraped_at,
+                        ),
+                    )
                 )
-                for p in rows.scalars():
-                    existing[(platform, p.external_id)] = p
+                for p, is_stub, no_image, no_brand, no_category in rows.all():
+                    key = (platform, p.external_id)
+                    existing[key] = p
+                    gaps[key] = (bool(is_stub), bool(no_image), bool(no_brand), bool(no_category))
 
             resolved = []  # (product, scraped)
             has_new = False
@@ -907,14 +938,17 @@ class ScrapeAgent:
                 else:
                     # Backfill metadata for discovery stubs (title "[Discovered …]")
                     # and fill any gaps once we have real scraped data.
-                    if (product.title or "").startswith("[Discovered") and scraped.title:
+                    is_stub, no_image, no_brand, no_category = gaps.get(
+                        (platform, scraped.external_id), (False, False, False, False)
+                    )
+                    if is_stub and scraped.title:
                         product.title = scraped.title
                         product.normalized_title = _normalize_title(scraped.title)
-                    if scraped.image_url and not product.image_url:
+                    if scraped.image_url and no_image:
                         product.image_url = scraped.image_url
-                    if scraped.brand and not product.brand:
+                    if scraped.brand and no_brand:
                         product.brand = scraped.brand
-                    if scraped.category and not product.category:
+                    if scraped.category and no_category:
                         product.category = scraped.category
                 resolved.append((product, scraped))
 
