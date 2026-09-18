@@ -393,6 +393,11 @@ async def scrape_via_http(limit: int = 3000, offset: int = 0) -> int:
     return len(scraped)
 
 
+# A product that came back empty this many consecutive scrapes is dead:
+# pass B stops picking it and prune_dead_products deletes it.
+DEAD_MISS_THRESHOLD = 10
+
+
 async def _fetch_product_urls(
     where_clauses: list,
     order_by,
@@ -448,7 +453,13 @@ async def scrape_longtail_products(shard_index: int = 0, total_shards: int = 1):
     # ── Pass B: first-time scrape for newly harvested stubs ───────────
     print(f"   [B] New product discovery — up to {pass_b_limit} stubs")
     urls_b = await _fetch_product_urls(
-        where_clauses=[Product.is_active == True, Product.last_scraped_at.is_(None)],
+        where_clauses=[
+            Product.is_active == True,
+            Product.last_scraped_at.is_(None),
+            # Dead stubs just wait for prune. Re-picking them every pass made
+            # an all-dead batch look like an IP block (0% HTTP yield).
+            Product.consecutive_misses < DEAD_MISS_THRESHOLD,
+        ],
         order_by=Product.first_seen_at.asc(),   # oldest stub first
         offset=0,   # all shards compete for stubs; duplicates are harmless
         limit=pass_b_limit,
@@ -481,13 +492,20 @@ async def _scrape_urls_fast(urls: list[str], label: str = "") -> int:
     else:
         saved = 0
 
+    # A low yield is either an IP block or a batch of delisted products (e.g.
+    # the last stubs pass B can never price). A known-good canary tells them
+    # apart.
+    low_yield = saved < max(1, len(urls) * 0.10)
+    blocked = low_yield and not await _mtop_healthy()
+
     # ── Miss accounting (dead-URL detection) ──────────────────────
-    # Only count misses when the scraper is clearly working (healthy yield).
-    # A blocked/empty session must NOT penalise every product, else we'd
-    # falsely prune live products. Threshold 50% = "scraper is fine, these
-    # specific URLs are genuinely 404/dead".
+    # Only count misses when the scraper is clearly working (healthy yield,
+    # or a low yield while the canary still scrapes). A blocked/empty session
+    # must NOT penalise every product, else we'd falsely prune live products.
+    # Threshold 50% = "scraper is fine, these specific URLs are genuinely
+    # 404/dead".
     yield_ratio = saved / len(urls) if urls else 0
-    if yield_ratio >= 0.5:
+    if yield_ratio >= 0.5 or (low_yield and not blocked):
         saved_ext = {s.external_id for s in scraped}
         attempted_ext = {m.group(1) for u in urls if (m := re.search(r"i(\d+)-s\d+\.html", u))}
         missed_ext = list(attempted_ext - saved_ext)
@@ -505,12 +523,66 @@ async def _scrape_urls_fast(urls: list[str], label: str = "") -> int:
     # Playwright fallback only if a browser is actually available (it is not on
     # the free-tier CI runners, which skip the Playwright install).
     from app.scraper.daraz_scraper import PLAYWRIGHT_AVAILABLE
-    if saved < max(1, len(urls) * 0.10) and PLAYWRIGHT_AVAILABLE:
+    if low_yield and not blocked:
+        print(f"   [{label}] Low HTTP yield but mtop healthy — {len(urls) - saved} URLs look delisted; no Playwright fallback")
+    elif blocked and PLAYWRIGHT_AVAILABLE:
         print(f"   [{label}] Low HTTP yield — trying Playwright fallback")
         agent = ScrapeAgent(batch_name=f"Playwright-{label}", platform="daraz")
         return await agent.run(urls)
 
     return saved
+
+
+async def _mtop_healthy() -> bool:
+    """
+    Can this IP still scrape Daraz? Re-scrape up to 3 recently priced products
+    through the mtop API; any success means the API is answering normally.
+    """
+    import httpx
+    from app.scraper.daraz_http import _scrape_via_mtop
+
+    canaries = await _fetch_product_urls(
+        where_clauses=[
+            Product.is_active == True,
+            Product.platform == "daraz",
+            Product.last_scraped_at.isnot(None),
+        ],
+        order_by=Product.last_scraped_at.desc(),
+        offset=0,
+        limit=3,
+    )
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            for url in canaries:
+                if await _scrape_via_mtop(client, url):
+                    return True
+    except Exception as e:
+        logger.warning("mtop canary failed: %s", e)
+    return False
+
+
+async def _retire_dead_urls(urls) -> None:
+    """
+    Daraz answered 404 for these product URLs (delisted). Never-priced stubs
+    go straight to the dead threshold: they have no history to lose, and
+    otherwise pass B re-picks them every pass. Priced products only take one
+    miss, so a one-off 404 can't cost their price history.
+    """
+    ext_ids = [m.group(1) for u in urls if (m := re.search(r"i(\d+)-s\d+\.html", u))]
+    if not ext_ids:
+        return
+    async with async_session_factory() as db:
+        await db.execute(
+            text(
+                "UPDATE products SET consecutive_misses = CASE "
+                "WHEN last_scraped_at IS NULL THEN GREATEST(consecutive_misses, :dead) "
+                "ELSE consecutive_misses + 1 END "
+                "WHERE platform = 'daraz' AND external_id = ANY(:ext)"
+            ),
+            {"dead": DEAD_MISS_THRESHOLD, "ext": ext_ids},
+        )
+        await db.commit()
+    print(f"   [GONE] Retired {len(ext_ids)} delisted Daraz product(s).")
 
 
 async def scrape_platform_products(platform: str, limit: int = 200):
@@ -800,6 +872,11 @@ class ScrapeAgent:
                 async with DarazScraper(headless=not use_headful) as scraper:
                     products = await scraper.scrape_batch(urls)
 
+                if scraper.dead_urls:
+                    # 404 = delisted. Retire those and only retry the rest.
+                    await _retire_dead_urls(scraper.dead_urls)
+                    urls = [u for u in urls if u not in scraper.dead_urls]
+
                 if products:
                     await self._save_results(products)
                     self.metrics["success"] = len(products)
@@ -807,7 +884,11 @@ class ScrapeAgent:
                     self.metrics["end_time"] = time.monotonic()
                     self._log_metrics()
                     return len(products)
-                
+
+                if not urls:
+                    print(f"   [OK] [Agent] {self.batch_name}: every URL is delisted — nothing to retry.")
+                    return 0
+
                 print(f"   [WARN] [Agent] No products returned in {mode} mode.")
                 self.metrics["errors"].append(f"No products in {mode} mode")
                 
@@ -1253,7 +1334,7 @@ async def cleanup_snapshots():
         logger.error("Local snapshot cleanup failed: %s", e)
 
 
-async def prune_dead_products(days: int = 90, miss_threshold: int = 10, batch: int = 1000):
+async def prune_dead_products(days: int = 90, miss_threshold: int = DEAD_MISS_THRESHOLD, batch: int = 1000):
     """
     Hard-delete dead products to free DB space on the free tier. A product is
     "dead" if EITHER:

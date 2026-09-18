@@ -108,6 +108,10 @@ class DarazScraper:
         self._context = None
         self._consecutive_failures = 0
         self._failure_threshold = 3
+        self._failure_alert_sent = False
+        # URLs Daraz answered with HTTP 404 (product delisted). Not a scrape
+        # failure — the caller retires these instead of retrying them.
+        self.dead_urls: set = set()
 
     async def __aenter__(self):
         await self.start()
@@ -143,6 +147,21 @@ class DarazScraper:
                 })
         except Exception as te:
             print(f"   ⚠️ Could not send Telegram alert: {te}")
+
+    async def _record_failure(self, url: str, error: str):
+        """Count a failed scrape; alert Telegram at most once per session."""
+        self._consecutive_failures += 1
+        if self._consecutive_failures >= self._failure_threshold and not self._failure_alert_sent:
+            self._failure_alert_sent = True
+            await self._notify_failure(url, error)
+
+    def _is_gone(self, url: str, response) -> bool:
+        """True (and URL recorded) when Daraz says the product page is 404."""
+        if response is not None and response.status == 404:
+            print(f"   [GONE] 404 — delisted on Daraz: {url[:80]}")
+            self.dead_urls.add(url)
+            return True
+        return False
 
     async def start(self):
         """Launch browser with stealth settings."""
@@ -193,8 +212,13 @@ class DarazScraper:
             await asyncio.sleep(random.uniform(self.delay_min, self.delay_max))
 
             # Navigate to product page
-            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
-            
+            response = await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            # A delisted product renders Daraz's "error" page with HTTP 404.
+            # That is an answer, not a bot block — retrying it only provokes
+            # Daraz's CAPTCHA.
+            if self._is_gone(url, response):
+                return None
+
             # Check for "CommonError" or empty title (indicates bot block)
             title_tag = await page.title()
             is_error = "error" in title_tag.lower() or not title_tag
@@ -207,7 +231,9 @@ class DarazScraper:
                 await stealth.apply_stealth_async(page)
                 # Randomize viewport slightly
                 await page.set_viewport_size({"width": 1366 + random.randint(-50, 50), "height": 768 + random.randint(-50, 50)})
-                await page.goto(url, wait_until="networkidle", timeout=30000)
+                response = await page.goto(url, wait_until="networkidle", timeout=30000)
+                if self._is_gone(url, response):
+                    return None
 
             # Try __moduleData__ first (current Daraz format)
             product = await self._extract_from_module_data(page, url)
@@ -222,19 +248,15 @@ class DarazScraper:
 
             if not product:
                 await self._save_debug_snapshot(page, url, "extraction_failed")
-                self._consecutive_failures += 1
-                if self._consecutive_failures >= self._failure_threshold:
-                    await self._notify_failure(url, "Extraction failed (DOM/JSON mismatch)")
+                await self._record_failure(url, "Extraction failed (DOM/JSON mismatch)")
             else:
                 self._consecutive_failures = 0 # Reset on success
 
             return product
 
         except Exception as e:
-            self._consecutive_failures += 1
             print(f"❌ Scrape failed for {url}: {e}")
-            if self._consecutive_failures >= self._failure_threshold:
-                await self._notify_failure(url, str(e))
+            await self._record_failure(url, str(e))
             try:
                 await self._save_debug_snapshot(page, url, "navigation_error")
             except:
