@@ -28,6 +28,8 @@ export async function GET(req: NextRequest) {
       headers: {
         ...cors(),
         "Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400",
+        // Netlify's CDN ignores query params unless told otherwise (?min=...).
+        "Netlify-Vary": "query",
       },
     },
   );

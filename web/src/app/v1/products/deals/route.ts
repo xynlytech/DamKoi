@@ -5,6 +5,9 @@ import { getVerdict } from '@/lib/verdict';
 // Deals change at most once per scrape pass; let the CDN absorb repeat hits
 // (home page, deals page, "show more", extension) instead of Supabase egress.
 const CACHE = 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400';
+// Netlify's Next.js runtime keys the CDN cache on `_rsc`/`__nextDataReq` only,
+// so without this every filter combination was served the first cached list.
+const CACHE_HEADERS = { 'Cache-Control': CACHE, 'Netlify-Vary': 'query' };
 
 // price_history is fetched with `product_id IN (...)`; keep each request's URL short.
 const ID_CHUNK = 150;
@@ -63,7 +66,7 @@ export async function GET(req: NextRequest) {
 
   const { data: products, error } = await query;
   if (error) return unavailable();
-  if (!products?.length) return NextResponse.json([], { headers: { ...cors(), 'Cache-Control': CACHE } });
+  if (!products?.length) return NextResponse.json([], { headers: { ...cors(), ...CACHE_HEADERS } });
 
   const ids = (products as RawProduct[]).map((p) => p.id);
   const histRows: { product_id: string; series: [number, number][] }[] = [];
@@ -115,5 +118,5 @@ export async function GET(req: NextRequest) {
     .sort((a, b) => b.deal_score - a.deal_score)
     .slice(offset, offset + limit);
 
-  return NextResponse.json(deals, { headers: { ...cors(), 'Cache-Control': CACHE } });
+  return NextResponse.json(deals, { headers: { ...cors(), ...CACHE_HEADERS } });
 }
