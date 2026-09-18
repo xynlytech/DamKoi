@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
   // Find product
   const { data: product, error: pErr } = await db
     .from('products')
-    .select('id, title, url, image_url, platform, external_id, last_scraped_at, current_price')
+    .select('id, title, url, image_url, platform, external_id, first_seen_at, last_scraped_at, current_price')
     .eq('platform', platform)
     .eq('external_id', externalId)
     .single();
@@ -54,7 +54,15 @@ export async function GET(req: NextRequest) {
   const atlPt = minPrice != null ? series.find(([, price]) => price === minPrice) : null;
   const atlDate = atlPt ? new Date(atlPt[0] * 86400 * 1000).toISOString().slice(0, 10) : null;
 
-  const verdict = getVerdict(latestPrice, prices30d, allPrices, atlDate);
+  // Same observation window as /v1/products/[id]/verdict (the product page),
+  // so the extension and the website give the same verdict for a product.
+  // Without it, long-tracked products with a stable price were reported as
+  // "not enough data yet" here while the website showed a full verdict.
+  const first = product.first_seen_at ? new Date(product.first_seen_at as string).getTime() : null;
+  const last = product.last_scraped_at ? new Date(product.last_scraped_at as string).getTime() : Date.now();
+  const trackingDays = first ? Math.max(0, Math.floor((last - first) / 86400000)) : 0;
+
+  const verdict = getVerdict(latestPrice, prices30d, allPrices, atlDate, 'en', trackingDays);
 
   return NextResponse.json(
     {

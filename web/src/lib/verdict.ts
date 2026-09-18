@@ -30,12 +30,13 @@ function fmt(paisa: number): string {
   return `৳${Number.isInteger(bdt) ? bdt.toLocaleString("en-BD") : bdt.toFixed(2)}`;
 }
 
+// Sentence case: shown verbatim by the extension's verdict badges.
 const DISPLAY_EN: Record<VerdictLabel, string> = {
-  FAKE_DISCOUNT: "FAKE DISCOUNT",
-  BEST_PRICE: "BEST PRICE — ALL-TIME LOW",
-  GOOD_DEAL: "GOOD DEAL",
-  FAIR_PRICE: "FAIR PRICE",
-  INSUFFICIENT_DATA: "TRACKING — NOT ENOUGH DATA YET",
+  FAKE_DISCOUNT: "Fake discount",
+  BEST_PRICE: "Best price — lowest we've seen",
+  GOOD_DEAL: "Good deal",
+  FAIR_PRICE: "Fair price",
+  INSUFFICIENT_DATA: "Still tracking — not enough data yet",
 };
 
 const DISPLAY_BN: Record<VerdictLabel, string> = {

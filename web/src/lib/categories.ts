@@ -11,11 +11,23 @@ export async function fetchCategories(min = 12): Promise<Category[]> {
     const db = createServerClient();
     const { data, error } = await db.rpc("category_counts", { min_count: min });
     if (error || !data) return [];
-    return (data as { category: string; n: number }[]).map((r) => ({
-      name: r.category,
-      slug: categorySlug(r.category),
-      count: Number(r.n),
-    }));
+    // Store categories sometimes differ only by case or "&"/"and"
+    // ("Hair Accessories" / "Hair accessories"); they share a slug, so merge
+    // them: one chip, one URL, summed count, the most common spelling wins.
+    const bySlug = new Map<string, Category & { top: number }>();
+    for (const r of data as { category: string; n: number }[]) {
+      const slug = categorySlug(r.category);
+      const n = Number(r.n);
+      const prev = bySlug.get(slug);
+      if (!prev) bySlug.set(slug, { name: r.category, slug, count: n, top: n });
+      else {
+        prev.count += n;
+        if (n > prev.top) { prev.name = r.category; prev.top = n; }
+      }
+    }
+    return [...bySlug.values()]
+      .sort((a, b) => b.count - a.count)
+      .map(({ name, slug, count }) => ({ name, slug, count }));
   } catch {
     return [];
   }
