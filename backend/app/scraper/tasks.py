@@ -533,6 +533,22 @@ async def _scrape_urls_fast(urls: list[str], label: str = "") -> int:
     return saved
 
 
+async def refresh_deal_scores() -> None:
+    """
+    Rebuild the deal_scores materialized view the deals page pages through
+    (see alembic f1a2b3c4d5e6). CONCURRENTLY keeps it readable while it
+    rebuilds; a failure only leaves the previous deals list in place.
+    """
+    try:
+        async with async_session_factory() as db:
+            await db.execute(text("SET LOCAL statement_timeout = 180000"))
+            await db.execute(text("REFRESH MATERIALIZED VIEW CONCURRENTLY public.deal_scores"))
+            await db.commit()
+        print("   [DEALS] deal_scores refreshed.")
+    except Exception as e:
+        logger.error("deal_scores refresh failed: %s", e)
+
+
 async def _mtop_healthy() -> bool:
     """
     Can this IP still scrape Daraz? Re-scrape up to 3 recently priced products

@@ -57,6 +57,7 @@ async def run_scrape(shard_index: int = 0, total_shards: int = 1):
         scrape_hot_products,
         scrape_tracked_products,
         scrape_longtail_products,
+        refresh_deal_scores,
     )
     # Shard 0 handles priority products first:
     #   hot (10+ alerts) and tracked (1+ alert) — must be fresh before alert checks run
@@ -67,6 +68,7 @@ async def run_scrape(shard_index: int = 0, total_shards: int = 1):
         await scrape_tracked_products()
     print(f"[cron] Scraping longtail products (shard {shard_index}/{total_shards})...")
     await scrape_longtail_products(shard_index=shard_index, total_shards=total_shards)
+    await refresh_deal_scores()   # deals page reads this view
     print("[cron] Scrape done.")
 
 

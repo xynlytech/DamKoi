@@ -9,9 +9,6 @@ const CACHE = 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400'
 // so without this every filter combination was served the first cached list.
 const CACHE_HEADERS = { 'Cache-Control': CACHE, 'Netlify-Vary': 'query' };
 
-// price_history is fetched with `product_id IN (...)`; keep each request's URL short.
-const ID_CHUNK = 150;
-
 type RawProduct = {
   id: string;
   title: string;
@@ -36,7 +33,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const minScore = intParam(searchParams.get('min_score'), 6, 0, 10);
   const limit = intParam(searchParams.get('limit'), 20, 1, 50);
-  const offset = intParam(searchParams.get('offset'), 0, 0, 300);
+  const offset = intParam(searchParams.get('offset'), 0, 0, 20000);
   const platform = searchParams.get('platform') || '';
   // Category is matched as a substring of the store's category name; only
   // letters, digits, spaces and hyphens so it can't alter the filter syntax.
@@ -44,18 +41,17 @@ export async function GET(req: NextRequest) {
 
   const db = createServerClient();
 
-  // Candidates: listings whose most recent price change was a drop, newest
-  // first. (Previously this took the first 200 active rows in storage order,
-  // so only ~1 in 200 was an actual deal and the deals page was usually empty.)
-  const candidateLimit = Math.min(600, Math.max(200, (offset + limit) * 4));
+  // deal_scores (materialized view, refreshed by the scraper after every pass)
+  // scores every product whose latest price change was a drop with the same
+  // rules as getVerdict, so paging reaches all deals, not just recent drops.
   let query = db
-    .from('products')
-    .select('id, title, url, image_url, platform, current_price, first_seen_at, last_scraped_at')
-    .eq('is_active', true)
-    .not('last_scraped_at', 'is', null)
-    .lt('price_change_delta_pct', 0)
+    .from('deal_scores')
+    .select('product_id')
+    .gte('deal_score', minScore)
+    .neq('label', 'FAKE_DISCOUNT')
+    .order('deal_score', { ascending: false })
     .order('price_changed_at', { ascending: false, nullsFirst: false })
-    .limit(candidateLimit);
+    .range(offset, offset + limit - 1);
 
   if (platform) query = query.eq('platform', platform);
   if (category) query = query.ilike('category', `%${category}%`);
@@ -64,25 +60,30 @@ export async function GET(req: NextRequest) {
   const unavailable = () =>
     NextResponse.json({ detail: 'Deals are temporarily unavailable' }, { status: 503, headers: { ...cors(), 'Cache-Control': 'no-store' } });
 
-  const { data: products, error } = await query;
+  const { data: ranked, error } = await query;
   if (error) return unavailable();
-  if (!products?.length) return NextResponse.json([], { headers: { ...cors(), ...CACHE_HEADERS } });
+  if (!ranked?.length) return NextResponse.json([], { headers: { ...cors(), ...CACHE_HEADERS } });
 
-  const ids = (products as RawProduct[]).map((p) => p.id);
-  const histRows: { product_id: string; series: [number, number][] }[] = [];
-  for (let i = 0; i < ids.length; i += ID_CHUNK) {
-    const { data, error: histError } = await db
-      .from('price_history')
-      .select('product_id, series')
-      .in('product_id', ids.slice(i, i + ID_CHUNK));
-    if (histError) return unavailable();
-    if (data) histRows.push(...(data as typeof histRows));
-  }
-  const seriesById = new Map(histRows.map((h) => [h.product_id, h.series ?? []]));
+  const ids = (ranked as { product_id: string }[]).map((r) => r.product_id);
+  const [{ data: productRows, error: prodError }, { data: histRows, error: histError }] = await Promise.all([
+    db
+      .from('products')
+      .select('id, title, url, image_url, platform, current_price, first_seen_at, last_scraped_at')
+      .in('id', ids),
+    db.from('price_history').select('product_id, series').in('product_id', ids),
+  ]);
+  if (prodError || histError) return unavailable();
+
+  const productById = new Map((productRows as RawProduct[]).map((p) => [p.id, p]));
+  const seriesById = new Map(
+    ((histRows ?? []) as { product_id: string; series: [number, number][] }[]).map((h) => [h.product_id, h.series ?? []]),
+  );
+  // Keep the view's ranking; the view may be up to one scrape pass old.
+  const products = ids.map((id) => productById.get(id)).filter((p): p is RawProduct => p !== undefined);
 
   const since30dMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
 
-  const deals = (products as RawProduct[])
+  const deals = products
     .map((p) => {
       const series = seriesById.get(p.id) ?? [];
       const current = p.current_price ?? 0;
@@ -114,9 +115,7 @@ export async function GET(req: NextRequest) {
         avg_30d: verdict.avg_30d,
       };
     })
-    .filter((d): d is NonNullable<typeof d> => d !== null)
-    .sort((a, b) => b.deal_score - a.deal_score)
-    .slice(offset, offset + limit);
+    .filter((d): d is NonNullable<typeof d> => d !== null);
 
   return NextResponse.json(deals, { headers: { ...cors(), ...CACHE_HEADERS } });
 }
