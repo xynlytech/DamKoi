@@ -158,7 +158,10 @@ class DamKoiExtension {
     document.body.appendChild(this.sidebar);
     this.setupEvents();
 
-    if (this.data) this.switchTab('priceHistory');
+    // force: currentTab already defaults to 'priceHistory', so a plain call
+    // hit switchTab's "already on this tab" early return and left the
+    // loading skeleton on screen until the user clicked another tab.
+    if (this.data) this.switchTab(this.currentTab || 'priceHistory', { force: true });
   }
 
   setupEvents() {
@@ -175,8 +178,8 @@ class DamKoiExtension {
     });
   }
 
-  switchTab(tabId) {
-    if (this.currentTab === tabId && !this.sidebar?.classList.contains('collapsed')) return;
+  switchTab(tabId, { force = false } = {}) {
+    if (!force && this.currentTab === tabId && !this.sidebar?.classList.contains('collapsed')) return;
     this.currentTab = tabId;
 
     this.sidebar.querySelectorAll('.damkoi-nav-item').forEach(item => {
@@ -312,7 +315,7 @@ class DamKoiExtension {
       <div class="damkoi-card" style="margin-bottom:12px;">
         <div id="damkoi-gauge"></div>
         <span class="verdict-badge ${badgeClass}" style="margin-top:12px;">${verdict.display}</span>
-        <p style="font-size:11px;color:var(--dk-dim);line-height:1.6;margin-top:6px;">${verdict.explanation}</p>
+        <p style="font-size:12px;color:var(--dk-dim);line-height:1.6;margin-top:6px;">${verdict.explanation}</p>
       </div>
 
       <div class="damkoi-price-grid" style="margin-bottom:16px;">
@@ -411,8 +414,8 @@ class DamKoiExtension {
     const label = { buy: 'BUY NOW', wait: 'WAIT', neutral: 'NEUTRAL' }[rec.action] || rec.action.toUpperCase();
     return `
       <div style="border-left:3px solid ${color};background:${color}18;padding:10px 12px;border-radius:0 8px 8px 0;margin-top:8px;">
-        <div style="color:${color};font-size:9px;font-weight:900;letter-spacing:0.1em;margin-bottom:4px;">${label}</div>
-        <div style="font-size:11px;color:var(--dk-muted);line-height:1.55;">${rec.text}</div>
+        <div style="color:${color};font-size:12px;font-weight:900;margin-bottom:4px;">${label}</div>
+        <div style="font-size:12px;color:var(--dk-muted);line-height:1.55;">${rec.text}</div>
       </div>
     `;
   }
@@ -458,9 +461,9 @@ class DamKoiExtension {
         compareList.innerHTML = filtered.map(c => `
           <div class="damkoi-card" style="margin-bottom:8px;display:flex;align-items:center;gap:10px;">
             <span class="dk-platform-badge">${c.platform}</span>
-            <div style="flex:1;font-size:11px;color:var(--dk-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.title || ''}</div>
+            <div style="flex:1;font-size:12px;color:var(--dk-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.title || ''}</div>
             <span style="font-size:13px;font-weight:800;">${formatBDT(c.current_price)}</span>
-            <a href="${c.url}" target="_blank" rel="noopener" style="color:var(--dk-accent);font-size:10px;white-space:nowrap;text-decoration:none;">View</a>
+            <a href="${c.url}" target="_blank" rel="noopener" style="color:var(--dk-accent);font-size:12px;white-space:nowrap;text-decoration:none;">View</a>
           </div>
         `).join('');
       }
@@ -486,7 +489,7 @@ class DamKoiExtension {
           }
           <div style="flex:1;min-width:0;">
             <span class="dk-platform-badge">${alt.platform}</span>
-            <div style="font-size:11px;font-weight:600;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--dk-text);margin-bottom:4px;">${alt.title}</div>
+            <div style="font-size:12px;font-weight:600;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--dk-text);margin-bottom:4px;">${alt.title}</div>
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <span style="font-size:13px;font-weight:800;">${formatBDT(alt.current_price)}</span>
               ${savings > 0 ? `<span class="dk-save-badge">Save ${formatBDT(savings)}</span>` : ''}
@@ -510,7 +513,7 @@ class DamKoiExtension {
 
     container.innerHTML = `
       <h3 style="display:flex;align-items:center;gap:6px;"><span style="width:16px;height:16px;display:inline-block;">${ICONS.coupons}</span> Coupons & Deals</h3>
-      <p style="font-size:11px;color:var(--dk-dim);margin:0 0 14px;">Copy & paste at checkout for instant savings.</p>
+      <p style="font-size:12px;color:var(--dk-dim);margin:0 0 14px;">Copy & paste at checkout for instant savings.</p>
       <div id="dk-coupon-list"><div class="dk-loading">Loading coupons...</div></div>
     `;
 
@@ -609,7 +612,7 @@ class DamKoiExtension {
           <input type="number" id="alert-price" class="damkoi-input" style="padding-left:35px;" placeholder="Target price" value="${this.alertFormState.price || defaultPrice}" />
         </div>
         <button class="damkoi-btn" id="save-alert">Set Alert</button>
-        <div id="alert-status" class="damkoi-status-pill" style="margin-top:8px;font-size:11px;border-radius:8px;padding:0;"></div>
+        <div id="alert-status" class="damkoi-status-pill" style="margin-top:8px;font-size:12px;border-radius:8px;padding:0;"></div>
       </div>
       <div style="height:1px;background:var(--dk-border);margin-bottom:16px;"></div>
       <h4>Your Active Alerts</h4>
@@ -665,7 +668,7 @@ class DamKoiExtension {
         <div class="damkoi-card" style="margin-bottom:10px;">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
             <div style="min-width:0;flex:1;">
-              <div style="font-size:10px;color:var(--dk-dim);margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.product_title || 'Product'}</div>
+              <div style="font-size:12px;color:var(--dk-dim);margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.product_title || 'Product'}</div>
               <div style="font-size:13px;font-weight:700;">Target: ${formatBDT(a.target_price)}</div>
             </div>
             <span class="dk-alert-badge ${a.is_active ? 'active' : 'inactive'}">${a.is_active ? 'Active' : 'Paused'}</span>
@@ -751,10 +754,10 @@ class DamKoiExtension {
       <div class="dk-settings-section">
         <h4>Notifications</h4>
         <div class="damkoi-card" style="padding:12px;">
-          <label style="font-size:11px;color:var(--dk-dim);display:block;margin-bottom:6px;">Alert email</label>
+          <label style="font-size:12px;color:var(--dk-dim);display:block;margin-bottom:6px;">Alert email</label>
           <input type="email" id="settings-email" class="damkoi-input" style="margin-bottom:8px;" placeholder="your@email.com" value="${email}" />
           <button class="damkoi-btn" id="settings-save-email" style="padding:9px 14px;font-size:12px;">Save Email</button>
-          <div id="settings-email-status" style="margin-top:6px;font-size:11px;min-height:16px;"></div>
+          <div id="settings-email-status" style="margin-top:6px;font-size:12px;min-height:16px;"></div>
         </div>
       </div>
 
@@ -764,7 +767,7 @@ class DamKoiExtension {
           <div class="dk-settings-row">
             <div>
               <div style="font-size:12px;color:var(--dk-muted);">Auto-test coupons at checkout</div>
-              <div style="font-size:10px;color:var(--dk-dim);margin-top:2px;">Finds the best code automatically</div>
+              <div style="font-size:12px;color:var(--dk-dim);margin-top:2px;">Finds the best code automatically</div>
             </div>
             <label class="dk-toggle">
               <input type="checkbox" id="settings-auto-apply" ${autoApply ? 'checked' : ''}>
@@ -778,11 +781,11 @@ class DamKoiExtension {
         <h4>Data & Cache</h4>
         <div class="damkoi-card" style="padding:12px;">
           <button class="dk-ghost-btn" id="settings-clear-cache" style="width:100%;font-size:12px;">Clear Cached Data</button>
-          <div id="settings-cache-status" style="margin-top:6px;font-size:11px;text-align:center;min-height:16px;"></div>
+          <div id="settings-cache-status" style="margin-top:6px;font-size:12px;text-align:center;min-height:16px;"></div>
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:16px;font-size:10px;color:var(--dk-dim);">
+      <div style="text-align:center;margin-top:16px;font-size:12px;color:var(--dk-dim);">
         DamKoi v2.1.0 · Made in Bangladesh
       </div>
     `;
@@ -872,7 +875,7 @@ class DamKoiExtension {
       label.style.color = pm === 'bkash' ? '#e91e8c' : pm === 'nagad' ? '#f97316' : '#a78bfa';
     } else {
       label.textContent = 'Showing all codes';
-      label.style.color = 'rgba(255,255,255,0.4)';
+      label.style.color = 'rgba(255,255,255,0.64)';
     }
   }
 
@@ -889,7 +892,7 @@ class DamKoiExtension {
             <img src="${chrome.runtime.getURL('icons/dk_logo.svg')}" style="width: 20px; height: 20px;" />
             <span style="font-weight: 800; font-size: 14px;">DamKoi Magic</span>
           </div>
-          <span id="dk-payment-label" style="font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.4);">Showing all codes</span>
+          <span id="dk-payment-label" style="font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.64);">Showing all codes</span>
         </div>
         <p style="font-size: 13px; color: rgba(255,255,255,0.7); margin: 8px 0 16px 0; line-height: 1.4;">
           Found active coupons. Auto-test all to find best discount.

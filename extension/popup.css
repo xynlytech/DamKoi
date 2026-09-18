@@ -3,8 +3,6 @@
  * Design: Dark Intelligence × Premium Analytics
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
-
 :root {
   --bg:         #08071a;
   --bg1:        #0e0c24;
@@ -17,8 +15,8 @@
   --red:        #ef4444;
   --amber:      #f59e0b;
   --w:          #ffffff;
-  --w70:        rgba(255,255,255,0.7);
-  --w40:        rgba(255,255,255,0.4);
+  --w70:        rgba(255,255,255,0.8);
+  --w40:        rgba(255,255,255,0.64);
   --w20:        rgba(255,255,255,0.2);
   --w10:        rgba(255,255,255,0.1);
   --w5:         rgba(255,255,255,0.05);
@@ -36,8 +34,8 @@ body {
   min-height: 220px;
   background: var(--bg);
   color: var(--w);
-  font-family: 'Space Grotesk', -apple-system, sans-serif;
-  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Bengali", "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
@@ -71,10 +69,8 @@ body {
 }
 
 .popup-tagline {
-  font-size: 9px;
+  font-size: 12px;
   color: var(--w40);
-  text-transform: uppercase;
-  letter-spacing: 1.8px;
   font-weight: 500;
 }
 
@@ -84,11 +80,9 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 9px;
+  font-size: 12px;
   color: var(--green);
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
 }
 
 .live-dot::before {
@@ -187,7 +181,7 @@ body {
   border: 1px solid var(--border-sm);
   border-radius: var(--radius-sm);
   color: var(--w);
-  font-size: 11px;
+  font-size: 12px;
   font-family: inherit;
   outline: none;
   transition: border-color var(--t);
@@ -232,8 +226,6 @@ body {
   padding: 4px 12px;
   border-radius: 20px;
   border: 1px solid transparent;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
 .verdict-badge.fake    { color: var(--red);   background: rgba(239,68,68,0.12);    border-color: rgba(239,68,68,0.25); }
@@ -251,7 +243,7 @@ body {
 }
 
 .damkoi-gauge-value {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Bengali", "Helvetica Neue", Arial, sans-serif; font-variant-numeric: tabular-nums;
   font-size: 20px;
   font-weight: 600;
   margin-top: -2px;
@@ -260,16 +252,14 @@ body {
 }
 
 .damkoi-gauge-label {
-  font-size: 8px;
+  font-size: 12px;
   color: var(--w40);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
   text-align: center;
   font-weight: 500;
 }
 
 .score-number {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Bengali", "Helvetica Neue", Arial, sans-serif; font-variant-numeric: tabular-nums;
   font-size: 24px;
   font-weight: 600;
   line-height: 1;
@@ -277,17 +267,15 @@ body {
 }
 
 .score-label {
-  font-size: 9px;
+  font-size: 12px;
   color: var(--w40);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
   margin-top: 2px;
 }
 
 /* ── Explanation ─────────────────────────────────────────── */
 
 .verdict-explanation {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--w40);
   line-height: 1.6;
 }
@@ -316,16 +304,14 @@ body {
 }
 
 .price-tile-label {
-  font-size: 9px;
+  font-size: 12px;
   color: var(--w40);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
   font-weight: 500;
   margin-bottom: 6px;
 }
 
 .price-tile-value {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Bengali", "Helvetica Neue", Arial, sans-serif; font-variant-numeric: tabular-nums;
   font-size: 13px;
   font-weight: 500;
   color: var(--w70);
@@ -351,7 +337,7 @@ body {
 .price-chart-wrapper .damkoi-chart-container svg { display: block; width: 100%; height: auto; }
 
 .damkoi-no-data {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--w40);
   text-align: center;
   padding: 14px 0;
@@ -366,7 +352,7 @@ body {
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Bengali", "Helvetica Neue", Arial, sans-serif;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -399,7 +385,7 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   text-decoration: none;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.02em;
   transition: all var(--t);
@@ -416,11 +402,9 @@ body {
 /* ── Alternatives ────────────────────────────────────────── */
 
 .alternatives-label {
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--w40);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
   margin-bottom: 8px;
 }
 
@@ -471,33 +455,31 @@ body {
 .alt-info { flex: 1; min-width: 0; }
 
 .alt-title {
-  font-size: 11px; font-weight: 500;
+  font-size: 12px; font-weight: 500;
   color: var(--w70);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   margin-bottom: 2px;
 }
 
 .alt-price {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Bengali", "Helvetica Neue", Arial, sans-serif; font-variant-numeric: tabular-nums;
   font-size: 12px; font-weight: 500;
   color: var(--green);
 }
 
-.alt-savings  { font-size: 9px; color: var(--w40); margin-left: 5px; font-weight: 500; }
-.alt-score    { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; flex-shrink: 0; }
-.alt-platform { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--w40); margin-bottom: 2px; }
-.alt-more     { font-size: 9px; color: var(--red); margin-left: 5px; font-weight: 500; }
+.alt-savings  { font-size: 12px; color: var(--w40); margin-left: 5px; font-weight: 500; }
+.alt-score    { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Bengali", "Helvetica Neue", Arial, sans-serif; font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+.alt-platform { font-size: 12px; font-weight: 600; color: var(--w40); margin-bottom: 2px; }
+.alt-more     { font-size: 12px; color: var(--red); margin-left: 5px; font-weight: 500; }
 
 /* ── Alert Section ───────────────────────────────────────── */
 
 .alert-section { padding-top: 12px; }
 
 .alert-section-label {
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--w40);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
   margin-bottom: 10px;
   display: flex;
   align-items: center;
@@ -535,7 +517,7 @@ body {
 .alert-input-row input { margin-bottom: 0; }
 
 .currency-prefix {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Bengali", "Helvetica Neue", Arial, sans-serif; font-variant-numeric: tabular-nums;
   font-size: 15px; font-weight: 600;
   color: var(--lav); margin-right: -2px;
 }
@@ -546,7 +528,7 @@ body {
   color: var(--lav);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Bengali", "Helvetica Neue", Arial, sans-serif;
   font-size: 12px; font-weight: 600;
   cursor: pointer;
   transition: all var(--t);
@@ -561,7 +543,7 @@ body {
 .btn-alert:active { transform: scale(0.96); }
 
 .alert-status {
-  font-size: 11px;
+  font-size: 12px;
   margin-top: 8px;
   min-height: 14px;
   font-weight: 500;
@@ -596,7 +578,7 @@ body {
   background: none;
   border: none;
   color: var(--w40);
-  font-size: 11px;
+  font-size: 12px;
   cursor: pointer;
   padding: 4px;
   text-decoration: underline;
@@ -631,7 +613,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 12px;
   padding: 8px 14px;
   width: auto;
 }
@@ -663,14 +645,12 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  font-size: 9px;
+  font-size: 12px;
   color: var(--w40);
   margin-top: 4px;
   padding: 2px 6px;
   background: var(--w5);
   border-radius: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 /* ── Utility ─────────────────────────────────────────────── */
@@ -687,9 +667,9 @@ body {
 .border-danger   { border-color: var(--red) !important; }
 
 .alt-image-logo  { background: var(--bg2); object-fit: contain; padding: 4px; }
-.alt-score-val   { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+.alt-score-val   { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Bengali", "Helvetica Neue", Arial, sans-serif; font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; flex-shrink: 0; }
 
-.gauge-plain     { font-family: 'IBM Plex Mono', monospace; font-size: 26px; font-weight: 600; color: var(--w); }
+.gauge-plain     { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Bengali", "Helvetica Neue", Arial, sans-serif; font-variant-numeric: tabular-nums; font-size: 26px; font-weight: 600; color: var(--w); }
 .gauge-plain-sub { font-size: 13px; color: var(--w40); }
 
 .dk-status-success { color: var(--green); background: rgba(34,197,94,0.1);  border-radius: 4px; padding: 2px 6px; }
@@ -731,11 +711,9 @@ body {
 /* ── Horizon Section ─────────────────────────────────────── */
 
 .horizon-label {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--w40);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
   margin-bottom: 8px;
 }
 
@@ -752,7 +730,7 @@ body {
   border: 1px solid var(--border-sm);
   border-radius: 8px;
   color: var(--w40);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
@@ -776,14 +754,13 @@ body {
 }
 
 .horizon-action {
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 900;
-  letter-spacing: 0.1em;
   margin-bottom: 4px;
 }
 
 .horizon-text {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--w70);
   line-height: 1.55;
 }

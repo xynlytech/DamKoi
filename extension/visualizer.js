@@ -90,7 +90,7 @@ const Visualizer = {
 
     container.innerHTML = `
       <div class="damkoi-chart-container">
-        <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+        <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet" style="display:block;width:100%;height:auto;max-width:100%;" role="img" aria-label="Price history chart">
           <defs>
             <linearGradient id="chart-grad" x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stop-color="rgba(167, 139, 250, 0.4)" stop-opacity="1" />

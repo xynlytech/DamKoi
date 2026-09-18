@@ -18,7 +18,6 @@ import { safeFetch, formatBDT } from './utils.js';
 /* ── Constants ───────────────────────────────────────────── */
 
 const WIDGET_ID  = 'damkoi-inline-root';
-const FONT_URL   = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap';
 
 const INJECT_AFTER = [
   '[class*="pdp-product-price"]',
@@ -115,7 +114,7 @@ function buildChart(history, widthPx = 480, heightPx = 130) {
     const d   = new Date(pts[i].scraped_at);
     const lbl = d.toLocaleDateString('en-BD', { month: 'short', day: 'numeric' });
     return `<text x="${cx(i).toFixed(1)}" y="${heightPx - 5}" text-anchor="middle"
-              fill="${C.dim}" font-size="9" font-family="Inter,sans-serif">${lbl}</text>`;
+              fill="${C.dim}" font-size="11" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Noto Sans Bengali,Arial,sans-serif">${lbl}</text>`;
   }).join('');
 
   // Min/max price gridlines
@@ -160,9 +159,9 @@ function buildChart(history, widthPx = 480, heightPx = 130) {
 
       <!-- Price labels right side -->
       <text x="${widthPx - pad.right + 4}" y="${(maxY + 4).toFixed(1)}"
-            fill="${C.muted}" font-size="9" font-family="Inter,sans-serif">${formatBDT(maxP)}</text>
+            fill="${C.muted}" font-size="11" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Noto Sans Bengali,Arial,sans-serif">${formatBDT(maxP)}</text>
       <text x="${widthPx - pad.right + 4}" y="${(minY + 4).toFixed(1)}"
-            fill="${C.success}" font-size="9" font-family="Inter,sans-serif">${formatBDT(minP)}</text>
+            fill="${C.success}" font-size="11" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Noto Sans Bengali,Arial,sans-serif">${formatBDT(minP)}</text>
 
       <!-- Key dots -->
       ${dots}
@@ -183,8 +182,8 @@ function buildChart(history, widthPx = 480, heightPx = 130) {
     <div id="${svgId}_tip" style="
       display:none;position:absolute;
       background:${C.raised};border:1px solid ${C.border};
-      border-radius:8px;padding:6px 10px;font-size:11px;
-      color:${C.text};font-family:Inter,sans-serif;
+      border-radius:8px;padding:6px 10px;font-size:12px;
+      color:${C.text};font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Noto Sans Bengali,Arial,sans-serif;
       box-shadow:-2px -2px 6px rgba(255,255,255,0.8),2px 2px 8px rgba(0,0,0,0.1);
       pointer-events:none;white-space:nowrap;z-index:10;
     "></div>`;
@@ -247,14 +246,13 @@ function buildChart(history, widthPx = 480, heightPx = 130) {
 /* ── Widget CSS ──────────────────────────────────────────── */
 
 const WIDGET_CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700&family=Rubik:wght@500;700;800&display=swap');
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :host { 
     display: block; 
     margin: 20px 0 24px; 
-    font-family: 'Nunito Sans', sans-serif; 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Bengali", "Helvetica Neue", Arial, sans-serif; 
     --dk-glass: blur(14px) saturate(190%);
   }
 
@@ -281,7 +279,7 @@ const WIDGET_CSS = `
   .dk-brand { display: flex; align-items: center; gap: 10px; }
 
   .dk-brand-name {
-    font-family: 'Rubik', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Bengali", "Helvetica Neue", Arial, sans-serif;
     font-size: 16px;
     font-weight: 800;
     background: linear-gradient(135deg, ${C.text}, ${C.accent});
@@ -291,17 +289,15 @@ const WIDGET_CSS = `
   }
 
   .dk-brand-tag { 
-    font-family: 'Rubik', sans-serif;
-    font-size: 9px; 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Bengali", "Helvetica Neue", Arial, sans-serif;
+    font-size: 12px; 
     color: ${C.dim}; 
     font-weight: 700; 
-    text-transform: uppercase; 
-    letter-spacing: 1.5px; 
   }
 
   .dk-verdict-pill {
-    font-family: 'Rubik', sans-serif;
-    font-size: 11px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Bengali", "Helvetica Neue", Arial, sans-serif;
+    font-size: 12px;
     font-weight: 700;
     padding: 5px 12px;
     border-radius: 20px;
@@ -323,17 +319,15 @@ const WIDGET_CSS = `
   }
 
   .dk-stat-label {
-    font-family: 'Rubik', sans-serif;
-    font-size: 9px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Bengali", "Helvetica Neue", Arial, sans-serif;
+    font-size: 12px;
     color: ${C.dim};
-    text-transform: uppercase;
-    letter-spacing: 1px;
     font-weight: 700;
     margin-bottom: 4px;
   }
 
   .dk-stat-value {
-    font-family: 'Rubik', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Bengali", "Helvetica Neue", Arial, sans-serif;
     font-size: 14px;
     font-weight: 800;
     color: ${C.text};
@@ -346,7 +340,7 @@ const WIDGET_CSS = `
   }
 
   .dk-rec-title {
-    font-family: 'Rubik', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Bengali", "Helvetica Neue", Arial, sans-serif;
     font-size: 14px;
     font-weight: 700;
     margin-bottom: 2px;
@@ -357,9 +351,9 @@ const WIDGET_CSS = `
   .dk-range-tab {
     padding: 4px 12px;
     border-radius: 12px;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
-    font-family: 'Rubik', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Bengali", "Helvetica Neue", Arial, sans-serif;
     transition: all var(--dk-transition);
   }
 
@@ -398,7 +392,7 @@ const WIDGET_CSS = `
   }
 
   .dk-coupon-code {
-    font-family: 'Inter', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;   /* codes: 0 vs O must be unambiguous */
     font-weight: 800;
     color: ${C.accent};
     font-size: 14px;
@@ -412,7 +406,7 @@ const WIDGET_CSS = `
     color: white;
     border: none;
     border-radius: 10px;
-    font-family: 'Rubik', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Bengali", "Helvetica Neue", Arial, sans-serif;
     font-weight: 700;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   }
@@ -556,9 +550,9 @@ function buildGaugeArc(score) {
             stroke-dasharray="${circ}" stroke-dashoffset="${offset}"
             style="filter:drop-shadow(0 0 4px ${color});transition:stroke-dashoffset 0.9s cubic-bezier(.34,1.56,.64,1);"/>
       <text x="29" y="29" text-anchor="middle" fill="${color}"
-            font-size="13" font-weight="900" font-family="Inter,sans-serif">${score}</text>
+            font-size="13" font-weight="900" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Noto Sans Bengali,Arial,sans-serif">${score}</text>
       <text x="29" y="35" text-anchor="middle" fill="${C.dim}"
-            font-size="6.5" font-family="Inter,sans-serif">/10</text>
+            font-size="6.5" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Noto Sans Bengali,Arial,sans-serif">/10</text>
     </svg>`;
 }
 
@@ -667,7 +661,7 @@ function buildHTML(data, alts, chartObj, activeRange, coupons = []) {
           <div class="dk-stat-label">${label}</div>
           <div class="dk-stat-value" style="color:${clr};">${value}</div>
           ${label === '30-Day Avg' && savingsPct > 0
-            ? `<div style="font-size:9px;color:${C.success};margin-top:2px;font-weight:600;">↓${savingsPct}% savings</div>`
+            ? `<div style="font-size:12px;color:${C.success};margin-top:2px;font-weight:600;">↓${savingsPct}% savings</div>`
             : '<div style="height:12px;"></div>'}
         </div>
       `).join('')}
@@ -689,7 +683,7 @@ function buildHTML(data, alts, chartObj, activeRange, coupons = []) {
       <div class="dk-chart-legend">
         <span><span class="dk-legend-dot" style="background:${C.accent};"></span>Price line</span>
         <span><span class="dk-legend-dot" style="background:${C.success};"></span>All-time low</span>
-        <span style="color:${C.dim};font-size:9px;">Based on ${verdict.data_points || priceHistory.length} price recordings</span>
+        <span style="color:${C.dim};font-size:12px;">Based on ${verdict.data_points || priceHistory.length} price recordings</span>
       </div>
     </div>
 
